@@ -1,10 +1,5 @@
-import { Scheduler } from "./components"
+import { Scheduler } from "./components";
 
-
-
-export const CSC369 : React.FunctionComponent = () => {
-
-    return (
-        <Scheduler />
-    )
-}
+export const CSC369: React.FunctionComponent = () => {
+  return <Scheduler />;
+};

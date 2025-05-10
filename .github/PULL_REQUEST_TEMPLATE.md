@@ -1,5 +1,4 @@
 ## Description
-
 <!-- Provide a summary of the changes. What kind of change is this? (e.g. bugfix, new feature, refactor, etc.) -->
 
 ## Types of changes

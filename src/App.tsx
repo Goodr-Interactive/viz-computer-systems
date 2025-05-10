@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Home } from "./pages";
+import { Home, CSC369 } from "./pages";
 
 interface AppRoute {
   path: string;
@@ -14,7 +14,7 @@ const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc369",
-    element: <></>,
+    element: <CSC369 />,
   },
   {
     path: "/csc368",

@@ -83,7 +83,7 @@ const config = [
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-floating-promises": ["error", { ignoreIIFE: true, ignoreVoid: true }],
       "no-shadow": "off",
-      "@typescript-eslint/no-shadow": "error",
+      "@typescript-eslint/no-shadow": "off",
       "@typescript-eslint/array-type": ["error", { default: "array-simple" }],
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",

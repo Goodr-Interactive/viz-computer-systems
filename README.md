@@ -1,10 +1,12 @@
 # Viz-Computer-Systems
+
 A collection of interactive visualizations for Operating Systems and Computer Architecture concepts
 
 ### Development Environment Setup
 
 1. Install [bun](https://bun.sh/docs/installation)
 2. Install dependencies:
+
 ```sh
 bun install
 ```

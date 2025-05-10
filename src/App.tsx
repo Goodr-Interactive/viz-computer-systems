@@ -20,7 +20,7 @@ const ROUTES: AppRoute[] = [
     path: "/csc368",
     element: <></>,
   },
-]
+];
 
 export default function App() {
   return (

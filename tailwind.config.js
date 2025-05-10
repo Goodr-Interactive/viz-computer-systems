@@ -1,11 +1,11 @@
-import { fontFamily } from 'tailwindcss/defaultTheme'
+import { fontFamily } from "tailwindcss/defaultTheme";
 
 export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', ...fontFamily.sans],
+        sans: ["Inter", ...fontFamily.sans],
       },
     },
   },
-}
+};

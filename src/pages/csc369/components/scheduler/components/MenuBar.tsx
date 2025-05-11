@@ -32,6 +32,7 @@ export const MenuBar: React.FunctionComponent<Props> = ({ controller }) => {
             <SelectItem value={Algorithm.SCTF}>{Algorithm.SCTF}</SelectItem>
             <SelectItem value={Algorithm.RR}>{Algorithm.RR}</SelectItem>
             <SelectItem value={Algorithm.CFS}>{Algorithm.CFS}</SelectItem>
+            <SelectItem value={Algorithm.DIY}>{Algorithm.DIY}</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex items-center gap-[8px]">

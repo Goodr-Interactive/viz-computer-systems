@@ -28,7 +28,7 @@ export const Scheduler: React.FunctionComponent = () => {
             <DirectExecution controller={controller} />
           </ResizablePanel>
           <ResizableHandle />
-          <ResizablePanel className="max-w-[350px]">
+          <ResizablePanel className="max-w-[400px]">
             <ProcessQueue controller={controller} />
           </ResizablePanel>
         </ResizablePanelGroup>

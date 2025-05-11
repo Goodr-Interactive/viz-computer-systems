@@ -20,7 +20,7 @@ export interface Process {
   events: ProcessEvent[];
   status: ProcessStatus;
   enquedAt: number;
-  completedAt: number;
+  completedAt?: number;
 }
 
 export enum Algorithm {
@@ -29,6 +29,7 @@ export enum Algorithm {
   SCTF = "STCF",
   CFS = "CFS",
   RR = "RR",
+  DIY = "DIY"
 }
 
 export enum SchedulerState {

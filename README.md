@@ -4,7 +4,7 @@ A collection of interactive visualizations for Operating Systems and Computer Ar
 
 ### Development Environment Setup
 
-1. Install [bun](https://bun.sh/docs/installation)
+1. Install [bun@1.2.13](https://bun.sh/docs/installation)
 2. Install dependencies:
 
 ```sh

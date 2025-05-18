@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Home } from "./pages";
+import { Home, CSC368, Pipelining } from "./pages";
 
 interface AppRoute {
   path: string;
@@ -18,7 +18,11 @@ const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc368",
-    element: <></>,
+    element: <CSC368 />,
+  },
+  {
+    path: "/csc368/pipelining",
+    element: <Pipelining />,
   },
 ];
 

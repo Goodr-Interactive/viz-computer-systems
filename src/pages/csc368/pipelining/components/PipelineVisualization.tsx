@@ -197,7 +197,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               .attr("stroke", "black")
               .attr("rx", 5)
               .attr("ry", 5)
-              .attr("width", 180)
+              .attr("width", 220)
               .attr("height", 60)
               .attr("opacity", 0.9);
               

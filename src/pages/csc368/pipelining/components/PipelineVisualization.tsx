@@ -70,6 +70,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     svg.selectAll("*").remove();
 
     const margin = { top: 50, right: 30, bottom: 50, left: 100 };
+    
+    // const parentElement = document.getElementById(vis.parentContainer);
+
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
     
@@ -78,6 +81,16 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
     // X and Y scales
+    // Convert clock cycles to actual times (starting at 9:00 AM)
+    const timeLabels = d3.range(0, cycles + 5).map(cycle => {
+      const minutes = cycle * 30; // Each cycle is 30 minutes
+      const hours = Math.floor(9 + minutes / 60); // Start at 9 AM
+      const mins = minutes % 60;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const hour12 = hours > 12 ? hours - 12 : hours;
+      return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
+    });
+
     const xScale = d3.scaleBand()
       .domain(d3.range(0, cycles + 5).map(String))
       .range([0, innerWidth])
@@ -89,15 +102,24 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .padding(0.1);
 
     // Add X axis
-    g.append("g")
+    const xAxis = g.append("g")
       .attr("transform", `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(xScale))
-      .append("text")
+      .call(d3.axisBottom(xScale).tickFormat((_, i) => timeLabels[i]));
+      
+    // Rotate the tick labels
+    xAxis.selectAll("text")
+      .attr("transform", "rotate(60)")
+      .attr("text-anchor", "start")
+      .attr("y", 0)
+      .attr("x", 9)
+      .attr("dy", ".35em");
+      
+    xAxis.append("text")
       .attr("x", innerWidth / 2)
       .attr("y", 40)
       .attr("fill", "black")
       .attr("text-anchor", "middle")
-      .text("Clock Cycle");
+      // .text("Time of Day");
 
     // Add Y axis
     g.append("g")
@@ -187,7 +209,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             tooltip.append("text")
               .attr("x", 10)
               .attr("y", 40)
-              .text(`Stage: ${stageName} (Cycle ${cycle})`);
+              .text(`Stage: ${stageName} (${timeLabels[cycle]})`);
           })
           .on("mouseout", function() {
             d3.select(this).attr("opacity", 0.7);
@@ -207,55 +229,65 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     });
 
     // Draw instruction legend
-    const legend = svg.append("g")
-      .attr("transform", `translate(${width - 150}, 10)`);
+    // const legend = svg.append("g")
+    //   .attr("transform", `translate(${width - 150}, 10)`);
 
     // Legend for laundry loads
-    legend.append("text")
-      .attr("x", 0)
-      .attr("y", -5)
-      .attr("font-weight", "bold")
-      .text("Laundry Loads");
+    // legend.append("text")
+    //   .attr("x", 0)
+    //   .attr("y", -5)
+    //   .attr("font-weight", "bold")
+    //   .text("Laundry Loads");
 
-    pipelineInstructions.forEach((instr, i) => {
-      const legendItem = legend.append("g")
-        .attr("transform", `translate(0, ${i * 20 + 15})`);
+    // pipelineInstructions.forEach((instr, i) => {
+    //   const legendItem = legend.append("g")
+    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
         
-      legendItem.append("rect")
-        .attr("width", 15)
-        .attr("height", 15)
-        .attr("fill", instr.color);
+      // legendItem.append("rect")
+      //   .attr("width", 15)
+      //   .attr("height", 15)
+      //   .attr("fill", instr.color);
         
-      legendItem.append("text")
-        .attr("x", 20)
-        .attr("y", 12)
-        .text(instr.name);
-    });
+      // legendItem.append("text")
+      //   .attr("x", 20)
+      //   .attr("y", 12)
+      //   .text(instr.name);
+    // });
     
-    // Legend for pipeline stages
-    const stageLegend = svg.append("g")
-      .attr("transform", `translate(10, 10)`);
+    // // Legend for pipeline stages
+    // const stageLegend = svg.append("g")
+    //   .attr("transform", `translate(10, 10)`);
       
-    stageLegend.append("text")
-      .attr("x", 0)
-      .attr("y", -5)
-      .attr("font-weight", "bold")
-      .text("Pipeline Stages");
+    // stageLegend.append("text")
+    //   .attr("x", 0)
+    //   .attr("y", -5)
+    //   .attr("font-weight", "bold")
+    //   .text("Pipeline Stages");
       
-    PIPELINE_STAGES.forEach((stage, i) => {
-      const legendItem = stageLegend.append("g")
-        .attr("transform", `translate(0, ${i * 20 + 15})`);
+    // PIPELINE_STAGES.forEach((stage, i) => {
+    //   const legendItem = stageLegend.append("g")
+    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
         
-      legendItem.append("text")
-        .attr("font-weight", "bold")
-        .text(`${stage.charAt(0)} = ${stage}`);
-    });
+    //   legendItem.append("text")
+    //     .attr("font-weight", "bold")
+    //     .text(`${stage.charAt(0)} = ${stage}`);
+    // });
     
   }, [width, height, cycles, pipelineInstructions]);
 
   // Simulation logic
   useEffect(() => {
     if (!isRunning) return;
+    
+    // Check if all instructions are completed
+    const allInstructionsCompleted = pipelineInstructions.every(
+      instr => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+    );
+    
+    if (allInstructionsCompleted) {
+      setIsRunning(false);
+      return;
+    }
     
     const timer = setTimeout(() => {
       // Increment cycle
@@ -308,17 +340,37 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           }
           
           // Advance the active instruction
-          return prevInstructions.map((instr, index) => {
-            if (index === activeInstructionIndex) {
-              if (instr.currentStage !== undefined && instr.currentStage < PIPELINE_STAGES.length - 1) {
-                return { ...instr, currentStage: instr.currentStage + 1 };
-              } else {
-                // This instruction is done, reset to find next one on next cycle
-                return { ...instr, currentStage: PIPELINE_STAGES.length };
-              }
+          let updatedInstructions = [...prevInstructions];
+          
+          if (updatedInstructions[activeInstructionIndex].currentStage !== undefined && 
+              updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length - 1) {
+            // Simply advance this instruction to the next stage
+            updatedInstructions[activeInstructionIndex] = {
+              ...updatedInstructions[activeInstructionIndex],
+              currentStage: updatedInstructions[activeInstructionIndex].currentStage! + 1
+            };
+          } else {
+            // This instruction is done, mark it as completed
+            updatedInstructions[activeInstructionIndex] = {
+              ...updatedInstructions[activeInstructionIndex],
+              currentStage: PIPELINE_STAGES.length
+            };
+            
+            // Immediately start the next instruction if available
+            const nextInstructionIndex = updatedInstructions.findIndex(
+              instr => instr.currentStage === -1
+            );
+            
+            if (nextInstructionIndex !== -1) {
+              updatedInstructions[nextInstructionIndex] = {
+                ...updatedInstructions[nextInstructionIndex],
+                currentStage: 0,
+                startCycle: cycles
+              };
             }
-            return instr;
-          });
+          }
+          
+          return updatedInstructions;
         }
       });
     }, speed);
@@ -437,7 +489,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             onClick={handleReset}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
           >
-            Reset
+            {pipelineInstructions.every(instr => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length) ? 'Start Over' : 'Reset'}
           </button>
         </div>
         
@@ -538,7 +590,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         
         <div className="flex items-center gap-4">
           <div className="text-center">
-            <h3 className="text-lg font-medium">Clock Cycle: {cycles}</h3>
+            <h3 className="text-lg font-medium">
+              Current Time: {cycles > 0 ? (
+                (() => {
+                  const minutes = Math.floor(cycles / 2) * 30;
+                  const hours = Math.floor(9 + minutes / 60);
+                  const mins = minutes % 60;
+                  const ampm = hours >= 12 ? 'PM' : 'AM';
+                  const hour12 = hours > 12 ? hours - 12 : hours;
+                  return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
+                })()
+              ) : '9:00 AM'} 
+              <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
+            </h3>
           </div>
           
           <div className="text-center flex items-center gap-2">
@@ -561,6 +625,32 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         <svg ref={svgRef} width={width} height={height}></svg>
       </div>
       
+      {pipelineInstructions.every(instr => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length) && (
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4 w-full">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-700">
+                <strong>All done!</strong> All laundry loads have been completed. Final time: {
+                  (() => {
+                    const minutes = Math.floor(cycles / 2) * 30;
+                    const hours = Math.floor(9 + minutes / 60);
+                    const mins = minutes % 60;
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    const hour12 = hours > 12 ? hours - 12 : hours;
+                    return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
+                  })()
+                }. It took {cycles} "cycles" to complete all {pipelineInstructions.length} loads of laundry.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 w-full">
         <div className="flex">
           <div className="flex-shrink-0">
@@ -570,11 +660,20 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              <strong>Laundry Efficiency:</strong> In {isPipelined ? "pipelined" : "non-pipelined"} mode, all {pipelineInstructions.length} loads of laundry require approximately <strong>{totalCyclesRequired}</strong> cycles to complete.
+              <strong>Laundry Efficiency:</strong> In {isPipelined ? "pipelined" : "non-pipelined"} mode, all {pipelineInstructions.length} loads of laundry require approximately <strong>{totalCyclesRequired}</strong> "cycles" to complete (from 9:00 AM to {
+                (() => {
+                  const minutes = Math.floor(totalCyclesRequired / 2) * 30;
+                  const hours = Math.floor(9 + minutes / 60);
+                  const mins = minutes % 60;
+                  const ampm = hours >= 12 ? 'PM' : 'AM';
+                  const hour12 = hours > 12 ? hours - 12 : hours;
+                  return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
+                })()
+              }).
               {isPipelined ? (
-                <> With pipelined laundry, you can complete a load every cycle once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete before starting the next.</>
+                <> With pipelined laundry, you can complete a load every 30 minutes once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages (2.5 hours) to complete before starting the next.</>
               ) : (
-                <> With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages for each load before starting the next one, resulting in a CPI of {PIPELINE_STAGES.length}.</>
+                <> With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages (2.5 hours) for each load before starting the next one, resulting in a cycles-per-load of {PIPELINE_STAGES.length}.</>
               )}
             </p>
           </div>
@@ -589,14 +688,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           we can have multiple loads at different stages simultaneously.
         </p>
         <p className="mb-2">
-          In this visualization, we have implemented a 5-stage laundry pipeline:
+          In this visualization, we represent a typical laundry day starting at 9:00 AM, with each pipeline stage
+          taking approximately 30 minutes to complete. This makes the 5-stage pipeline take 2.5 hours per load
+          in non-pipelined mode.
+        </p>
+        <p className="mb-2">
+          Our 5-stage laundry pipeline consists of:
         </p>
         <ul className="list-disc ml-8 mb-4">
-          <li><strong>Sort:</strong> Separate the clothes by color/type (like retrieving instructions from memory)</li>
-          <li><strong>Wash:</strong> Run the washing machine (like decoding instructions)</li>
-          <li><strong>Dry:</strong> Use the dryer (like executing the instruction)</li>
-          <li><strong>Fold:</strong> Fold the clean laundry (like memory access)</li>
-          <li><strong>Put Away:</strong> Return clothes to drawers and closets (like writing results back to registers)</li>
+          <li><strong>Sort (S):</strong> Separate the clothes by color/type (like retrieving instructions from memory)</li>
+          <li><strong>Wash (W):</strong> Run the washing machine (like decoding instructions)</li>
+          <li><strong>Dry (D):</strong> Use the dryer (like executing the instruction)</li>
+          <li><strong>Fold (F):</strong> Fold the clean laundry (like memory access)</li>
+          <li><strong>Put Away (P):</strong> Return clothes to drawers and closets (like writing results back to registers)</li>
         </ul>
         
         <h3 className="text-lg font-semibold mb-2">Pipelined vs. Non-Pipelined Laundry</h3>

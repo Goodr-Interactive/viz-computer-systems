@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 // Define the instruction stages
-const PIPELINE_STAGES = ["Fetch", "Decode", "Execute", "Memory", "Write Back"];
+const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
 
 // Define some sample instructions for visualization
 const DEFAULT_INSTRUCTIONS = [
-  { id: 1, name: "ADD R1, R2, R3", color: "#4285F4" },
-  { id: 2, name: "SUB R4, R5, R6", color: "#EA4335" },
-  { id: 3, name: "LW R7, 0(R8)", color: "#FBBC05" },
-  { id: 4, name: "SW R9, 4(R10)", color: "#34A853" },
-  { id: 5, name: "BEQ R11, R12, label", color: "#8F44AD" }
+  { id: 1, name: "Load 1 (shirts)", color: "#4285F4" },
+  { id: 2, name: "Load 2 (pants)", color: "#EA4335" },
+  { id: 3, name: "Load 3 (socks)", color: "#FBBC05" },
+  { id: 4, name: "Load 4 (sheets)", color: "#34A853" },
+  { id: 5, name: "Load 5 (jackets)", color: "#8F44AD" }
 ];
 
 interface Instruction {
@@ -84,7 +84,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .padding(0.1);
 
     const yScale = d3.scaleBand()
-      .domain(PIPELINE_STAGES)
+      .domain(pipelineInstructions.map(instr => instr.id.toString()))
       .range([0, innerHeight])
       .padding(0.1);
 
@@ -101,14 +101,17 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
     // Add Y axis
     g.append("g")
-      .call(d3.axisLeft(yScale))
+      .call(d3.axisLeft(yScale).tickFormat(d => {
+        const instr = pipelineInstructions.find(i => i.id.toString() === d);
+        return instr ? instr.name : d;
+      }))
       .append("text")
       .attr("transform", "rotate(-90)")
-      .attr("y", -60)
+      .attr("y", -80)
       .attr("x", -innerHeight / 2)
       .attr("fill", "black")
       .attr("text-anchor", "middle")
-      .text("Pipeline Stage");
+      .text("Laundry Load");
 
     // Draw grid lines
     g.append("g")
@@ -127,7 +130,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     g.append("g")
       .attr("class", "grid")
       .selectAll("line")
-      .data(PIPELINE_STAGES)
+      .data(pipelineInstructions.map(instr => instr.id.toString()))
       .enter()
       .append("line")
       .attr("x1", 0)
@@ -153,7 +156,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         // Draw the rectangle for this stage
         g.append("rect")
           .attr("x", xScale(String(cycle))!)
-          .attr("y", yScale(stageName)!)
+          .attr("y", yScale(instr.id.toString())!)
           .attr("width", xScale.bandwidth())
           .attr("height", yScale.bandwidth())
           .attr("fill", instr.stalled && stage === instr.currentStage ? "#f8d7da" : instr.color)
@@ -179,7 +182,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             tooltip.append("text")
               .attr("x", 10)
               .attr("y", 20)
-              .text(`Instruction: ${instr.name}`);
+              .text(`Laundry: ${instr.name}`);
               
             tooltip.append("text")
               .attr("x", 10)
@@ -191,15 +194,15 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             svg.selectAll(".tooltip").remove();
           });
           
-        // Add text label (instruction ID)
+        // Add stage label
         g.append("text")
           .attr("x", xScale(String(cycle))! + xScale.bandwidth() / 2)
-          .attr("y", yScale(stageName)! + yScale.bandwidth() / 2)
+          .attr("y", yScale(instr.id.toString())! + yScale.bandwidth() / 2)
           .attr("fill", "white")
           .attr("text-anchor", "middle")
           .attr("dominant-baseline", "middle")
           .attr("font-weight", "bold")
-          .text(instr.id);
+          .text(stageName.charAt(0));
       }
     });
 
@@ -207,9 +210,16 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     const legend = svg.append("g")
       .attr("transform", `translate(${width - 150}, 10)`);
 
+    // Legend for laundry loads
+    legend.append("text")
+      .attr("x", 0)
+      .attr("y", -5)
+      .attr("font-weight", "bold")
+      .text("Laundry Loads");
+
     pipelineInstructions.forEach((instr, i) => {
       const legendItem = legend.append("g")
-        .attr("transform", `translate(0, ${i * 20})`);
+        .attr("transform", `translate(0, ${i * 20 + 15})`);
         
       legendItem.append("rect")
         .attr("width", 15)
@@ -220,6 +230,25 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         .attr("x", 20)
         .attr("y", 12)
         .text(instr.name);
+    });
+    
+    // Legend for pipeline stages
+    const stageLegend = svg.append("g")
+      .attr("transform", `translate(10, 10)`);
+      
+    stageLegend.append("text")
+      .attr("x", 0)
+      .attr("y", -5)
+      .attr("font-weight", "bold")
+      .text("Pipeline Stages");
+      
+    PIPELINE_STAGES.forEach((stage, i) => {
+      const legendItem = stageLegend.append("g")
+        .attr("transform", `translate(0, ${i * 20 + 15})`);
+        
+      legendItem.append("text")
+        .attr("font-weight", "bold")
+        .text(`${stage.charAt(0)} = ${stage}`);
     });
     
   }, [width, height, cycles, pipelineInstructions]);
@@ -452,7 +481,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               type="text"
               value={newInstructionName}
               onChange={(e) => setNewInstructionName(e.target.value)}
-              placeholder="Enter instruction (e.g., ADD R1, R2, R3)"
+              placeholder="Enter laundry load (e.g., Sweaters Load)"
               className="flex-grow px-3 py-2 border border-gray-300 rounded"
             />
             <button
@@ -541,11 +570,11 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              <strong>Performance Metrics:</strong> In {isPipelined ? "pipelined" : "non-pipelined"} mode, all {pipelineInstructions.length} instructions require approximately <strong>{totalCyclesRequired}</strong> cycles to complete.
+              <strong>Laundry Efficiency:</strong> In {isPipelined ? "pipelined" : "non-pipelined"} mode, all {pipelineInstructions.length} loads of laundry require approximately <strong>{totalCyclesRequired}</strong> cycles to complete.
               {isPipelined ? (
-                <> A perfect pipeline achieves a CPI of 1.0 (one cycle per instruction), while non-pipelined execution requires {PIPELINE_STAGES.length} cycles per instruction.</>
+                <> With pipelined laundry, you can complete a load every cycle once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete before starting the next.</>
               ) : (
-                <> Without pipelining, each instruction must complete all {PIPELINE_STAGES.length} stages before the next can begin, resulting in a CPI of {PIPELINE_STAGES.length}.</>
+                <> With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages for each load before starting the next one, resulting in a CPI of {PIPELINE_STAGES.length}.</>
               )}
             </p>
           </div>
@@ -553,45 +582,56 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       </div>
       
       <div className="mt-4 text-left w-full max-w-3xl">
-        <h3 className="text-lg font-semibold mb-2">About Instruction Pipelining</h3>
+        <h3 className="text-lg font-semibold mb-2">Understanding Pipelining with Laundry</h3>
         <p className="mb-2">
-          Instruction pipelining is a technique used in modern CPU design to increase instruction throughput by
-          executing multiple instructions simultaneously, each at a different stage of completion. The pipeline 
-          is divided into stages, with each stage performing a specific part of the instruction processing.
+          Instruction pipelining in computer architecture is similar to how a modern laundry process works. 
+          Instead of waiting for one load of laundry to go through all stages before starting the next load, 
+          we can have multiple loads at different stages simultaneously.
         </p>
         <p className="mb-2">
-          In this visualization, we have implemented a classic 5-stage pipeline:
+          In this visualization, we have implemented a 5-stage laundry pipeline:
         </p>
         <ul className="list-disc ml-8 mb-4">
-          <li><strong>Fetch:</strong> Retrieve the instruction from memory</li>
-          <li><strong>Decode:</strong> Decode the instruction and read registers</li>
-          <li><strong>Execute:</strong> Perform the operation or calculate an address</li>
-          <li><strong>Memory:</strong> Access memory if needed</li>
-          <li><strong>Write Back:</strong> Write the result back to a register</li>
+          <li><strong>Sort:</strong> Separate the clothes by color/type (like retrieving instructions from memory)</li>
+          <li><strong>Wash:</strong> Run the washing machine (like decoding instructions)</li>
+          <li><strong>Dry:</strong> Use the dryer (like executing the instruction)</li>
+          <li><strong>Fold:</strong> Fold the clean laundry (like memory access)</li>
+          <li><strong>Put Away:</strong> Return clothes to drawers and closets (like writing results back to registers)</li>
         </ul>
         
-        <h3 className="text-lg font-semibold mb-2">Pipelined vs. Non-Pipelined Execution</h3>
+        <h3 className="text-lg font-semibold mb-2">Pipelined vs. Non-Pipelined Laundry</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="bg-blue-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Pipelined Execution</h4>
+            <h4 className="font-medium mb-1">Pipelined Laundry</h4>
             <p className="text-sm">
-              In pipelined execution, multiple instructions are in different stages of execution simultaneously.
-              Once the pipeline is full, the processor can complete one instruction per clock cycle, which 
-              significantly improves throughput.
+              In a pipelined laundry system, while the T-shirts are in the dryer, the pants can be in the washer, 
+              and you can be sorting the socks. This way, a new load of laundry can be completed every cycle 
+              once the pipeline is full, dramatically improving efficiency.
             </p>
           </div>
           <div className="bg-red-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Non-Pipelined Execution</h4>
+            <h4 className="font-medium mb-1">Non-Pipelined Laundry</h4>
             <p className="text-sm">
-              In non-pipelined execution, each instruction must complete all stages before the next instruction 
-              can begin. This means each instruction takes 5 cycles to complete, and the processor can only 
-              complete one instruction every 5 cycles.
+              In a non-pipelined system, you would have to complete the entire process for T-shirts 
+              (sort, wash, dry, fold, put away) before even starting to sort the pants. This means each 
+              load takes 5 cycles to complete, and you can only finish one load every 5 cycles.
             </p>
           </div>
         </div>
+        
+        <h3 className="text-lg font-semibold mb-2">The Computer Architecture Connection</h3>
+        <p className="mb-2">
+          In CPU design, pipelining works the same way:
+        </p>
+        <ul className="list-disc ml-8 mb-4">
+          <li>Each instruction goes through distinct stages (fetch, decode, execute, memory access, write back)</li>
+          <li>With pipelining, multiple instructions are processed simultaneously at different stages</li>
+          <li>This improves throughput - the number of instructions completed per cycle</li>
+          <li>The CPI (Cycles Per Instruction) approaches 1.0 in an ideal pipeline</li>
+        </ul>
         <p>
-          Toggle between modes to see the dramatic difference in performance! In the real world, 
-          modern processors use much deeper pipelines (often 10-20 stages) to achieve even higher performance.
+          Toggle between the pipelined and non-pipelined modes to see how dramatically this technique 
+          improves efficiency - just like it would make your laundry day much more productive!
         </p>
       </div>
     </div>

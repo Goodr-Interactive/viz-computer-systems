@@ -6,53 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-export interface BinaryBlockProps {
-  /**
-   * Number of blocks to render
-   */
-  blocks: number;
-  /**
-   * Background color for the blocks
-   */
-  color?: string;
-  /**
-   * Border color for the blocks
-   */
-  borderColor?: string;
-  /**
-   * Hover color class for blocks (full Tailwind class name)
-   */
-  hoverColor?: string;
-  /**
-   * Tooltip content to display on hover
-   */
-  tooltip?: React.ReactNode;
-  /**
-   * Show left border on the first block
-   */
-  showLeftBorder?: boolean;
-  /**
-   * Label to display below the blocks
-   */
-  label?: React.ReactNode;
-  /**
-   * Starting bit number (for continuous numbering across multiple blocks)
-   */
-  startBitNumber?: number;
-  /**
-   * Whether to show bit numbers
-   */
-  showBitNumbers?: boolean;
-  /**
-   * Optional class name for styling
-   */
-  className?: string;
-  /**
-   * Optional click handler for the entire block group
-   */
-  onClick?: () => void;
-}
+import type { BinaryBlockProps } from "./types";
 
 export const BinaryBlock: React.FC<BinaryBlockProps> = ({
   blocks,
@@ -72,7 +26,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
   const blockContent = (
     <div className="flex flex-col items-center">
       {showBitNumbers && (
-        <div className="flex w-full mb-1">
+        <div className="flex w-full mb-1 items-center justify-center">
           {blockArray.map((index) => (
             <div key={`bit-${index}`} className="w-8 text-center">
               <span className="text-xs text-muted-foreground">

@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Home } from "./pages";
-import { SimplePaging } from "./pages/csc369/components/paging/SimplePaging";
+import { SimplePaging } from "./pages/csc369/SimplePaging";
 
 interface AppRoute {
   path: string;

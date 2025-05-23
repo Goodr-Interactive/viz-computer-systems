@@ -711,7 +711,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             <p className="text-sm text-yellow-700">
               <strong>Laundry Efficiency:</strong> In {isPipelined ? "pipelined" : "non-pipelined"} mode, all {pipelineInstructions.length} loads of laundry require approximately <strong>{totalCyclesRequired}</strong> "cycles" to complete (from 9:00 AM to {
                 (() => {
-                  const minutes = Math.floor(totalCyclesRequired / 2) * 30;
+                  const minutes = totalCyclesRequired * 30;
                   const hours = Math.floor(9 + minutes / 60);
                   const mins = minutes % 60;
                   const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -720,9 +720,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 })()
               }).
               {isPipelined ? (
-                <> With pipelined laundry, you can complete a load every 30 minutes once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages (2.5 hours) to complete before starting the next.</>
+                <> With pipelined laundry, you can complete a load every 30 minutes once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete before starting the next.</>
               ) : (
-                <> With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages (2.5 hours) for each load before starting the next one, resulting in a cycles-per-load of {PIPELINE_STAGES.length}.</>
+                <> With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages for each load before starting the next one, resulting in a cycles-per-load of {PIPELINE_STAGES.length}.</>
               )}
             </p>
           </div>
@@ -738,7 +738,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         </p>
         <p className="mb-2">
           In this visualization, we represent a typical laundry day starting at 9:00 AM, with each pipeline stage
-          taking approximately 30 minutes to complete. This makes the 5-stage pipeline take 2.5 hours per load
+          taking approximately 30 minutes to complete. This makes the 5-stage pipeline take stage * time per stage (e.g. 5-stages * 30 mins = 2.5 hrs) hours per load
           in non-pipelined mode.
         </p>
         <p className="mb-2">

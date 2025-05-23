@@ -7,10 +7,7 @@ export interface AnimatedBinaryBlockProps extends BinaryBlockProps {
   layoutId?: string;
 }
 
-export const AnimatedBinaryBlock: React.FC<AnimatedBinaryBlockProps> = ({
-  layoutId,
-  ...props
-}) => (
+export const AnimatedBinaryBlock: React.FC<AnimatedBinaryBlockProps> = ({ layoutId, ...props }) => (
   <motion.div
     layoutId={layoutId}
     transition={{
@@ -20,4 +17,4 @@ export const AnimatedBinaryBlock: React.FC<AnimatedBinaryBlockProps> = ({
   >
     <BinaryBlock {...props} />
   </motion.div>
-); 
+);

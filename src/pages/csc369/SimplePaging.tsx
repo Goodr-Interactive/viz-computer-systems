@@ -3,7 +3,12 @@ import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { AnimatedBinaryBlock } from "./components/paging/ui/AnimatedBinaryBlock";
 import { PagingSystem } from "./components/paging/PagingSystem";
 import { PhysicalMemorySize, PageSize, VirtualAddressBits } from "./components/paging/types";
-import { PageTableLevelColors, physicalMemoryOptions, pageSizeOptions, virtualBitsOptions } from "./components/paging/constants";
+import {
+  PageTableLevelColors,
+  physicalMemoryOptions,
+  pageSizeOptions,
+  virtualBitsOptions,
+} from "./components/paging/constants";
 import {
   Select,
   SelectContent,

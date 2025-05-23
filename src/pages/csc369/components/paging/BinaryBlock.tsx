@@ -1,11 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BinaryBlockProps } from "./types";
 
 export const BinaryBlock: React.FC<BinaryBlockProps> = ({
@@ -26,10 +21,10 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
   const blockContent = (
     <div className="flex flex-col items-center">
       {showBitNumbers && (
-        <div className="flex w-full mb-1 items-center justify-center">
+        <div className="mb-1 flex w-full items-center justify-center">
           {blockArray.map((index) => (
             <div key={`bit-${index}`} className="w-8 text-center">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-muted-foreground text-xs">
                 {startBitNumber + (blocks - 1 - index)}
               </span>
             </div>
@@ -38,7 +33,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
       )}
       <div
         className={cn(
-          "flex flex-wrap rounded-md transition-colors cursor-pointer group",
+          "group flex cursor-pointer flex-wrap rounded-md transition-colors",
           className
         )}
         onClick={onClick}
@@ -48,7 +43,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
           <div key={index}>
             <div
               className={cn(
-                "w-8 h-8 transition-colors border-y border-r",
+                "h-8 w-8 border-y border-r transition-colors",
                 index === 0 && showLeftBorder && "border-l",
                 color,
                 borderColor,
@@ -59,11 +54,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
           </div>
         ))}
       </div>
-      {label && (
-        <div className="mt-2 text-sm text-center text-muted-foreground">
-          {label}
-        </div>
-      )}
+      {label && <div className="text-muted-foreground mt-2 text-center text-sm">{label}</div>}
     </div>
   );
 
@@ -71,12 +62,8 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            {blockContent}
-          </TooltipTrigger>
-          <TooltipContent>
-            {tooltip}
-          </TooltipContent>
+          <TooltipTrigger asChild>{blockContent}</TooltipTrigger>
+          <TooltipContent>{tooltip}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );

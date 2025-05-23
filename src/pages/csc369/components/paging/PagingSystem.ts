@@ -117,10 +117,10 @@ export class PagingSystem {
     const pteIndexBits = this.getPteIndexBits();
     const vpnBits = this.getVpnBits();
     const levels = this.getPageTableLevels();
-    
+
     const bitsPerLevel: number[] = [];
     let remainingBits = vpnBits;
-    
+
     for (let i = 0; i < levels; i++) {
       if (i === levels - 1) {
         // Last level gets all remaining bits
@@ -131,7 +131,7 @@ export class PagingSystem {
         remainingBits -= pteIndexBits;
       }
     }
-    
+
     return bitsPerLevel;
   }
 
@@ -185,4 +185,4 @@ export class PagingSystem {
 
     return `${value} ${units[unitIndex]}`;
   }
-} 
+}

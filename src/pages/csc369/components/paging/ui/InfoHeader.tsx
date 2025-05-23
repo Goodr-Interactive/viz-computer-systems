@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface InfoHeaderProps {
   children: React.ReactNode;
@@ -23,13 +18,13 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <p className="text-muted-foreground text-sm font-medium cursor-help border-b border-dotted border-muted-foreground/50 hover:border-muted-foreground transition-colors inline-block">
+          <p className="text-muted-foreground border-muted-foreground/50 hover:border-muted-foreground inline-block cursor-help border-b border-dotted text-sm font-medium transition-colors">
             {children}
           </p>
         </TooltipTrigger>
         <TooltipContent className="max-w-sm p-3" side="top">
           <div className="space-y-2">
-            <p className="font-medium text-sm">{definition}</p>
+            <p className="text-sm font-medium">{definition}</p>
             <p className="text-xs text-gray-200">
               <strong>Calculation:</strong> {calculation}
             </p>
@@ -39,4 +34,4 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({
     </TooltipProvider>
     <p className="font-medium">{value}</p>
   </div>
-); 
+);

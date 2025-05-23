@@ -13,18 +13,18 @@ export const PageTableLevelColors: PageTableLevelColor[] = [
   {
     background: "bg-indigo-100",
     border: "border-indigo-300",
-    hover: "group-hover:bg-indigo-200"
+    hover: "group-hover:bg-indigo-200",
   },
   {
     background: "bg-purple-100",
     border: "border-purple-300",
-    hover: "group-hover:bg-purple-200"
+    hover: "group-hover:bg-purple-200",
   },
   {
     background: "bg-pink-100",
     border: "border-pink-300",
-    hover: "group-hover:bg-pink-200"
-  }
+    hover: "group-hover:bg-pink-200",
+  },
 ];
 
 export const physicalMemoryOptions = [
@@ -53,4 +53,4 @@ export const virtualBitsOptions = [
   { value: VirtualAddressBits.BITS_26, label: "26 bits" },
   { value: VirtualAddressBits.BITS_28, label: "28 bits" },
   { value: VirtualAddressBits.BITS_30, label: "30 bits" },
-]; 
+];

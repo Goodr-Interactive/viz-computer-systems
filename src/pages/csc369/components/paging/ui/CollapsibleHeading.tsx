@@ -18,14 +18,14 @@ export const CollapsibleHeading: React.FC<CollapsibleHeadingProps> = ({
     <motion.div
       animate={{ rotate: collapsed ? 0 : 180 }}
       initial={{ rotate: 0 }}
-      transition={{ 
-        duration: 0.3, 
+      transition={{
+        duration: 0.3,
         ease: "easeInOut",
-        type: "tween"
+        type: "tween",
       }}
       style={{ transformOrigin: "center" }}
     >
       <ChevronDown className="text-muted-foreground h-5 w-5" />
     </motion.div>
   </div>
-); 
+);

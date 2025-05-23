@@ -24,7 +24,7 @@ const ROUTES: AppRoute[] = [
   {
     path: "/csc369/paging",
     element: <SimplePaging />,
-  }
+  },
 ];
 
 export default function App() {

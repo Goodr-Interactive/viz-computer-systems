@@ -127,7 +127,7 @@ export const SimplePaging: React.FunctionComponent = () => {
       <section className="w-full max-w-6xl">
         <LayoutGroup>
           <div className="flex flex-col gap-8">
-            <div className="bg-muted/30 rounded-lg p-6">
+            <div className="bg-muted/50 rounded-lg p-6">
               <SubsectionHeading>Virtual Address ({virtualBits} bits)</SubsectionHeading>
               <div className="flex flex-col gap-4">
                 <AnimatePresence mode="wait">
@@ -201,7 +201,7 @@ export const SimplePaging: React.FunctionComponent = () => {
               </div>
             </div>
 
-            <div className="bg-muted/30 rounded-lg p-6">
+            <div className="bg-muted/50 rounded-lg p-6">
               <SubsectionHeading>Physical Address (32 bits)</SubsectionHeading>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -280,7 +280,7 @@ export const SimplePaging: React.FunctionComponent = () => {
         <LayoutGroup>
           <div className="flex flex-col gap-4">
             {/* PTE Structure - Non-Collapsible */}
-            <div className="bg-muted/30 rounded-lg p-6">
+            <div className="bg-muted/50 rounded-lg p-6">
               <SubsectionHeading>Page Table Entry (PTE) Structure</SubsectionHeading>
               <p className="text-muted-foreground mb-3 text-sm">Each PTE is 32 bits (4 bytes)</p>
               <AnimatePresence mode="wait">
@@ -418,7 +418,7 @@ export const SimplePaging: React.FunctionComponent = () => {
       </section>
 
       {/* System Information Section - Moved to Bottom */}
-      <section className="bg-muted/30 w-full max-w-6xl rounded-lg p-6">
+      <section className="bg-muted/50 w-full max-w-6xl rounded-lg p-6">
         <CollapsibleHeading
           collapsed={derivedValuesCollapsed}
           onClick={() => setDerivedValuesCollapsed(!derivedValuesCollapsed)}

@@ -321,51 +321,6 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
           .attr("rx", 4);
       }
     });
-
-    // Draw instruction legend
-    // const legend = svg.append("g")
-    //   .attr("transform", `translate(${svgWidth - 150}, 10)`);
-
-    // Legend for laundry loads
-    // legend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Laundry Loads");
-
-    // pipelineInstructions.forEach((instr, i) => {
-    //   const legendItem = legend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
-        
-      // legendItem.append("rect")
-      //   .attr("width", 15)
-      //   .attr("height", 15)
-      //   .attr("fill", instr.color);
-        
-      // legendItem.append("text")
-      //   .attr("x", 20)
-      //   .attr("y", 12)
-      //   .text(instr.name);
-    // });
-    
-    // // Legend for pipeline stages
-    // const stageLegend = svg.append("g")
-    //   .attr("transform", `translate(10, 10)`);
-      
-    // stageLegend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Pipeline Stages");
-      
-    // PIPELINE_STAGES.forEach((stage, i) => {
-    //   const legendItem = stageLegend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
-        
-    //   legendItem.append("text")
-    //     .attr("font-weight", "bold")
-    //     .text(`${stage.charAt(0)} = ${stage}`);
-    // });
     
   }, [svgWidth, svgHeight, cycles, pipelineInstructions]);
 
@@ -708,65 +663,6 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
             </p>
           </div>
         </div>
-      </div>
-      
-      <div className="mt-4 text-left w-full max-w-3xl">
-        <h3 className="text-lg font-semibold mb-2">Understanding Pipelining with Laundry</h3>
-        <p className="mb-2">
-          Instruction pipelining in computer architecture is similar to how a modern laundry process works. 
-          Instead of waiting for one load of laundry to go through all stages before starting the next load, 
-          we can have multiple loads at different stages simultaneously.
-        </p>
-        <p className="mb-2">
-          In this visualization, we represent a typical laundry day starting at 9:00 AM, with each pipeline stage
-          taking approximately 30 minutes to complete. This makes the 5-stage pipeline take stage * time per stage (e.g. 5-stages * 30 mins = 2.5 hrs) hours per load
-          in non-pipelined mode.
-        </p>
-        <p className="mb-2">
-          Our 5-stage laundry pipeline consists of:
-        </p>
-        <ul className="list-disc ml-8 mb-4">
-          <li><strong>Sort (S):</strong> Separate the clothes by color/type (like retrieving instructions from memory)</li>
-          <li><strong>Wash (W):</strong> Run the washing machine (like decoding instructions)</li>
-          <li><strong>Dry (D):</strong> Use the dryer (like executing the instruction)</li>
-          <li><strong>Fold (F):</strong> Fold the clean laundry (like memory access)</li>
-          <li><strong>Put Away (P):</strong> Return clothes to drawers and closets (like writing results back to registers)</li>
-        </ul>
-        
-        <h3 className="text-lg font-semibold mb-2">Pipelined vs. Non-Pipelined Laundry</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="bg-blue-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Pipelined Laundry</h4>
-            <p className="text-sm">
-              In a pipelined laundry system, while the T-shirts are in the dryer, the pants can be in the washer, 
-              and you can be sorting the socks. This way, a new load of laundry can be completed every cycle 
-              once the pipeline is full, dramatically improving efficiency.
-            </p>
-          </div>
-          <div className="bg-red-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Non-Pipelined Laundry</h4>
-            <p className="text-sm">
-              In a non-pipelined system, you would have to complete the entire process for T-shirts 
-              (sort, wash, dry, fold, put away) before even starting to sort the pants. This means each 
-              load takes 5 cycles to complete, and you can only finish one load every 5 cycles.
-            </p>
-          </div>
-        </div>
-        
-        <h3 className="text-lg font-semibold mb-2">The Computer Architecture Connection</h3>
-        <p className="mb-2">
-          In CPU design, pipelining works the same way:
-        </p>
-        <ul className="list-disc ml-8 mb-4">
-          <li>Each instruction goes through distinct stages (fetch, decode, execute, memory access, write back)</li>
-          <li>With pipelining, multiple instructions are processed simultaneously at different stages</li>
-          <li>This improves throughput - the number of instructions completed per cycle</li>
-          <li>The CPI (Cycles Per Instruction) approaches 1.0 in an ideal pipeline</li>
-        </ul>
-        <p>
-          Toggle between the pipelined and non-pipelined modes to see how dramatically this technique 
-          improves efficiency - just like it would make your laundry day much more productive!
-        </p>
       </div>
       
       {/* Next Visualization Button */}

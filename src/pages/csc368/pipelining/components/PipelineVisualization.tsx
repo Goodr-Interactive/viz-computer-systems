@@ -56,7 +56,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
-  const [svgHeight, setSvgHeight] = useState<number>(height || 400);
+  const [svgHeight, setSvgHeight] = useState<number>(height || 800);
   const [cycles, setCycles] = useState<number>(0);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -79,7 +79,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     if (containerRef.current) {
       const { width, height } = containerRef.current.getBoundingClientRect();
       setSvgWidth(width);
-      setSvgHeight(Math.max(height, 400));
+      setSvgHeight(Math.max(height, 800));
     }
   }, []);
 
@@ -960,97 +960,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         </div>
       </div>
       
-      <div className="mt-4 text-left w-full max-w-3xl">
-        <h3 className="text-lg font-semibold mb-2">Understanding Pipelining with Laundry</h3>
-        <p className="mb-2">
-          Instruction pipelining in computer architecture is similar to how a modern laundry process works. 
-          Instead of waiting for one load of laundry to go through all stages before starting the next load, 
-          we can have multiple loads at different stages simultaneously.
-        </p>
-        <p className="mb-2">
-          In this visualization, we represent a typical laundry day starting at 9:00 AM, with each pipeline stage
-          taking approximately 30 minutes to complete. This makes the 5-stage pipeline take stage * time per stage (e.g. 5-stages * 30 mins = 2.5 hrs) hours per load
-          in non-pipelined mode.
-        </p>
-        <p className="mb-2">
-          Our 5-stage laundry pipeline consists of:
-        </p>
-        <ul className="list-disc ml-8 mb-4">
-          <li><strong>Sort (S):</strong> Separate the clothes by color/type (like retrieving instructions from memory)</li>
-          <li><strong>Wash (W):</strong> Run the washing machine (like decoding instructions)</li>
-          <li><strong>Dry (D):</strong> Use the dryer (like executing the instruction)</li>
-          <li><strong>Fold (F):</strong> Fold the clean laundry (like memory access)</li>
-          <li><strong>Put Away (P):</strong> Return clothes to drawers and closets (like writing results back to registers)</li>
-        </ul>
-        
-        <h3 className="text-lg font-semibold mb-2">Pipelined vs. Non-Pipelined Laundry</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="bg-blue-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Pipelined Laundry</h4>
-            <p className="text-sm">
-              In a pipelined laundry system, while the T-shirts are in the dryer, the pants can be in the washer, 
-              and you can be sorting the socks. This way, a new load of laundry can be completed every cycle 
-              once the pipeline is full, dramatically improving efficiency.
-            </p>
-          </div>
-          <div className="bg-red-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Non-Pipelined Laundry</h4>
-            <p className="text-sm">
-              In a non-pipelined system, you would have to complete the entire process for T-shirts 
-              (sort, wash, dry, fold, put away) before even starting to sort the pants. This means each 
-              load takes 5 cycles to complete, and you can only finish one load every 5 cycles.
-            </p>
-          </div>
-        </div>
-        
-        {/* Superscalar section */}
-        <h3 className="text-lg font-semibold mb-2">Superscalar Execution</h3>
-        <div className="bg-purple-50 p-4 rounded mb-4">
-          <h4 className="font-medium mb-1">Superscalar Laundry</h4>
-          <p className="text-sm mb-2">
-            Superscalar execution takes pipelining one step further. Instead of processing just one instruction 
-            per cycle, a superscalar pipeline can start multiple instructions in the same cycle.
-          </p>
-          <p className="text-sm">
-            In our laundry analogy, this would be like having two washing machines, two dryers, and enough 
-            capacity at each stage to process multiple loads simultaneously. With a 2-way superscalar system,
-            you could start two loads of laundry in each cycle, potentially doubling your throughput!
-          </p>
-        </div>
-        
-        <h3 className="text-lg font-semibold mb-2">The Computer Architecture Connection</h3>
-        <p className="mb-2">
-          In CPU design, pipelining works the same way:
-        </p>
-        <ul className="list-disc ml-8 mb-4">
-          <li>Each instruction goes through distinct stages (fetch, decode, execute, memory access, write back)</li>
-          <li>With pipelining, multiple instructions are processed simultaneously at different stages</li>
-          <li>This improves throughput - the number of instructions completed per cycle</li>
-          <li>The CPI (Cycles Per Instruction) approaches 1.0 in an ideal pipeline</li>
-        </ul>
-        <p className="mb-2">
-          Superscalar architecture takes this a step further:
-        </p>
-        <ul className="list-disc ml-8 mb-4">
-          <li>Multiple execution units are available to process instructions in parallel</li>
-          <li>Modern CPUs have multiple ALUs, load/store units, and other functional units</li>
-          <li>The CPU can issue multiple instructions per cycle to these execution units</li>
-          <li>This allows for CPI values less than 1.0 (or IPC values greater than 1.0)</li>
-          <li>Examples include Intel Core, AMD Ryzen, and Apple M-series processors</li>
-        </ul>
-        <p>
-          Toggle between the different modes to see how these techniques dramatically
-          improve efficiency - just like they would make your laundry day much more productive!
-        </p>
-      </div>
-      
       {/* Next Visualization Button */}
       <div className="w-full flex justify-center mt-8 mb-4">
         <a 
           href="/csc368/pipelining/registers" 
           className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center"
         >
-          Next Visualization: CPU Pipeline with Registers
+          Next Visualization: Processor Pipeline with RISC-V Instructions
           <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
           </svg>

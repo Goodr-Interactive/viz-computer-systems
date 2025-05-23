@@ -22,13 +22,13 @@ interface Instruction {
   stalled?: boolean;
 }
 
-interface PipelineVisualizationProps {
+interface BasicLaundryProps {
   width?: number;
   height?: number;
   instructions?: Instruction[];
 }
 
-export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
+export const BasicLaundry: React.FC<BasicLaundryProps> = ({
   width,
   height,
   instructions = DEFAULT_INSTRUCTIONS
@@ -46,11 +46,11 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
-  const [availableColors] = useState<string[]>([
-    "#4285F4", "#EA4335", "#FBBC05", "#34A853", "#8F44AD", 
-    "#FF5722", "#009688", "#673AB7", "#3F51B5", "#00BCD4", 
-    "#607D8B", "#795548", "#9C27B0", "#2196F3", "#FF9800"
-  ]);
+  // const [availableColors] = useState<string[]>([
+  //   "#4285F4", "#EA4335", "#FBBC05", "#34A853", "#8F44AD", 
+  //   "#FF5722", "#009688", "#673AB7", "#3F51B5", "#00BCD4", 
+  //   "#607D8B", "#795548", "#9C27B0", "#2196F3", "#FF9800"
+  // ]);
   
   // Set initial dimensions based on container size
   useEffect(() => {
@@ -459,39 +459,39 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   };
   
   // Add instruction handlers
-  const handleAddInstruction = () => {
-    if (!newInstructionName.trim()) return;
+  // const handleAddInstruction = () => {
+  //   if (!newInstructionName.trim()) return;
     
-    setIsRunning(false);
+  //   setIsRunning(false);
     
-    const newInstruction: Instruction = {
-      id: pipelineInstructions.length + 1,
-      name: newInstructionName.trim(),
-      color: availableColors[pipelineInstructions.length % availableColors.length],
-      currentStage: -1,
-      startCycle: isPipelined ? pipelineInstructions.length : undefined,
-      stalled: false
-    };
+  //   const newInstruction: Instruction = {
+  //     id: pipelineInstructions.length + 1,
+  //     name: newInstructionName.trim(),
+  //     color: availableColors[pipelineInstructions.length % availableColors.length],
+  //     currentStage: -1,
+  //     startCycle: isPipelined ? pipelineInstructions.length : undefined,
+  //     stalled: false
+  //   };
     
-    setPipelineInstructions([...pipelineInstructions, newInstruction]);
-    setNewInstructionName("");
-    setShowAddForm(false);
-  };
+  //   setPipelineInstructions([...pipelineInstructions, newInstruction]);
+  //   setNewInstructionName("");
+  //   setShowAddForm(false);
+  // };
   
-  const handleRemoveInstruction = (id: number) => {
-    setIsRunning(false);
-    const updatedInstructions = pipelineInstructions.filter(instr => instr.id !== id);
+  // const handleRemoveInstruction = (id: number) => {
+  //   setIsRunning(false);
+  //   const updatedInstructions = pipelineInstructions.filter(instr => instr.id !== id);
     
-    // Reassign IDs to keep them sequential
-    const reindexedInstructions = updatedInstructions.map((instr, index) => ({
-      ...instr,
-      id: index + 1,
-      startCycle: isPipelined ? index : undefined
-    }));
+  //   // Reassign IDs to keep them sequential
+  //   const reindexedInstructions = updatedInstructions.map((instr, index) => ({
+  //     ...instr,
+  //     id: index + 1,
+  //     startCycle: isPipelined ? index : undefined
+  //   }));
     
-    setPipelineInstructions(reindexedInstructions);
-    setCycles(0);
-  };
+  //   setPipelineInstructions(reindexedInstructions);
+  //   setCycles(0);
+  // };
   
   // Calculate total cycles to complete all instructions
   const totalCyclesRequired = isPipelined 
@@ -559,7 +559,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       </div>
       
       {/* Instruction Management UI */}
-      <div className="w-full border-t border-b border-gray-200 py-4 my-2">
+      {/* <div className="w-full border-t border-b border-gray-200 py-4 my-2">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
           <h3 className="text-lg font-medium mb-2 md:mb-0">Instructions</h3>
           
@@ -622,7 +622,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </ul>
         </div>
       </div>
-      
+       */}
       <div className="flex flex-col md:flex-row md:items-center justify-between w-full mb-2">
         <div className="flex items-center space-x-2">
           <span>Slow</span>
@@ -791,10 +791,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       {/* Next Visualization Button */}
       <div className="w-full flex justify-center mt-8 mb-4">
         <a 
-          href="/csc368/pipelining/registers" 
+          href="/csc368/pipelining/laundry" 
           className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center"
         >
-          Next Visualization: CPU Pipeline with Registers
+          Next Visualization: Advanced Laundry
           <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
           </svg>

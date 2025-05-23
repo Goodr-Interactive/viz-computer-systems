@@ -1,34 +1,39 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
-// Define the instruction stages
-const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
+// Define the instruction stages with register visualization
+const PIPELINE_STAGES = ["Fetch", "Decode", "Execute", "Memory", "Writeback"];
+const PIPELINE_REGISTERS = ["IF/ID", "ID/EX", "EX/MEM", "MEM/WB"];
 
 // Define some sample instructions for visualization
 const DEFAULT_INSTRUCTIONS = [
-  { id: 1, name: "Load 1 (shirts)", color: "#4285F4" },
-  { id: 2, name: "Load 2 (pants)", color: "#EA4335" },
-  { id: 3, name: "Load 3 (socks)", color: "#FBBC05" },
-  { id: 4, name: "Load 4 (sheets)", color: "#34A853" },
-  { id: 5, name: "Load 5 (jackets)", color: "#8F44AD" }
+  { id: 1, name: "lw x1, 0(x20)", color: "#4285F4", registers: { src: ["x20"], dest: ["x1"] } },
+  { id: 2, name: "lw x2, 4(x20)", color: "#EA4335", registers: { src: ["x20"], dest: ["x2"] } },
+  { id: 3, name: "add x3, x1, x2", color: "#FBBC05", registers: { src: ["x1", "x2"], dest: ["x3"] } },
+  { id: 4, name: "sw x3, 8(x20)", color: "#34A853", registers: { src: ["x3", "x20"], dest: [] } },
+  { id: 5, name: "blt x0, x3, loop", color: "#8F44AD", registers: { src: ["x0", "x3"], dest: [] } }
 ];
 
 interface Instruction {
   id: number;
   name: string;
   color: string;
+  registers: {
+    src: string[];
+    dest: string[];
+  };
   currentStage?: number;
   startCycle?: number;
   stalled?: boolean;
 }
 
-interface PipelineVisualizationProps {
+interface RegisterPipelineVisualizationProps {
   width?: number;
   height?: number;
   instructions?: Instruction[];
 }
 
-export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
+export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizationProps> = ({
   width,
   height,
   instructions = DEFAULT_INSTRUCTIONS
@@ -42,6 +47,15 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
   const [isPipelined, setIsPipelined] = useState<boolean>(true); // Toggle between pipelined and non-pipelined
+  
+  // Register state
+  const [registers, setRegisters] = useState<Record<string, number>>({
+    x0: 0,  // x0 is hardwired to 0 in RISC-V
+    x1: 0,
+    x2: 0,
+    x3: 0,
+    x20: 0x1000  // Base address for memory operations
+  });
   
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
@@ -120,8 +134,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
     const margin = { top: 50, right: 30, bottom: 50, left: 100 };
     
-    // const parentElement = document.getElementById(vis.parentContainer);
-
     const innerWidth = svgWidth - margin.left - margin.right;
     const innerHeight = svgHeight - margin.top - margin.bottom;
     
@@ -130,15 +142,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
     // X and Y scales
-    // Convert clock cycles to actual times (starting at 9:00 AM)
-    const timeLabels = d3.range(0, cycles + 5).map(cycle => {
-      const minutes = cycle * 30; // Each cycle is 30 minutes
-      const hours = Math.floor(9 + minutes / 60); // Start at 9 AM
-      const mins = minutes % 60;
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const hour12 = hours > 12 ? hours - 12 : hours;
-      return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
-    });
+    // Convert clock cycles to actual times (starting at 0)
+    const timeLabels = d3.range(0, cycles + 5).map(cycle => `Cycle ${cycle}`);
 
     const xScale = d3.scaleBand()
       .domain(d3.range(0, cycles + 5).map(String))
@@ -155,20 +160,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .attr("transform", `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale).tickFormat((_, i) => timeLabels[i]));
       
-    // Rotate the tick labels
-    xAxis.selectAll("text")
+    xAxis.append("text")
       .attr("transform", "rotate(60)")
       .attr("text-anchor", "start")
-      .attr("y", 0)
-      .attr("x", 9)
-      .attr("dy", ".35em");
-      
-    xAxis.append("text")
       .attr("x", innerWidth / 2)
       .attr("y", 40)
       .attr("fill", "black")
-      .attr("text-anchor", "middle")
-      // .text("Time of Day");
+      .text("Clock Cycle");
 
     // Add Y axis
     g.append("g")
@@ -182,7 +180,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .attr("x", -innerHeight / 2)
       .attr("fill", "black")
       .attr("text-anchor", "middle")
-      .text("Laundry Load");
+      .text("Instruction");
 
     // Draw grid lines
     g.append("g")
@@ -237,6 +235,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           .on("mouseover", function(event) {
             d3.select(this).attr("opacity", 1);
             
+            // Show pipeline register lines on hover
+            d3.select(".register-lines").style("opacity", 1);
+            
             const tooltip = svg.append("g")
               .attr("class", "tooltip")
               .attr("transform", `translate(${event.offsetX + 10},${event.offsetY - 10})`);
@@ -247,21 +248,30 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               .attr("rx", 5)
               .attr("ry", 5)
               .attr("width", 220)
-              .attr("height", 60)
+              .attr("height", 80)
               .attr("opacity", 0.9);
               
             tooltip.append("text")
               .attr("x", 10)
               .attr("y", 20)
-              .text(`Laundry: ${instr.name}`);
+              .text(`Instruction: ${instr.name}`);
               
             tooltip.append("text")
               .attr("x", 10)
               .attr("y", 40)
-              .text(`Stage: ${stageName} (${timeLabels[cycle]})`);
+              .text(`Stage: ${stageName} (Cycle ${cycle})`);
+              
+            tooltip.append("text")
+              .attr("x", 10)
+              .attr("y", 60)
+              .text(`Registers: ${instr.registers.src.join(', ')} → ${instr.registers.dest.join(', ')}`);
           })
           .on("mouseout", function() {
             d3.select(this).attr("opacity", 0.7);
+            
+            // Hide pipeline register lines on mouseout
+            d3.select(".register-lines").style("opacity", 0);
+            
             svg.selectAll(".tooltip").remove();
           });
           
@@ -277,52 +287,44 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       }
     });
 
-    // Draw instruction legend
-    // const legend = svg.append("g")
-    //   .attr("transform", `translate(${svgWidth - 150}, 10)`);
-
-    // Legend for laundry loads
-    // legend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Laundry Loads");
-
-    // pipelineInstructions.forEach((instr, i) => {
-    //   const legendItem = legend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
-        
-      // legendItem.append("rect")
-      //   .attr("width", 15)
-      //   .attr("height", 15)
-      //   .attr("fill", instr.color);
-        
-      // legendItem.append("text")
-      //   .attr("x", 20)
-      //   .attr("y", 12)
-      //   .text(instr.name);
-    // });
-    
-    // // Legend for pipeline stages
-    // const stageLegend = svg.append("g")
-    //   .attr("transform", `translate(10, 10)`);
+    // Draw pipeline registers if in pipelined mode
+    if (isPipelined && cycles > 0) {
+      // Create a group for register lines and labels that will be hidden by default
+      const registerLinesGroup = g.append("g")
+        .attr("class", "register-lines")
+        .style("opacity", 0);
       
-    // stageLegend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Pipeline Stages");
-      
-    // PIPELINE_STAGES.forEach((stage, i) => {
-    //   const legendItem = stageLegend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
+      // Draw vertical lines between pipeline stages to represent registers
+      PIPELINE_REGISTERS.forEach((registerName, index) => {
+        // Position the register between stages
+        const registerCyclePosition = 0.5 + index;
         
-    //   legendItem.append("text")
-    //     .attr("font-weight", "bold")
-    //     .text(`${stage.charAt(0)} = ${stage}`);
-    // });
+        if (registerCyclePosition <= cycles) {
+          // Draw register line
+          registerLinesGroup.append("line")
+            .attr("class", `register-line-${index}`)
+            .attr("x1", xScale(String(Math.floor(registerCyclePosition)))! + xScale.bandwidth())
+            .attr("x2", xScale(String(Math.floor(registerCyclePosition)))! + xScale.bandwidth())
+            .attr("y1", 0)
+            .attr("y2", innerHeight)
+            .attr("stroke", "#ff9800")
+            .attr("stroke-width", 2)
+            .attr("stroke-dasharray", "4");
+            
+          // Add register label
+          registerLinesGroup.append("text")
+            .attr("class", `register-label-${index}`)
+            .attr("x", xScale(String(Math.floor(registerCyclePosition)))! + xScale.bandwidth())
+            .attr("y", -10)
+            .attr("fill", "#ff9800")
+            .attr("text-anchor", "middle")
+            .attr("font-weight", "bold")
+            .text(registerName);
+        }
+      });
+    }
     
-  }, [svgWidth, svgHeight, cycles, pipelineInstructions]);
+  }, [svgWidth, svgHeight, cycles, pipelineInstructions, isPipelined]);
 
   // Simulation logic
   useEffect(() => {
@@ -422,6 +424,30 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           return updatedInstructions;
         }
       });
+      
+      // Update register values based on the current pipeline state
+      setRegisters(prevRegisters => {
+        const newRegisters = { ...prevRegisters };
+        
+        // For each instruction that has reached the writeback stage, update register values
+        pipelineInstructions.forEach(instr => {
+          if (instr.currentStage === 4) { // Writeback stage
+            instr.registers.dest.forEach(reg => {
+              // Special case for x0 in RISC-V: it's hardwired to 0
+              if (reg === 'x0') return;
+              
+              // Simulate register updates with random values for demonstration
+              newRegisters[reg] = Math.floor(Math.random() * 100);
+            });
+          }
+        });
+        
+        // Ensure x0 is always 0 (RISC-V specification)
+        newRegisters['x0'] = 0;
+        
+        return newRegisters;
+      });
+      
     }, speed);
     
     return () => clearTimeout(timer);
@@ -446,6 +472,15 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         stalled: false
       }))
     );
+    
+    // Reset register values
+    setRegisters({
+      x0: 0,  // x0 is hardwired to 0 in RISC-V
+      x1: 0,
+      x2: 0,
+      x3: 0,
+      x20: 0x1000  // Base address for memory operations
+    });
   };
 
   const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -464,10 +499,55 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     
     setIsRunning(false);
     
+    // Parse RISC-V instruction to determine source and destination registers
+    const instructionName = newInstructionName.trim();
+    const srcRegisters: string[] = [];
+    const destRegisters: string[] = [];
+    
+    // Extract registers based on instruction type
+    if (instructionName.startsWith("add") || instructionName.startsWith("sub") || 
+        instructionName.startsWith("and") || instructionName.startsWith("or") || 
+        instructionName.startsWith("xor") || instructionName.startsWith("slt")) {
+      // R-type: add x3, x1, x2 (dest = x3, src = x1, x2)
+      const parts = instructionName.split(/[, ]+/);
+      if (parts.length >= 4) {
+        destRegisters.push(parts[1]);
+        srcRegisters.push(parts[2], parts[3]);
+      }
+    } else if (instructionName.startsWith("lw") || instructionName.startsWith("lb") || 
+               instructionName.startsWith("lh") || instructionName.startsWith("ld")) {
+      // I-type load: lw x1, 0(x20) (dest = x1, src = x20)
+      const destReg = instructionName.split(/[, ]+/)[1];
+      const addrMatch = instructionName.match(/\(([^)]+)\)/);
+      if (destReg && addrMatch) {
+        destRegisters.push(destReg);
+        srcRegisters.push(addrMatch[1]);
+      }
+    } else if (instructionName.startsWith("sw") || instructionName.startsWith("sb") || 
+               instructionName.startsWith("sh") || instructionName.startsWith("sd")) {
+      // S-type store: sw x3, 8(x20) (src = x3, x20)
+      const srcReg = instructionName.split(/[, ]+/)[1];
+      const addrMatch = instructionName.match(/\(([^)]+)\)/);
+      if (srcReg && addrMatch) {
+        srcRegisters.push(srcReg, addrMatch[1]);
+      }
+    } else if (instructionName.startsWith("beq") || instructionName.startsWith("bne") ||
+               instructionName.startsWith("blt") || instructionName.startsWith("bge")) {
+      // B-type branch: blt x0, x3, loop (src = x0, x3)
+      const parts = instructionName.split(/[, ]+/);
+      if (parts.length >= 3) {
+        srcRegisters.push(parts[1], parts[2]);
+      }
+    }
+    
     const newInstruction: Instruction = {
       id: pipelineInstructions.length + 1,
-      name: newInstructionName.trim(),
+      name: instructionName,
       color: availableColors[pipelineInstructions.length % availableColors.length],
+      registers: { 
+        src: srcRegisters, 
+        dest: destRegisters 
+      },
       currentStage: -1,
       startCycle: isPipelined ? pipelineInstructions.length : undefined,
       stalled: false
@@ -492,11 +572,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     setPipelineInstructions(reindexedInstructions);
     setCycles(0);
   };
-  
-  // Calculate total cycles to complete all instructions
-  const totalCyclesRequired = isPipelined 
-    ? pipelineInstructions.length + PIPELINE_STAGES.length - 1
-    : pipelineInstructions.length * PIPELINE_STAGES.length;
   
   // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
   const cpi = pipelineInstructions.length > 0 
@@ -582,7 +657,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               type="text"
               value={newInstructionName}
               onChange={(e) => setNewInstructionName(e.target.value)}
-              placeholder="Enter laundry load (e.g., Sweaters Load)"
+              placeholder="Enter RISC-V instruction (e.g., add x1, x2, x3)"
               className="flex-grow px-3 py-2 border border-gray-300 rounded"
             />
             <button
@@ -623,6 +698,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         </div>
       </div>
       
+      {/* Register Values Display */}
+      <div className="w-full border-t border-b border-gray-200 py-4 my-2">
+        <h3 className="text-lg font-medium mb-2">Register Values</h3>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          {Object.entries(registers).map(([reg, value]) => (
+            <div key={reg} className="bg-gray-100 p-2 rounded flex justify-between">
+              <span className="font-medium">{reg}:</span>
+              <span className="font-mono">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
       <div className="flex flex-col md:flex-row md:items-center justify-between w-full mb-2">
         <div className="flex items-center space-x-2">
           <span>Slow</span>
@@ -640,17 +728,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         <div className="flex items-center gap-4">
           <div className="text-center">
             <h3 className="text-lg font-medium">
-              Current Time: {cycles > 0 ? (
-                (() => {
-                  const minutes = Math.floor(cycles / 2) * 30;
-                  const hours = Math.floor(9 + minutes / 60);
-                  const mins = minutes % 60;
-                  const ampm = hours >= 12 ? 'PM' : 'AM';
-                  const hour12 = hours > 12 ? hours - 12 : hours;
-                  return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
-                })()
-              ) : '9:00 AM'} 
-              <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
+              Current Cycle: {cycles}
             </h3>
           </div>
           
@@ -684,16 +762,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             </div>
             <div className="ml-3">
               <p className="text-sm text-green-700">
-                <strong>All done!</strong> All laundry loads have been completed. Final time: {
-                  (() => {
-                    const minutes = Math.floor(cycles / 2) * 30;
-                    const hours = Math.floor(9 + minutes / 60);
-                    const mins = minutes % 60;
-                    const ampm = hours >= 12 ? 'PM' : 'AM';
-                    const hour12 = hours > 12 ? hours - 12 : hours;
-                    return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
-                  })()
-                }. It took {cycles} "cycles" to complete all {pipelineInstructions.length} loads of laundry.
+                <strong>All done!</strong> All instructions have been completed. It took {cycles} cycles to complete all {pipelineInstructions.length} instructions.
               </p>
             </div>
           </div>
@@ -709,20 +778,14 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              <strong>Laundry Efficiency:</strong> In {isPipelined ? "pipelined" : "non-pipelined"} mode, all {pipelineInstructions.length} loads of laundry require approximately <strong>{totalCyclesRequired}</strong> "cycles" to complete (from 9:00 AM to {
-                (() => {
-                  const minutes = totalCyclesRequired * 30;
-                  const hours = Math.floor(9 + minutes / 60);
-                  const mins = minutes % 60;
-                  const ampm = hours >= 12 ? 'PM' : 'AM';
-                  const hour12 = hours > 12 ? hours - 12 : hours;
-                  return `${hour12}:${mins === 0 ? '00' : mins} ${ampm}`;
-                })()
-              }).
+              <strong>RISC-V Pipeline with Registers:</strong> This visualization shows the classic 5-stage RISC-V pipeline with pipeline registers between each stage.
               {isPipelined ? (
-                <> With pipelined laundry, you can complete a load every 30 minutes once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete before starting the next.</>
+                <> In pipelined mode, each instruction moves through the pipeline stages independently, with registers transferring data between stages. 
+                RISC-V uses a load-store architecture where only load/store instructions (lw/sw) access memory. The pipeline registers (IF/ID, ID/EX, EX/MEM, MEM/WB) 
+                hold instruction data between stages, requiring approximately {pipelineInstructions.length + PIPELINE_STAGES.length - 1} cycles to complete all {pipelineInstructions.length} instructions.</>
               ) : (
-                <> With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages for each load before starting the next one, resulting in a cycles-per-load of {PIPELINE_STAGES.length}.</>
+                <> In non-pipelined mode, each instruction completes all stages before the next instruction begins, showing how RISC-V would perform without pipelining.
+                This requires approximately {pipelineInstructions.length * PIPELINE_STAGES.length} cycles to complete all {pipelineInstructions.length} instructions.</>
               )}
             </p>
           </div>
@@ -730,75 +793,58 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       </div>
       
       <div className="mt-4 text-left w-full max-w-3xl">
-        <h3 className="text-lg font-semibold mb-2">Understanding Pipelining with Laundry</h3>
+        <h3 className="text-lg font-semibold mb-2">Understanding Pipeline Registers</h3>
         <p className="mb-2">
-          Instruction pipelining in computer architecture is similar to how a modern laundry process works. 
-          Instead of waiting for one load of laundry to go through all stages before starting the next load, 
-          we can have multiple loads at different stages simultaneously.
+          In a real CPU, data must be transferred between pipeline stages through special registers. These pipeline 
+          registers hold the intermediate results and control signals needed by each stage.
         </p>
         <p className="mb-2">
-          In this visualization, we represent a typical laundry day starting at 9:00 AM, with each pipeline stage
-          taking approximately 30 minutes to complete. This makes the 5-stage pipeline take stage * time per stage (e.g. 5-stages * 30 mins = 2.5 hrs) hours per load
-          in non-pipelined mode.
-        </p>
-        <p className="mb-2">
-          Our 5-stage laundry pipeline consists of:
+          The main pipeline registers in a five-stage RISC pipeline are:
         </p>
         <ul className="list-disc ml-8 mb-4">
-          <li><strong>Sort (S):</strong> Separate the clothes by color/type (like retrieving instructions from memory)</li>
-          <li><strong>Wash (W):</strong> Run the washing machine (like decoding instructions)</li>
-          <li><strong>Dry (D):</strong> Use the dryer (like executing the instruction)</li>
-          <li><strong>Fold (F):</strong> Fold the clean laundry (like memory access)</li>
-          <li><strong>Put Away (P):</strong> Return clothes to drawers and closets (like writing results back to registers)</li>
+          <li><strong>IF/ID Register:</strong> Holds the instruction fetched from memory before it's decoded</li>
+          <li><strong>ID/EX Register:</strong> Holds decoded instruction information, register values, and control signals</li>
+          <li><strong>EX/MEM Register:</strong> Holds the ALU result, data to be stored, and control signals</li>
+          <li><strong>MEM/WB Register:</strong> Holds data read from memory and ALU results before writeback</li>
         </ul>
         
-        <h3 className="text-lg font-semibold mb-2">Pipelined vs. Non-Pipelined Laundry</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="bg-blue-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Pipelined Laundry</h4>
-            <p className="text-sm">
-              In a pipelined laundry system, while the T-shirts are in the dryer, the pants can be in the washer, 
-              and you can be sorting the socks. This way, a new load of laundry can be completed every cycle 
-              once the pipeline is full, dramatically improving efficiency.
-            </p>
-          </div>
-          <div className="bg-red-50 p-4 rounded">
-            <h4 className="font-medium mb-1">Non-Pipelined Laundry</h4>
-            <p className="text-sm">
-              In a non-pipelined system, you would have to complete the entire process for T-shirts 
-              (sort, wash, dry, fold, put away) before even starting to sort the pants. This means each 
-              load takes 5 cycles to complete, and you can only finish one load every 5 cycles.
-            </p>
-          </div>
-        </div>
-        
-        <h3 className="text-lg font-semibold mb-2">The Computer Architecture Connection</h3>
+        <h3 className="text-lg font-semibold mb-2">Pipeline Hazards</h3>
         <p className="mb-2">
-          In CPU design, pipelining works the same way:
+          This model demonstrates a simplified pipeline without hazards. In a real CPU, three types of hazards can occur:
         </p>
         <ul className="list-disc ml-8 mb-4">
-          <li>Each instruction goes through distinct stages (fetch, decode, execute, memory access, write back)</li>
-          <li>With pipelining, multiple instructions are processed simultaneously at different stages</li>
-          <li>This improves throughput - the number of instructions completed per cycle</li>
-          <li>The CPI (Cycles Per Instruction) approaches 1.0 in an ideal pipeline</li>
+          <li><strong>Structural Hazards:</strong> When two instructions need the same hardware resource simultaneously</li>
+          <li><strong>Data Hazards:</strong> When an instruction depends on the result of a previous instruction still in the pipeline</li>
+          <li><strong>Control Hazards:</strong> When the pipeline changes the flow of instruction execution (e.g., branches)</li>
         </ul>
+        
+        <p className="mb-4">
+          For example, in our instructions, the "add x3, x1, x2" instruction depends on the values of x1 and x2, which are
+          loaded by the previous two instructions. In a real CPU, this would require either:
+        </p>
+        <ul className="list-disc ml-8 mb-4">
+          <li><strong>Data Forwarding:</strong> Directly passing the result from one stage to another without waiting for writeback</li>
+          <li><strong>Pipeline Stalls:</strong> Pausing the dependent instruction until the required values are available</li>
+          <li><strong>Out-of-Order Execution:</strong> Executing independent instructions while waiting for dependencies to resolve</li>
+        </ul>
+        
+        <h3 className="text-lg font-semibold mb-2">RISC-V Architecture</h3>
+        <p className="mb-2">
+          This visualization uses the RISC-V instruction set architecture (ISA), an open standard instruction set that embodies RISC principles.
+        </p>
+        <p className="mb-2">
+          Key aspects of RISC-V shown in this visualization:
+        </p>
+        <ul className="list-disc ml-8 mb-4">
+          <li><strong>Register File:</strong> RISC-V uses 32 integer registers (x0-x31), with x0 hardwired to zero</li>
+          <li><strong>Instruction Types:</strong> R-type (register-register), I-type (immediate/load), S-type (store), B-type (branch), etc.</li>
+          <li><strong>Memory Access:</strong> Only load (lw) and store (sw) instructions can access memory</li>
+          <li><strong>Branch Instructions:</strong> Conditional branches like blt (branch if less than) perform comparisons and change control flow</li>
+        </ul>
+        
         <p>
-          Toggle between the pipelined and non-pipelined modes to see how dramatically this technique 
-          improves efficiency - just like it would make your laundry day much more productive!
+          These hazards require additional techniques like forwarding, stalling, and branch prediction to resolve.
         </p>
-      </div>
-      
-      {/* Next Visualization Button */}
-      <div className="w-full flex justify-center mt-8 mb-4">
-        <a 
-          href="/csc368/pipelining/registers" 
-          className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center"
-        >
-          Next Visualization: CPU Pipeline with Registers
-          <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </a>
       </div>
     </div>
   );

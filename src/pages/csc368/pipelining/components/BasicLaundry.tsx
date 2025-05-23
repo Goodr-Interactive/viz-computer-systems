@@ -1,8 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
+// Import SVG assets for pipeline stages
+import shirtSvg from "@/assets/shirt.svg";
+import washingMachineSvg from "@/assets/washing-machine.svg";
+import tumbleDrySvg from "@/assets/tumble-dry.svg";
+import handDrySvg from "@/assets/hand-dry.svg";
+import closetSvg from "@/assets/closet.svg";
+
 // Define the instruction stages
 const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
+
+// Define SVG images for each pipeline stage
+const STAGE_IMAGES = [
+  shirtSvg,         // Sort stage
+  washingMachineSvg, // Wash stage
+  tumbleDrySvg,     // Dry stage
+  handDrySvg,       // Fold stage
+  closetSvg         // Put Away stage
+];
 
 // Define some sample instructions for visualization
 const DEFAULT_INSTRUCTIONS = [
@@ -42,10 +58,6 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
   const [isPipelined, setIsPipelined] = useState<boolean>(true); // Toggle between pipelined and non-pipelined
-  
-  // Add instruction state
-  const [newInstructionName, setNewInstructionName] = useState<string>("");
-  const [showAddForm, setShowAddForm] = useState<boolean>(false);
   // const [availableColors] = useState<string[]>([
   //   "#4285F4", "#EA4335", "#FBBC05", "#34A853", "#8F44AD", 
   //   "#FF5722", "#009688", "#673AB7", "#3F51B5", "#00BCD4", 
@@ -109,9 +121,7 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
         stalled: false
       }))
     );
-  }, [instructions]);
-
-  // Core visualization logic
+  }, [instructions]);    // Core visualization logic
   useEffect(() => {
     if (!svgRef.current) return;
 
@@ -120,14 +130,30 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
 
     const margin = { top: 50, right: 30, bottom: 50, left: 100 };
     
-    // const parentElement = document.getElementById(vis.parentContainer);
-
     const innerWidth = svgWidth - margin.left - margin.right;
     const innerHeight = svgHeight - margin.top - margin.bottom;
     
     // Create the main group element
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
+      
+    // Define defs for SVG patterns
+    const defs = svg.append("defs");
+    
+    // Create patterns for each pipeline stage with the SVG icons
+    STAGE_IMAGES.forEach((image, index) => {
+      defs.append("pattern")
+        .attr("id", `stage-pattern-${index}`)
+        .attr("patternUnits", "objectBoundingBox")
+        .attr("width", 1)
+        .attr("height", 1)
+        .attr("patternContentUnits", "objectBoundingBox")
+        .append("image")
+        .attr("href", image)
+        .attr("width", 1)
+        .attr("height", 1)
+        .attr("preserveAspectRatio", "xMidYMid meet");
+    });
 
     // X and Y scales
     // Convert clock cycles to actual times (starting at 9:00 AM)
@@ -224,16 +250,10 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
 
         const stageName = PIPELINE_STAGES[stage];
         
-        // Draw the rectangle for this stage
-        g.append("rect")
-          .attr("x", xScale(String(cycle))!)
-          .attr("y", yScale(instr.id.toString())!)
-          .attr("width", xScale.bandwidth())
-          .attr("height", yScale.bandwidth())
-          .attr("fill", instr.stalled && stage === instr.currentStage ? "#f8d7da" : instr.color)
-          .attr("stroke", "black")
+        // Create a group for the stage
+        const stageGroup = g.append("g")
+          .attr("transform", `translate(${xScale(String(cycle))!}, ${yScale(instr.id.toString())!})`)
           .attr("opacity", 0.7)
-          .attr("rx", 4)
           .on("mouseover", function(event) {
             d3.select(this).attr("opacity", 1);
             
@@ -264,16 +284,41 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
             d3.select(this).attr("opacity", 0.7);
             svg.selectAll(".tooltip").remove();
           });
-          
-        // Add stage label
-        g.append("text")
-          .attr("x", xScale(String(cycle))! + xScale.bandwidth() / 2)
-          .attr("y", yScale(instr.id.toString())! + yScale.bandwidth() / 2)
-          .attr("fill", "white")
-          .attr("text-anchor", "middle")
-          .attr("dominant-baseline", "middle")
-          .attr("font-weight", "bold")
-          .text(stageName.charAt(0));
+        
+        // Add colored background rectangle
+        stageGroup.append("rect")
+          .attr("width", xScale.bandwidth())
+          .attr("height", yScale.bandwidth())
+          .attr("fill", instr.stalled && stage === instr.currentStage ? "#f8d7da" : instr.color)
+          .attr("stroke", "black")
+          .attr("rx", 4);
+        
+        // Calculate inner rectangle size for the icon (slightly smaller)
+        const innerWidth = xScale.bandwidth() * 0.8;
+        const innerHeight = yScale.bandwidth() * 0.8;
+        const innerX = (xScale.bandwidth() - innerWidth) / 2;
+        const innerY = (yScale.bandwidth() - innerHeight) / 2;
+        
+        // Add SVG icon on top
+        stageGroup.append("rect")
+          .attr("width", innerWidth)
+          .attr("height", innerHeight)
+          .attr("x", innerX)
+          .attr("y", innerY)
+          .attr("fill", `url(#stage-pattern-${stage})`)
+          .attr("stroke", "white")
+          .attr("stroke-width", 1)
+          .attr("rx", 4);
+        
+        // Add a light overlay to tint the icon with instruction color
+        stageGroup.append("rect")
+          .attr("width", innerWidth)
+          .attr("height", innerHeight)
+          .attr("x", innerX)
+          .attr("y", innerY)
+          .attr("fill", instr.color)
+          .attr("opacity", 0.2)
+          .attr("rx", 4);
       }
     });
 
@@ -559,70 +604,6 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
       </div>
       
       {/* Instruction Management UI */}
-      {/* <div className="w-full border-t border-b border-gray-200 py-4 my-2">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
-          <h3 className="text-lg font-medium mb-2 md:mb-0">Instructions</h3>
-          
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm flex items-center"
-          >
-            {showAddForm ? "Cancel" : "Add Instruction"}
-            {!showAddForm && (
-              <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            )}
-          </button>
-        </div>
-        
-        {showAddForm && (
-          <div className="flex flex-col md:flex-row gap-2 mb-4 p-3 bg-gray-50 rounded">
-            <input
-              type="text"
-              value={newInstructionName}
-              onChange={(e) => setNewInstructionName(e.target.value)}
-              placeholder="Enter laundry load (e.g., Sweaters Load)"
-              className="flex-grow px-3 py-2 border border-gray-300 rounded"
-            />
-            <button
-              onClick={handleAddInstruction}
-              disabled={!newInstructionName.trim()}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-            >
-              Add
-            </button>
-          </div>
-        )}
-        
-        <div className="max-h-40 overflow-y-auto">
-          <ul className="divide-y divide-gray-200">
-            {pipelineInstructions.map((instr) => (
-              <li key={instr.id} className="py-2 flex justify-between items-center">
-                <div className="flex items-center">
-                  <div 
-                    className="w-4 h-4 mr-2 rounded-full" 
-                    style={{ backgroundColor: instr.color }}
-                  ></div>
-                  <span>
-                    <strong>{instr.id}:</strong> {instr.name}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleRemoveInstruction(instr.id)}
-                  className="text-red-500 hover:text-red-700"
-                  title="Remove instruction"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-       */}
       <div className="flex flex-col md:flex-row md:items-center justify-between w-full mb-2">
         <div className="flex items-center space-x-2">
           <span>Slow</span>

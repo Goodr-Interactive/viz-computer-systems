@@ -544,7 +544,7 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
     : pipelineInstructions.length * PIPELINE_STAGES.length;
   
   // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
-  const cpi = pipelineInstructions.length > 0 
+  const cpi = (pipelineInstructions.length > 0 && cycles > 0) 
     ? (cycles / Math.min(cycles, pipelineInstructions.length)).toFixed(2)
     : "0.00";
     
@@ -775,7 +775,7 @@ export const BasicLaundry: React.FC<BasicLaundryProps> = ({
           href="/csc368/pipelining/laundry" 
           className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center"
         >
-          Next Visualization: Advanced Laundry
+          Next Visualization: Superscalar Laundry
           <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
           </svg>

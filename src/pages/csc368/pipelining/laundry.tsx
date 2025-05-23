@@ -6,16 +6,16 @@ export const AdvancedLaundryPipelining: React.FunctionComponent = () => {
   return (
     <div className="flex flex-col items-center p-8 gap-6 min-h-screen">
       <h1 className="scroll-m-20 text-3xl font-bold tracking-tight mb-2">
-        Instruction Pipelining: The Laundry Analogy
+        Instruction Pipelining: Superscalar Laundry
       </h1>
       
       <div className="w-full max-w-4xl bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-2xl font-semibold mb-4">Interactive Laundry Pipeline Visualization</h2>
         <p className="mb-6 text-gray-700">
-          This interactive visualization demonstrates how pipelining works using a laundry analogy. 
+          This interactive visualization demonstrates how superscalar pipelining works using a laundry analogy. 
           Just like modern CPUs process multiple instructions at once, you can process multiple loads 
           of laundry simultaneously by pipelining the work. Use the controls below to start, stop, 
-          and reset the simulation.
+          and reset the simulation. Toggle the "Show Pipeline" button to see how the laundry loads are processed in parallel. Toggle the "Superscalar mode" button to see how multiple loads can be processed in parallel at each stage of the pipeline.
         </p>
         
         <PipelineVisualization />
@@ -29,7 +29,7 @@ export const AdvancedLaundryPipelining: React.FunctionComponent = () => {
           <a href="/csc368">Back to CSC368</a>
         </Button>
         <Button asChild variant="outline" disabled>
-          <a href="#">Next Visualization CPU Register with Pipelines</a>
+          <a href="#">Next Visualization CPU Instructions with Pipelines</a>
         </Button>
       </div>
     </div>

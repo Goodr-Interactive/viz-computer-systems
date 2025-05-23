@@ -574,7 +574,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
   };
   
   // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
-  const cpi = pipelineInstructions.length > 0 
+  const cpi = (pipelineInstructions.length > 0 && cycles > 0) 
     ? (cycles / Math.min(cycles, pipelineInstructions.length)).toFixed(2)
     : "0.00";
     

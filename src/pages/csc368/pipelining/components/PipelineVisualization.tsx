@@ -694,7 +694,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     : pipelineInstructions.length * PIPELINE_STAGES.length;
   
   // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
-  const cpi = pipelineInstructions.length > 0 
+  const cpi = (pipelineInstructions.length > 0 && cycles > 0) 
     ? (cycles / Math.min(cycles, pipelineInstructions.length)).toFixed(2)
     : "0.00";
     
@@ -772,7 +772,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                       {superscalarFactor}x
                     </span>
                   </span>
-                ) : "Single-issue Mode"}
+                ) : "Superscalar Mode"}
               </span>
             </label>
           )}

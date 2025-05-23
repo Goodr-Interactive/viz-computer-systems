@@ -1,8 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
+// Import SVG assets for pipeline stages
+import shirtSvg from "@/assets/shirt.svg";
+import washingMachineSvg from "@/assets/washing-machine.svg";
+import tumbleDrySvg from "@/assets/tumble-dry.svg";
+import handDrySvg from "@/assets/hand-dry.svg";
+import closetSvg from "@/assets/closet.svg";
+
 // Define the instruction stages
 const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
+
+// Define SVG images for each pipeline stage
+const STAGE_IMAGES = [
+  shirtSvg,         // Sort stage
+  washingMachineSvg, // Wash stage
+  tumbleDrySvg,     // Dry stage
+  handDrySvg,       // Fold stage
+  closetSvg         // Put Away stage
+];
 
 // Define some sample instructions for visualization
 const DEFAULT_INSTRUCTIONS = [
@@ -26,12 +42,16 @@ interface PipelineVisualizationProps {
   width?: number;
   height?: number;
   instructions?: Instruction[];
+  isSuperscalar?: boolean; // Add superscalar property
+  superscalarWidth?: number; // How many instructions can be processed in parallel
 }
 
 export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   width,
   height,
-  instructions = DEFAULT_INSTRUCTIONS
+  instructions = DEFAULT_INSTRUCTIONS,
+  isSuperscalar = false,
+  superscalarWidth = 2 // Default to 2-way superscalar
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -42,6 +62,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
   const [isPipelined, setIsPipelined] = useState<boolean>(true); // Toggle between pipelined and non-pipelined
+  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar); // Use superscalar mode
+  const [superscalarFactor, setSuperscalarFactor] = useState<number>(superscalarWidth); // How many instructions in parallel
   
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
@@ -102,14 +124,37 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   // Initialize pipeline
   useEffect(() => {
     setPipelineInstructions(
-      instructions.map((instr, index) => ({
-        ...instr,
-        currentStage: -1, // Not yet in pipeline
-        startCycle: index, // Start one cycle after the previous instruction
-        stalled: false
-      }))
+      instructions.map((instr, index) => {
+        if (isPipelined) {
+          if (isSuperscalarActive) {
+            // For superscalar: Start two instructions per cycle
+            return {
+              ...instr,
+              currentStage: -1, // Not yet in pipeline
+              startCycle: Math.floor(index / superscalarFactor), // Start multiple instructions per cycle
+              stalled: false
+            };
+          } else {
+            // Standard pipeline: One instruction per cycle
+            return {
+              ...instr,
+              currentStage: -1, // Not yet in pipeline
+              startCycle: index, // Start one cycle after the previous instruction
+              stalled: false
+            };
+          }
+        } else {
+          // Non-pipelined mode
+          return {
+            ...instr,
+            currentStage: -1, // Not yet in pipeline
+            startCycle: undefined, // Will be set when the instruction starts
+            stalled: false
+          };
+        }
+      })
     );
-  }, [instructions]);
+  }, [instructions, isPipelined, isSuperscalarActive, superscalarFactor]);
 
   // Core visualization logic
   useEffect(() => {
@@ -128,6 +173,24 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     // Create the main group element
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
+      
+    // Define defs for SVG patterns
+    const defs = svg.append("defs");
+    
+    // Create patterns for each pipeline stage with the SVG icons
+    STAGE_IMAGES.forEach((image, index) => {
+      defs.append("pattern")
+        .attr("id", `stage-pattern-${index}`)
+        .attr("patternUnits", "objectBoundingBox")
+        .attr("width", 1)
+        .attr("height", 1)
+        .attr("patternContentUnits", "objectBoundingBox")
+        .append("image")
+        .attr("href", image)
+        .attr("width", 1)
+        .attr("height", 1)
+        .attr("preserveAspectRatio", "xMidYMid meet");
+    });
 
     // X and Y scales
     // Convert clock cycles to actual times (starting at 9:00 AM)
@@ -224,16 +287,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
         const stageName = PIPELINE_STAGES[stage];
         
-        // Draw the rectangle for this stage
-        g.append("rect")
-          .attr("x", xScale(String(cycle))!)
-          .attr("y", yScale(instr.id.toString())!)
-          .attr("width", xScale.bandwidth())
-          .attr("height", yScale.bandwidth())
-          .attr("fill", instr.stalled && stage === instr.currentStage ? "#f8d7da" : instr.color)
-          .attr("stroke", "black")
+        // Create a group for the stage
+        const stageGroup = g.append("g")
+          .attr("transform", `translate(${xScale(String(cycle))!}, ${yScale(instr.id.toString())!})`)
           .attr("opacity", 0.7)
-          .attr("rx", 4)
           .on("mouseover", function(event) {
             d3.select(this).attr("opacity", 1);
             
@@ -264,16 +321,73 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             d3.select(this).attr("opacity", 0.7);
             svg.selectAll(".tooltip").remove();
           });
+        
+        // Add colored background rectangle
+        stageGroup.append("rect")
+          .attr("width", xScale.bandwidth())
+          .attr("height", yScale.bandwidth())
+          .attr("fill", instr.stalled && stage === instr.currentStage ? "#f8d7da" : instr.color)
+          .attr("stroke", "black")
+          .attr("rx", 4);
+        
+        // Calculate inner rectangle size for the icon (slightly smaller)
+        const innerWidth = xScale.bandwidth() * 0.8;
+        const innerHeight = yScale.bandwidth() * 0.8;
+        const innerX = (xScale.bandwidth() - innerWidth) / 2;
+        const innerY = (yScale.bandwidth() - innerHeight) / 2;
+        
+        // Add SVG icon on top
+        stageGroup.append("rect")
+          .attr("width", innerWidth)
+          .attr("height", innerHeight)
+          .attr("x", innerX)
+          .attr("y", innerY)
+          .attr("fill", `url(#stage-pattern-${stage})`)
+          .attr("stroke", "white")
+          .attr("stroke-width", 1)
+          .attr("rx", 4);
+        
+        // Add a light overlay to tint the icon with instruction color
+        stageGroup.append("rect")
+          .attr("width", innerWidth)
+          .attr("height", innerHeight)
+          .attr("x", innerX)
+          .attr("y", innerY)
+          .attr("fill", instr.color)
+          .attr("opacity", 0.2)
+          .attr("rx", 4);
+        
+        // Add superscalar indicator for instructions that start in the same cycle
+        // Only add this to the first stage (stage 0) when in superscalar mode
+        if (isSuperscalarActive && stage === 0) {
+          // Check if there are multiple instructions starting in this cycle
+          const parallelInstructions = pipelineInstructions.filter(i => i.startCycle === instr.startCycle);
           
-        // Add stage label
-        g.append("text")
-          .attr("x", xScale(String(cycle))! + xScale.bandwidth() / 2)
-          .attr("y", yScale(instr.id.toString())! + yScale.bandwidth() / 2)
-          .attr("fill", "white")
-          .attr("text-anchor", "middle")
-          .attr("dominant-baseline", "middle")
-          .attr("font-weight", "bold")
-          .text(stageName.charAt(0));
+          if (parallelInstructions.length > 1) {
+            // Only add the badge to the first instruction in this cycle
+            if (instr.id === parallelInstructions[0].id) {
+              // Add a superscalar badge to indicate parallel execution
+              const badgeGroup = stageGroup.append("g")
+                .attr("transform", `translate(${xScale.bandwidth() - 20}, 5)`);
+                
+              badgeGroup.append("circle")
+                .attr("r", 10)
+                .attr("fill", "#9333ea") // Purple for superscalar
+                .attr("stroke", "white")
+                .attr("stroke-width", 1);
+                
+              badgeGroup.append("text")
+                .attr("x", 0)
+                .attr("y", 3)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("fill", "white")
+                .attr("font-size", "10px")
+                .attr("font-weight", "bold")
+                .text(`${parallelInstructions.length}x`);
+            }
+          }
+        }
       }
     });
 
@@ -345,24 +459,45 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       // Update each instruction's position in the pipeline
       setPipelineInstructions(prevInstructions => {
         if (isPipelined) {
-          // Pipelined execution - all instructions can advance simultaneously
-          return prevInstructions.map(instr => {
-            // If the instruction hasn't started yet
-            if (instr.startCycle !== undefined && cycles < instr.startCycle) {
-              return instr;
-            }
-            
-            // If the instruction has already completed all stages
-            if (instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length) {
-              return instr;
-            }
-            
-            // Otherwise, advance the instruction to the next stage
-            return {
-              ...instr,
-              currentStage: (instr.currentStage !== undefined ? instr.currentStage + 1 : 0)
-            };
-          });
+          if (isSuperscalarActive) {
+            // Superscalar pipelined execution - multiple instructions can start in the same cycle
+            return prevInstructions.map(instr => {
+              // If the instruction hasn't started yet
+              if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+                return instr;
+              }
+              
+              // If the instruction has already completed all stages
+              if (instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length) {
+                return instr;
+              }
+              
+              // Otherwise, advance the instruction to the next stage
+              return {
+                ...instr,
+                currentStage: (instr.currentStage !== undefined ? instr.currentStage + 1 : 0)
+              };
+            });
+          } else {
+            // Standard pipelined execution - only one instruction can start per cycle
+            return prevInstructions.map(instr => {
+              // If the instruction hasn't started yet
+              if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+                return instr;
+              }
+              
+              // If the instruction has already completed all stages
+              if (instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length) {
+                return instr;
+              }
+              
+              // Otherwise, advance the instruction to the next stage
+              return {
+                ...instr,
+                currentStage: (instr.currentStage !== undefined ? instr.currentStage + 1 : 0)
+              };
+            });
+          }
         } else {
           // Non-pipelined execution - only one instruction can be active at a time
           const activeInstructionIndex = prevInstructions.findIndex(
@@ -439,12 +574,32 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     setIsRunning(false);
     setCycles(0);
     setPipelineInstructions(
-      instructions.map((instr, index) => ({
-        ...instr,
-        currentStage: -1,
-        startCycle: isPipelined ? index : undefined,
-        stalled: false
-      }))
+      instructions.map((instr, index) => {
+        if (isPipelined) {
+          if (isSuperscalarActive) {
+            return {
+              ...instr,
+              currentStage: -1,
+              startCycle: Math.floor(index / superscalarFactor),
+              stalled: false
+            };
+          } else {
+            return {
+              ...instr,
+              currentStage: -1,
+              startCycle: index,
+              stalled: false
+            };
+          }
+        } else {
+          return {
+            ...instr,
+            currentStage: -1,
+            startCycle: undefined,
+            stalled: false
+          };
+        }
+      })
     );
   };
 
@@ -455,6 +610,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const togglePipelineMode = () => {
     setIsRunning(false);
     setIsPipelined(!isPipelined);
+    // When toggling to non-pipelined mode, disable superscalar
+    if (isPipelined) {
+      setIsSuperscalarActive(false);
+    }
     handleReset();
   };
   
@@ -464,12 +623,28 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     
     setIsRunning(false);
     
+    const newInstructionId = pipelineInstructions.length + 1;
+    let startCycle;
+    
+    if (isPipelined) {
+      if (isSuperscalarActive) {
+        // In superscalar mode, multiple instructions can start in the same cycle
+        startCycle = Math.floor((newInstructionId - 1) / superscalarFactor);
+      } else {
+        // In regular pipelined mode, each instruction starts in its own cycle
+        startCycle = pipelineInstructions.length;
+      }
+    } else {
+      // In non-pipelined mode, startCycle is undefined until the instruction actually starts
+      startCycle = undefined;
+    }
+    
     const newInstruction: Instruction = {
-      id: pipelineInstructions.length + 1,
+      id: newInstructionId,
       name: newInstructionName.trim(),
       color: availableColors[pipelineInstructions.length % availableColors.length],
       currentStage: -1,
-      startCycle: isPipelined ? pipelineInstructions.length : undefined,
+      startCycle: startCycle,
       stalled: false
     };
     
@@ -483,11 +658,29 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     const updatedInstructions = pipelineInstructions.filter(instr => instr.id !== id);
     
     // Reassign IDs to keep them sequential
-    const reindexedInstructions = updatedInstructions.map((instr, index) => ({
-      ...instr,
-      id: index + 1,
-      startCycle: isPipelined ? index : undefined
-    }));
+    const reindexedInstructions = updatedInstructions.map((instr, index) => {
+      const newId = index + 1;
+      let startCycle;
+      
+      if (isPipelined) {
+        if (isSuperscalarActive) {
+          // In superscalar mode, multiple instructions can start in the same cycle
+          startCycle = Math.floor(index / superscalarFactor);
+        } else {
+          // In regular pipelined mode, each instruction starts in its own cycle
+          startCycle = index;
+        }
+      } else {
+        // In non-pipelined mode, startCycle is undefined until the instruction actually starts
+        startCycle = undefined;
+      }
+      
+      return {
+        ...instr,
+        id: newId,
+        startCycle: startCycle
+      };
+    });
     
     setPipelineInstructions(reindexedInstructions);
     setCycles(0);
@@ -495,7 +688,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   
   // Calculate total cycles to complete all instructions
   const totalCyclesRequired = isPipelined 
-    ? pipelineInstructions.length + PIPELINE_STAGES.length - 1
+    ? (isSuperscalarActive 
+      ? Math.ceil(pipelineInstructions.length / superscalarFactor) + PIPELINE_STAGES.length - 1
+      : pipelineInstructions.length + PIPELINE_STAGES.length - 1)
     : pipelineInstructions.length * PIPELINE_STAGES.length;
   
   // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
@@ -509,11 +704,11 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     
   // Calculate theoretical maximum metrics
   const theoreticalMaxCPI = isPipelined 
-    ? "1.00" 
+    ? (isSuperscalarActive ? (1/superscalarFactor).toFixed(2) : "1.00")
     : PIPELINE_STAGES.length.toFixed(2);
     
   const theoreticalMaxIPC = isPipelined 
-    ? "1.00" 
+    ? (isSuperscalarActive ? superscalarFactor.toString() : "1.00")
     : (1 / PIPELINE_STAGES.length).toFixed(2);
 
   return (
@@ -555,6 +750,32 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               {isPipelined ? "Pipelined Mode" : "Non-pipelined Mode"}
             </span>
           </label>
+          
+          {/* Superscalar toggle, only available in pipelined mode */}
+          {isPipelined && (
+            <label className="inline-flex items-center cursor-pointer ml-4">
+              <input 
+                type="checkbox" 
+                checked={isSuperscalarActive}
+                onChange={() => {
+                  setIsSuperscalarActive(!isSuperscalarActive);
+                  handleReset();
+                }}
+                className="sr-only peer"
+              />
+              <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              <span className="ml-3 text-sm font-medium">
+                {isSuperscalarActive ? (
+                  <span className="flex items-center gap-2">
+                    Superscalar Mode ({superscalarFactor}-way)
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      {superscalarFactor}x
+                    </span>
+                  </span>
+                ) : "Single-issue Mode"}
+              </span>
+            </label>
+          )}
         </div>
       </div>
       
@@ -709,7 +930,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              <strong>Laundry Efficiency:</strong> In {isPipelined ? "pipelined" : "non-pipelined"} mode, all {pipelineInstructions.length} loads of laundry require approximately <strong>{totalCyclesRequired}</strong> "cycles" to complete (from 9:00 AM to {
+              <strong>Laundry Efficiency:</strong> In {
+                isPipelined 
+                  ? (isSuperscalarActive 
+                    ? "superscalar pipelined" 
+                    : "pipelined") 
+                  : "non-pipelined"
+              } mode, all {pipelineInstructions.length} loads of laundry require approximately <strong>{totalCyclesRequired}</strong> "cycles" to complete (from 9:00 AM to {
                 (() => {
                   const minutes = totalCyclesRequired * 30;
                   const hours = Math.floor(9 + minutes / 60);
@@ -720,7 +947,11 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 })()
               }).
               {isPipelined ? (
-                <> With pipelined laundry, you can complete a load every 30 minutes once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete before starting the next.</>
+                isSuperscalarActive ? (
+                  <> With superscalar pipelined laundry, you can complete {superscalarFactor} loads every 30 minutes once the pipeline is full, achieving a CPI of {(1/superscalarFactor).toFixed(2)} and IPC of {superscalarFactor}. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete before starting the next.</>
+                ) : (
+                  <> With pipelined laundry, you can complete a load every 30 minutes once the pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete before starting the next.</>
+                )
               ) : (
                 <> With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages for each load before starting the next one, resulting in a cycles-per-load of {PIPELINE_STAGES.length}.</>
               )}
@@ -772,6 +1003,21 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
         </div>
         
+        {/* Superscalar section */}
+        <h3 className="text-lg font-semibold mb-2">Superscalar Execution</h3>
+        <div className="bg-purple-50 p-4 rounded mb-4">
+          <h4 className="font-medium mb-1">Superscalar Laundry</h4>
+          <p className="text-sm mb-2">
+            Superscalar execution takes pipelining one step further. Instead of processing just one instruction 
+            per cycle, a superscalar pipeline can start multiple instructions in the same cycle.
+          </p>
+          <p className="text-sm">
+            In our laundry analogy, this would be like having two washing machines, two dryers, and enough 
+            capacity at each stage to process multiple loads simultaneously. With a 2-way superscalar system,
+            you could start two loads of laundry in each cycle, potentially doubling your throughput!
+          </p>
+        </div>
+        
         <h3 className="text-lg font-semibold mb-2">The Computer Architecture Connection</h3>
         <p className="mb-2">
           In CPU design, pipelining works the same way:
@@ -782,9 +1028,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           <li>This improves throughput - the number of instructions completed per cycle</li>
           <li>The CPI (Cycles Per Instruction) approaches 1.0 in an ideal pipeline</li>
         </ul>
+        <p className="mb-2">
+          Superscalar architecture takes this a step further:
+        </p>
+        <ul className="list-disc ml-8 mb-4">
+          <li>Multiple execution units are available to process instructions in parallel</li>
+          <li>Modern CPUs have multiple ALUs, load/store units, and other functional units</li>
+          <li>The CPU can issue multiple instructions per cycle to these execution units</li>
+          <li>This allows for CPI values less than 1.0 (or IPC values greater than 1.0)</li>
+          <li>Examples include Intel Core, AMD Ryzen, and Apple M-series processors</li>
+        </ul>
         <p>
-          Toggle between the pipelined and non-pipelined modes to see how dramatically this technique 
-          improves efficiency - just like it would make your laundry day much more productive!
+          Toggle between the different modes to see how these techniques dramatically
+          improve efficiency - just like they would make your laundry day much more productive!
         </p>
       </div>
       

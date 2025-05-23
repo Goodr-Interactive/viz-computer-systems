@@ -16,7 +16,7 @@ export const ProcessController: React.FunctionComponent<Props> = ({ controller }
             duration: seconds,
             events: [],
             status: ProcessStatus.WAITING,
-            enquedAt: new Date().getUTCMilliseconds(),
+            enquedAt: new Date().getTime(),
             completedAt: undefined
         })
     }

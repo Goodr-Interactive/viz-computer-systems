@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Play, Columns, Undo } from "@mynaui/icons-react";
+import { IconButton } from "./IconButton";
 
 interface Props {
   controller: SchedulerController;
@@ -39,6 +41,23 @@ export const MenuBar: React.FunctionComponent<Props> = ({ controller }) => {
           <Switch onCheckedChange={controller.setQuizMode} checked={controller.quizMode} />
           <Label>Quiz Mode</Label>
         </div>
+      </div>
+      <div className="flex gap-[12px]">
+        {controller.state !== SchedulerState.RUNNING && (
+          <IconButton onClick={controller.play}>
+            <Play height={30} width={30} />
+          </IconButton>
+        )}
+
+        {controller.state !== SchedulerState.PAUSED && (
+          <IconButton onClick={controller.pause}>
+            <Columns height={24} width={24} />
+          </IconButton>
+        )}
+
+        <IconButton onClick={controller.reset}>
+          <Undo height={24} width={24} />
+        </IconButton>
       </div>
     </div>
   );

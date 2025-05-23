@@ -12,6 +12,8 @@ import {
 export const Scheduler: React.FunctionComponent = () => {
   const controller = useScheduler();
 
+  const { processes } = controller;
+
   return (
     <div className="flex h-[100vh] w-full flex-col px-[56px] pt-[24px] pb-[56px]">
       <h1 className="text-3xl font-bold tracking-tight">The Scheduler</h1>
@@ -25,7 +27,7 @@ export const Scheduler: React.FunctionComponent = () => {
         <ResizableHandle />
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel>
-            <DirectExecution controller={controller} />
+            <DirectExecution processes={processes} />
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel className="max-w-[400px]">

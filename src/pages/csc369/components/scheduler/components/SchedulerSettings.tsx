@@ -14,7 +14,7 @@ export const SchedulerSettings: React.FunctionComponent<Props> = ({ controller }
       <div className="flex w-full items-center justify-around gap-[36px]">
         <div className="flex w-full flex-col gap-[16px]">
           <div className="flex w-full justify-between">
-            <Label>Context Switch Frequency</Label>
+            <Label>Preemption Frequency</Label>
             <Label>{controller.contextSwitchFrequency.toFixed(1)}s</Label>
           </div>
           <Slider

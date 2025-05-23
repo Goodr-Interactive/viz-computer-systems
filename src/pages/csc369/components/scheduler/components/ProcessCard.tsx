@@ -1,17 +1,35 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ProcessStatus, type Process } from "../types";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
+import { formatMetric, getResponseTime, getTurnaroundTime, getVirtualRuntime, getWaitTime } from "../utils";
 
 interface Props {
+  algorithm: Algorithm;
   process: Process;
 }
 
 type ProcessState = ["default" | "secondary" | "destructive" | "outline", string]
 
+interface ProcessMetrics {
+  wait: number;
+  response: number;
+  turnaround: number;
+  vruntime: number;
+}
+
 export const ProcessCard: React.FunctionComponent<Props> = ({ process }) => {
+
+  const now = new Date().getTime();
+
+  const [metrics, setMetrics] = useState<ProcessMetrics>({
+    wait: getWaitTime(process, now),
+    response: getResponseTime(process, now),
+    turnaround: getTurnaroundTime(process, now),
+    vruntime: getVirtualRuntime(process, now)
+  });
     
   const [variant, label] : ProcessState = useMemo(() => {
     switch(process.status) {
@@ -24,7 +42,22 @@ export const ProcessCard: React.FunctionComponent<Props> = ({ process }) => {
     }
   }, [process.status])
 
-  const runtime = 2
+  const updateMetrics = () => {
+    const now = new Date().getTime();
+    setMetrics({
+      wait: getWaitTime(process, now),
+      response: getResponseTime(process, now),
+      turnaround: getTurnaroundTime(process, now),
+      vruntime: getVirtualRuntime(process, now)
+    })
+  }
+
+  useEffect(() => {
+    const interval = setInterval(updateMetrics, 100);
+    return () => {
+      clearInterval(interval);
+    }
+  }, [process])
 
   return (
     <Card className="w-full">
@@ -41,21 +74,21 @@ export const ProcessCard: React.FunctionComponent<Props> = ({ process }) => {
         <CardDescription>Created at: 0:04s</CardDescription>
         <div className="flex w-full justify-between mt-[8px]">
             <Label>vruntime</Label>
-            <Label>{runtime.toFixed(1)} / {process.duration.toFixed(1)}s</Label>
+            <Label>{formatMetric(metrics.vruntime)} / {process.duration.toFixed(1)}s</Label>
           </div>
           <Progress
-            value={runtime / process.duration * 100}
+            value={metrics.vruntime / process.duration * 1000}
           />
         </CardHeader>
         <CardFooter className="flex flex-wrap gap-[12px]">
             <Badge className="bg-[var(--chart-2)]">
-                Wait: {3.2}s
+                Wait: {formatMetric(metrics.wait)}s
             </Badge>
             <Badge className="bg-[var(--chart-1)]">
-                Response: {3.2}s
+                Response: {formatMetric(metrics.response)}s
             </Badge>
             <Badge className="bg-[var(--chart-5)]">
-                Turnaround: {3.2}s
+                Turnaround: {formatMetric(metrics.turnaround)}s
             </Badge>
         </CardFooter>
     </Card>

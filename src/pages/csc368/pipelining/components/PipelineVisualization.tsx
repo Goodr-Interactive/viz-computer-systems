@@ -29,12 +29,14 @@ interface PipelineVisualizationProps {
 }
 
 export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
-  width = 800,
-  height = 400,
+  width,
+  height,
   instructions = DEFAULT_INSTRUCTIONS
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const nonPipelinedSvgRef = useRef<SVGSVGElement>(null);
+  const [svgWidth, setSvgWidth] = useState<number>(width || 800);
+  const [svgHeight, setSvgHeight] = useState<number>(height || 400);
   const [cycles, setCycles] = useState<number>(0);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -49,6 +51,53 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     "#FF5722", "#009688", "#673AB7", "#3F51B5", "#00BCD4", 
     "#607D8B", "#795548", "#9C27B0", "#2196F3", "#FF9800"
   ]);
+  
+  // Set initial dimensions based on container size
+  useEffect(() => {
+    if (containerRef.current) {
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      setSvgWidth(width);
+      setSvgHeight(Math.max(height, 400));
+    }
+  }, []);
+
+  // Add dimension monitoring
+  useEffect(() => {
+    // Create a ResizeObserver to watch the container size
+    if (!containerRef.current) return;
+    
+    const resizeObserver = new ResizeObserver(entries => {
+      if (!entries.length) return;
+      
+      const { width, height } = entries[0].contentRect;
+      setSvgWidth(width);
+      setSvgHeight(Math.max(height, 400)); // Minimum height of 400px
+    });
+    
+    resizeObserver.observe(containerRef.current);
+    
+    // Clean up
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+  
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        setSvgWidth(width);
+        setSvgHeight(Math.max(height, 400));
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
   
   // Initialize pipeline
   useEffect(() => {
@@ -73,8 +122,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     
     // const parentElement = document.getElementById(vis.parentContainer);
 
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
+    const innerWidth = svgWidth - margin.left - margin.right;
+    const innerHeight = svgHeight - margin.top - margin.bottom;
     
     // Create the main group element
     const g = svg.append("g")
@@ -230,7 +279,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
     // Draw instruction legend
     // const legend = svg.append("g")
-    //   .attr("transform", `translate(${width - 150}, 10)`);
+    //   .attr("transform", `translate(${svgWidth - 150}, 10)`);
 
     // Legend for laundry loads
     // legend.append("text")
@@ -273,7 +322,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     //     .text(`${stage.charAt(0)} = ${stage}`);
     // });
     
-  }, [width, height, cycles, pipelineInstructions]);
+  }, [svgWidth, svgHeight, cycles, pipelineInstructions]);
 
   // Simulation logic
   useEffect(() => {
@@ -621,8 +670,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         </div>
       </div>
       
-      <div className="border border-gray-300 rounded-lg shadow-lg overflow-hidden mb-4">
-        <svg ref={svgRef} width={width} height={height}></svg>
+      <div ref={containerRef} className="border border-gray-300 rounded-lg shadow-lg overflow-hidden mb-4 w-full" style={{ height: '500px' }}>
+        <svg ref={svgRef} width={svgWidth} height={svgHeight}></svg>
       </div>
       
       {pipelineInstructions.every(instr => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length) && (

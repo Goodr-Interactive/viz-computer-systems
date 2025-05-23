@@ -63,7 +63,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
   const [isPipelined, setIsPipelined] = useState<boolean>(true); // Toggle between pipelined and non-pipelined
   const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar); // Use superscalar mode
-  const [superscalarFactor, setSuperscalarFactor] = useState<number>(superscalarWidth); // How many instructions in parallel
+  const [superscalarFactor] = useState<number>(superscalarWidth); // How many instructions in parallel
   
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");

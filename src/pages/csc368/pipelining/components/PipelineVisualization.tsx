@@ -8,6 +8,11 @@ import tumbleDrySvg from "@/assets/tumble-dry.svg";
 import handDrySvg from "@/assets/hand-dry.svg";
 import closetSvg from "@/assets/closet.svg";
 
+// Import SVG assets for controls
+import playSvg from "@/assets/play.svg";
+import pauseSvg from "@/assets/pause.svg";
+import resetSvg from "@/assets/reset.svg";
+
 // Define the instruction stages
 const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
 
@@ -818,28 +823,34 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             <button
               onClick={handleStart}
               disabled={isRunning}
-              className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+              className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+              title="Start"
             >
-              Start
+              <img src={playSvg} alt="Start" className="h-6 w-6" />
             </button>
             <button
               onClick={handlePause}
               disabled={!isRunning}
-              className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
+              className="flex items-center justify-center rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
+              title="Pause"
             >
-              Pause
+              <img src={pauseSvg} alt="Pause" className="h-6 w-6" />
             </button>
             <button
               onClick={handleReset}
-              className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+              className="flex items-center justify-center rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+              title="Reset"
             >
+              <img src={resetSvg} alt="Reset" className="h-6 w-6" />
+            </button>
+            <span className="ml-2 self-center text-sm">
               {pipelineInstructions.every(
                 (instr) =>
                   instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
               )
                 ? "Start Over"
-                : "Reset"}
-            </button>
+                : isRunning ? "Running..." : "Ready"}
+            </span>
           </div>
 
           <div className="mb-4">

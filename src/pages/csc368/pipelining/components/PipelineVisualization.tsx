@@ -219,7 +219,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .scaleBand()
       .domain(d3.range(0, cycles + 5).map(String))
       .range([0, innerWidth])
-      .padding(0.1);
+      .padding(0.02); // make spacing almost indistinguishable
 
     const yScale = d3
       .scaleBand()
@@ -233,6 +233,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .attr("transform", `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale).tickFormat((_, i) => timeLabels[i]));
 
+    // Adjust tick position to align with the left edge of each band
+    xAxis.selectAll(".tick")
+      .attr("transform", function() {
+        const tickValue = d3.select(this).datum();
+        return `translate(${xScale(String(tickValue))},0)`;
+      });
+
     // Rotate the tick labels
     xAxis
       .selectAll("text")
@@ -241,14 +248,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .attr("y", 0)
       .attr("x", 9)
       .attr("dy", ".35em");
-
-    xAxis
-      .append("text")
-      .attr("x", innerWidth / 2)
-      .attr("y", 40)
-      .attr("fill", "black")
-      .attr("text-anchor", "middle");
-    // .text("Time of Day");
 
     // Add Y axis
     g.append("g")
@@ -273,8 +272,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       .data(d3.range(0, cycles + 5))
       .enter()
       .append("line")
-      .attr("x1", (d) => xScale(String(d))! + xScale.bandwidth() / 2)
-      .attr("x2", (d) => xScale(String(d))! + xScale.bandwidth() / 2)
+      .attr("x1", (d) => xScale(String(d))!)
+      .attr("x2", (d) => xScale(String(d))!)
       .attr("y1", 0)
       .attr("y2", innerHeight)
       .attr("stroke", "#e0e0e0")

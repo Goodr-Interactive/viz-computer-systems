@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { BasicLaundry } from "./components";
+import { PipelineVisualization } from "./components";
 
 export const Pipelining: React.FunctionComponent = () => {
   return (
@@ -9,13 +9,20 @@ export const Pipelining: React.FunctionComponent = () => {
         Instruction Pipelining Basics: The Laundry Analogy
       </h1>
 
+      
       <div className="w-full max-w-4xl rounded-lg bg-white p-6 shadow-md">
-        <BasicLaundry />
+        <PipelineVisualization />
       </div>
 
       <div className="mt-4 flex gap-[16px]">
         <Button asChild variant="outline">
+          <a href="/csc368/pipelining">Back to Basics of Pipelines</a>
+        </Button>
+        <Button asChild variant="outline">
           <a href="/csc368">Back to CSC368</a>
+        </Button>
+        <Button asChild variant="outline" disabled>
+          <a href="#">Next Visualization CPU Instructions with Pipelines</a>
         </Button>
       </div>
     </div>

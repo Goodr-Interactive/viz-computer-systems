@@ -428,51 +428,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         }
       }
     });
-
-    // Draw instruction legend
-    // const legend = svg.append("g")
-    //   .attr("transform", `translate(${svgWidth - 150}, 10)`);
-
-    // Legend for laundry loads
-    // legend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Laundry Loads");
-
-    // pipelineInstructions.forEach((instr, i) => {
-    //   const legendItem = legend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
-
-    // legendItem.append("rect")
-    //   .attr("width", 15)
-    //   .attr("height", 15)
-    //   .attr("fill", instr.color);
-
-    // legendItem.append("text")
-    //   .attr("x", 20)
-    //   .attr("y", 12)
-    //   .text(instr.name);
-    // });
-
-    // // Legend for pipeline stages
-    // const stageLegend = svg.append("g")
-    //   .attr("transform", `translate(10, 10)`);
-
-    // stageLegend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Pipeline Stages");
-
-    // PIPELINE_STAGES.forEach((stage, i) => {
-    //   const legendItem = stageLegend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
-
-    //   legendItem.append("text")
-    //     .attr("font-weight", "bold")
-    //     .text(`${stage.charAt(0)} = ${stage}`);
-    // });
   }, [svgWidth, svgHeight, cycles, pipelineInstructions]);
 
   // Simulation logic
@@ -612,7 +567,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     setIsRunning(true);
   };
 
-  const handleStop = () => {
+  const handlePause = () => {
     setIsRunning(false);
   };
 
@@ -762,148 +717,190 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     : (1 / PIPELINE_STAGES.length).toFixed(2);
 
   return (
-    <div className="flex w-full flex-col items-center space-y-4">
-      <div className="mb-2 flex w-full flex-col gap-4 md:flex-row md:items-center">
-        <div className="flex space-x-4">
-          <button
-            onClick={handleStart}
-            disabled={isRunning}
-            className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
-          >
-            Start
-          </button>
-          <button
-            onClick={handleStop}
-            disabled={!isRunning}
-            className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
-          >
-            Stop
-          </button>
-          <button
-            onClick={handleReset}
-            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-          >
-            {pipelineInstructions.every(
-              (instr) =>
-                instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
-            )
-              ? "Start Over"
-              : "Reset"}
-          </button>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <label className="inline-flex cursor-pointer items-center">
+    <div className="flex w-full flex-col lg:flex-row lg:gap-6">
+      {/* Visualization Container - Left side on desktop */}
+      <div className="flex w-full flex-col items-center lg:w-2/3">
+        <div className="mb-2 w-full flex flex-col justify-between md:flex-row md:items-center">
+          <div className="flex items-center space-x-2">
+            <span>Slow</span>
             <input
-              type="checkbox"
-              checked={isPipelined}
-              onChange={togglePipelineMode}
-              className="peer sr-only"
+              type="range"
+              min="100"
+              max="1900"
+              value={2000 - speed}
+              onChange={handleSpeedChange}
+              className="w-40"
             />
-            <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-            <span className="ml-3 text-sm font-medium">
-              {isPipelined ? "Pipelined Mode" : "Non-pipelined Mode"}
-            </span>
-          </label>
+            <span>Fast</span>
+          </div>
 
-          {/* Superscalar toggle, only available in pipelined mode */}
-          {isPipelined && (
-            <label className="ml-4 inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={isSuperscalarActive}
-                onChange={() => {
-                  setIsSuperscalarActive(!isSuperscalarActive);
-                  handleReset();
-                }}
-                className="peer sr-only"
-              />
-              <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-              <span className="ml-3 text-sm font-medium">
-                {isSuperscalarActive ? (
-                  <span className="flex items-center gap-2">
-                    Superscalar Mode ({superscalarFactor}-way)
-                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                      {superscalarFactor}x
-                    </span>
-                  </span>
-                ) : (
-                  "Superscalar Mode"
-                )}
-              </span>
-            </label>
-          )}
-        </div>
-      </div>
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">
+                Current Time:{" "}
+                {cycles > 0
+                  ? (() => {
+                      const minutes = Math.floor(cycles / 2) * 30;
+                      const hours = Math.floor(9 + minutes / 60);
+                      const mins = minutes % 60;
+                      const ampm = hours >= 12 ? "PM" : "AM";
+                      const hour12 = hours > 12 ? hours - 12 : hours;
+                      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+                    })()
+                  : "9:00 AM"}
+                <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
+              </h3>
+            </div>
 
-      {/* Instruction Management UI */}
-      <div className="my-2 w-full border-t border-b border-gray-200 py-4">
-        <div className="mb-2 flex flex-col items-start justify-between md:flex-row md:items-center">
-          <h3 className="mb-2 text-lg font-medium md:mb-0">Instructions</h3>
-
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center rounded bg-purple-500 px-3 py-1 text-sm text-white hover:bg-purple-600"
-          >
-            {showAddForm ? "Cancel" : "Add Instruction"}
-            {!showAddForm && (
-              <svg
-                className="ml-1 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-            )}
-          </button>
+            <div className="flex items-center gap-2 text-center">
+              <div>
+                <h3 className="text-lg font-medium">
+                  CPI: {cpi} <span className="text-xs text-gray-500">(min: {theoreticalMaxCPI})</span>
+                </h3>
+              </div>
+              <div className="text-xl">|</div>
+              <div>
+                <h3 className="text-lg font-medium">
+                  IPC: {ipc} <span className="text-xs text-gray-500">(max: {theoreticalMaxIPC})</span>
+                </h3>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {showAddForm && (
-          <div className="mb-4 flex flex-col gap-2 rounded bg-gray-50 p-3 md:flex-row">
-            <input
-              type="text"
-              value={newInstructionName}
-              onChange={(e) => setNewInstructionName(e.target.value)}
-              placeholder="Enter laundry load (e.g., Sweaters Load)"
-              className="flex-grow rounded border border-gray-300 px-3 py-2"
-            />
-            <button
-              onClick={handleAddInstruction}
-              disabled={!newInstructionName.trim()}
-              className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
-            >
-              Add
-            </button>
+        <div
+          ref={containerRef}
+          className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
+          style={{ height: "500px" }}
+        >
+          <svg ref={svgRef} width={svgWidth} height={svgHeight}></svg>
+        </div>
+
+        {pipelineInstructions.every(
+          (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+        ) && (
+          <div className="mb-4 w-full border-l-4 border-green-400 bg-green-50 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-700">
+                  <strong>All done!</strong> All laundry loads have been completed. Final time:{" "}
+                  {(() => {
+                    const minutes = Math.floor(cycles / 2) * 30;
+                    const hours = Math.floor(9 + minutes / 60);
+                    const mins = minutes % 60;
+                    const ampm = hours >= 12 ? "PM" : "AM";
+                    const hour12 = hours > 12 ? hours - 12 : hours;
+                    return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+                  })()}
+                  . It took {cycles} "cycles" to complete all {pipelineInstructions.length} loads of
+                  laundry.
+                </p>
+              </div>
+            </div>
           </div>
         )}
+      </div>
 
-        <div className="max-h-40 overflow-y-auto">
-          <ul className="divide-y divide-gray-200">
-            {pipelineInstructions.map((instr) => (
-              <li key={instr.id} className="flex items-center justify-between py-2">
-                <div className="flex items-center">
-                  <div
-                    className="mr-2 h-4 w-4 rounded-full"
-                    style={{ backgroundColor: instr.color }}
-                  ></div>
-                  <span>
-                    <strong>{instr.id}:</strong> {instr.name}
+      {/* Controls and Instructions Container - Right side on desktop */}
+      <div className="flex w-full flex-col lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <button
+              onClick={handleStart}
+              disabled={isRunning}
+              className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+            >
+              Start
+            </button>
+            <button
+              onClick={handlePause}
+              disabled={!isRunning}
+              className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
+            >
+              Pause
+            </button>
+            <button
+              onClick={handleReset}
+              className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+            >
+              {pipelineInstructions.every(
+                (instr) =>
+                  instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+              )
+                ? "Start Over"
+                : "Reset"}
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <h3 className="mb-2 font-semibold">Mode Selection</h3>
+            <div className="space-y-3">
+              <label className="inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={isPipelined}
+                  onChange={togglePipelineMode}
+                  className="peer sr-only"
+                />
+                <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                <span className="ml-3 text-sm font-medium">
+                  {isPipelined ? "Pipelined Mode" : "Non-pipelined Mode"}
+                </span>
+              </label>
+
+              {/* Superscalar toggle, only available in pipelined mode */}
+              {isPipelined && (
+                <label className="inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={isSuperscalarActive}
+                    onChange={() => {
+                      setIsSuperscalarActive(!isSuperscalarActive);
+                      handleReset();
+                    }}
+                    className="peer sr-only"
+                  />
+                  <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                  <span className="ml-3 text-sm font-medium">
+                    {isSuperscalarActive ? (
+                      <span className="flex items-center gap-2">
+                        Superscalar Mode ({superscalarFactor}-way)
+                        <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                          {superscalarFactor}x
+                        </span>
+                      </span>
+                    ) : (
+                      "Superscalar Mode"
+                    )}
                   </span>
-                </div>
-                <button
-                  onClick={() => handleRemoveInstruction(instr.id)}
-                  className="text-red-500 hover:text-red-700"
-                  title="Remove instruction"
-                >
+                </label>
+              )}
+            </div>
+          </div>
+          
+          {/* Instruction Management UI */}
+          <div className="mb-4">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-lg font-medium">Instructions</h3>
+
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="flex items-center rounded bg-purple-500 px-3 py-1 text-sm text-white hover:bg-purple-600"
+              >
+                {showAddForm ? "Cancel" : "Add Instruction"}
+                {!showAddForm && (
                   <svg
-                    className="h-5 w-5"
+                    className="ml-1 h-4 w-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -913,188 +910,72 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="mb-2 flex w-full flex-col justify-between md:flex-row md:items-center">
-        <div className="flex items-center space-x-2">
-          <span>Slow</span>
-          <input
-            type="range"
-            min="100"
-            max="1900"
-            value={2000 - speed}
-            onChange={handleSpeedChange}
-            className="w-40"
-          />
-          <span>Fast</span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-center">
-            <h3 className="text-lg font-medium">
-              Current Time:{" "}
-              {cycles > 0
-                ? (() => {
-                    const minutes = Math.floor(cycles / 2) * 30;
-                    const hours = Math.floor(9 + minutes / 60);
-                    const mins = minutes % 60;
-                    const ampm = hours >= 12 ? "PM" : "AM";
-                    const hour12 = hours > 12 ? hours - 12 : hours;
-                    return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-                  })()
-                : "9:00 AM"}
-              <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
-            </h3>
-          </div>
-
-          <div className="flex items-center gap-2 text-center">
-            <div>
-              <h3 className="text-lg font-medium">
-                CPI: {cpi} <span className="text-xs text-gray-500">(min: {theoreticalMaxCPI})</span>
-              </h3>
+                )}
+              </button>
             </div>
-            <div className="text-xl">|</div>
-            <div>
-              <h3 className="text-lg font-medium">
-                IPC: {ipc} <span className="text-xs text-gray-500">(max: {theoreticalMaxIPC})</span>
-              </h3>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div
-        ref={containerRef}
-        className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
-        style={{ height: "500px" }}
-      >
-        <svg ref={svgRef} width={svgWidth} height={svgHeight}></svg>
-      </div>
-
-      {pipelineInstructions.every(
-        (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
-      ) && (
-        <div className="mb-4 w-full border-l-4 border-green-400 bg-green-50 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
+            {showAddForm && (
+              <div className="mb-4 flex flex-col gap-2 rounded bg-gray-50 p-3 md:flex-row">
+                <input
+                  type="text"
+                  value={newInstructionName}
+                  onChange={(e) => setNewInstructionName(e.target.value)}
+                  placeholder="Enter laundry load (e.g., Sweaters Load)"
+                  className="flex-grow rounded border border-gray-300 px-3 py-2"
                 />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-green-700">
-                <strong>All done!</strong> All laundry loads have been completed. Final time:{" "}
-                {(() => {
-                  const minutes = Math.floor(cycles / 2) * 30;
-                  const hours = Math.floor(9 + minutes / 60);
-                  const mins = minutes % 60;
-                  const ampm = hours >= 12 ? "PM" : "AM";
-                  const hour12 = hours > 12 ? hours - 12 : hours;
-                  return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-                })()}
-                . It took {cycles} "cycles" to complete all {pipelineInstructions.length} loads of
-                laundry.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+                <button
+                  onClick={handleAddInstruction}
+                  disabled={!newInstructionName.trim()}
+                  className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            )}
 
-      <div className="mb-4 w-full border-l-4 border-yellow-400 bg-yellow-50 p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <div className="max-h-40 overflow-y-auto rounded border border-gray-200">
+              <ul className="divide-y divide-gray-200">
+                {pipelineInstructions.map((instr) => (
+                  <li key={instr.id} className="flex items-center justify-between py-2 px-3">
+                    <div className="flex items-center">
+                      <div
+                        className="mr-2 h-4 w-4 rounded-full"
+                        style={{ backgroundColor: instr.color }}
+                      ></div>
+                      <span>
+                        <strong>{instr.id}:</strong> {instr.name}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveInstruction(instr.id)}
+                      className="text-red-500 hover:text-red-700"
+                      title="Remove instruction"
+                    >
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              <strong>Laundry Efficiency:</strong> In{" "}
-              {isPipelined
-                ? isSuperscalarActive
-                  ? "superscalar pipelined"
-                  : "pipelined"
-                : "non-pipelined"}{" "}
-              mode, all {pipelineInstructions.length} loads of laundry require approximately{" "}
-              <strong>{totalCyclesRequired}</strong> "cycles" to complete (from 9:00 AM to{" "}
-              {(() => {
-                const minutes = totalCyclesRequired * 30;
-                const hours = Math.floor(9 + minutes / 60);
-                const mins = minutes % 60;
-                const ampm = hours >= 12 ? "PM" : "AM";
-                const hour12 = hours > 12 ? hours - 12 : hours;
-                return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-              })()}
-              ).
-              {isPipelined ? (
-                isSuperscalarActive ? (
-                  <>
-                    {" "}
-                    With superscalar pipelined laundry, you can complete {superscalarFactor} loads
-                    every 30 minutes once the pipeline is full, achieving a CPI of{" "}
-                    {(1 / superscalarFactor).toFixed(2)} and IPC of {superscalarFactor}. Without
-                    pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete
-                    before starting the next.
-                  </>
-                ) : (
-                  <>
-                    {" "}
-                    With pipelined laundry, you can complete a load every 30 minutes once the
-                    pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would
-                    take all {PIPELINE_STAGES.length} stages to complete before starting the next.
-                  </>
-                )
-              ) : (
-                <>
-                  {" "}
-                  With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages
-                  for each load before starting the next one, resulting in a cycles-per-load of{" "}
-                  {PIPELINE_STAGES.length}.
-                </>
-              )}
-            </p>
-          </div>
+          
         </div>
-      </div>
-
-      {/* Next Visualization Button */}
-      <div className="mt-8 mb-4 flex w-full justify-center">
-        <a
-          href="/csc368/pipelining/registers"
-          className="flex items-center rounded-lg bg-purple-600 px-6 py-3 font-bold text-white shadow-lg hover:bg-purple-700"
-        >
-          Next Visualization: Processor Pipeline with RISC-V Instructions
-          <svg
-            className="ml-2 h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 5l7 7-7 7"
-            ></path>
-          </svg>
-        </a>
       </div>
     </div>
   );

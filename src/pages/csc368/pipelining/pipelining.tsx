@@ -10,7 +10,7 @@ export const Pipelining: React.FunctionComponent = () => {
       </h1>
 
       
-      <div className="w-full max-w-4xl rounded-lg bg-white p-6 shadow-md">
+      <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
         <PipelineVisualization />
       </div>
 

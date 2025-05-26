@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Home } from "./pages";
+import { SimplePaging } from "./pages/csc369/SimplePaging";
 
 interface AppRoute {
   path: string;
@@ -19,6 +20,10 @@ const ROUTES: AppRoute[] = [
   {
     path: "/csc368",
     element: <></>,
+  },
+  {
+    path: "/csc369/paging",
+    element: <SimplePaging />,
   },
 ];
 

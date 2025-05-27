@@ -7,7 +7,7 @@ import { SimplePaging } from "./pages/csc369/SimplePaging";
 
 // computer architecture pages
 import { CSC368 } from "./pages/csc368/CSC368";
-import { Pipelining } from "./pages/csc368/pipelining/pipelining";
+import { Pipelining } from "./pages/csc368/pipelining";
 import { RegisterPipeline } from "./pages/csc368/pipelining/register-pipeline";
 
 interface AppRoute {

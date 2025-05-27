@@ -8,7 +8,6 @@ export const Pipelining: React.FunctionComponent = () => {
       <h1 className="mb-2 scroll-m-20 text-3xl font-bold tracking-tight">
         Instruction Pipelining Basics: The Laundry Analogy
       </h1>
-
       
       <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
         <PipelineVisualization />

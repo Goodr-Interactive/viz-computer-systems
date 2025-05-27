@@ -13,6 +13,14 @@ import playSvg from "@/assets/play.svg";
 import pauseSvg from "@/assets/pause.svg";
 import resetSvg from "@/assets/reset.svg";
 
+// Import React components
+import { PipelineStage } from "./PipelineStage";
+import { PipelineTooltip } from "./PipelineTooltip";
+import { Axis } from "./Axis";
+import { Grid } from "./Grid";
+import { StagePatterns } from "./StagePatterns";
+import type { Instruction } from "./types";
+
 // Define the instruction stages
 const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
 
@@ -27,28 +35,19 @@ const STAGE_IMAGES = [
 
 // Define some sample instructions for visualization
 const DEFAULT_INSTRUCTIONS = [
-  { id: 1, name: "Load 1 (shirts)", color: "#4285F4" },
-  { id: 2, name: "Load 2 (pants)", color: "#EA4335" },
-  { id: 3, name: "Load 3 (socks)", color: "#FBBC05" },
-  { id: 4, name: "Load 4 (sheets)", color: "#34A853" },
-  { id: 5, name: "Load 5 (jackets)", color: "#8F44AD" },
+  { id: 1, name: "Load 1 (shirts)", color: "#4285F4", registers: { src: [], dest: [] } },
+  { id: 2, name: "Load 2 (pants)", color: "#EA4335", registers: { src: [], dest: [] } },
+  { id: 3, name: "Load 3 (socks)", color: "#FBBC05", registers: { src: [], dest: [] } },
+  { id: 4, name: "Load 4 (sheets)", color: "#34A853", registers: { src: [], dest: [] } },
+  { id: 5, name: "Load 5 (jackets)", color: "#8F44AD", registers: { src: [], dest: [] } },
 ];
-
-interface Instruction {
-  id: number;
-  name: string;
-  color: string;
-  currentStage?: number;
-  startCycle?: number;
-  stalled?: boolean;
-}
 
 interface PipelineVisualizationProps {
   width?: number;
   height?: number;
   instructions?: Instruction[];
-  isSuperscalar?: boolean; // Add superscalar property
-  superscalarWidth?: number; // How many instructions can be processed in parallel
+  isSuperscalar?: boolean;
+  superscalarWidth?: number;
 }
 
 export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
@@ -56,19 +55,33 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   height,
   instructions = DEFAULT_INSTRUCTIONS,
   isSuperscalar = false,
-  superscalarWidth = 2, // Default to 2-way superscalar
+  superscalarWidth = 2,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
   const [svgHeight, setSvgHeight] = useState<number>(height || 800);
   const [cycles, setCycles] = useState<number>(0);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
-  const [isPipelined, setIsPipelined] = useState<boolean>(true); // Toggle between pipelined and non-pipelined
-  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar); // Use superscalar mode
-  const [superscalarFactor] = useState<number>(superscalarWidth); // How many instructions in parallel
+  const [isPipelined, setIsPipelined] = useState<boolean>(true);
+  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar);
+  const [superscalarFactor] = useState<number>(superscalarWidth);
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    instructionName: string;
+    stageName: string;
+    timeLabel: string;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    instructionName: "",
+    stageName: "",
+    timeLabel: "",
+  });
 
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
@@ -102,7 +115,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
   // Add dimension monitoring
   useEffect(() => {
-    // Create a ResizeObserver to watch the container size
     if (!containerRef.current) return;
 
     const resizeObserver = new ResizeObserver((entries) => {
@@ -150,6 +162,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               currentStage: -1, // Not yet in pipeline
               startCycle: Math.floor(index / superscalarFactor), // Start multiple instructions per cycle
               stalled: false,
+              registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
             };
           } else {
             // Standard pipeline: One instruction per cycle
@@ -158,6 +171,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               currentStage: -1, // Not yet in pipeline
               startCycle: index, // Start one cycle after the previous instruction
               stalled: false,
+              registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
             };
           }
         } else {
@@ -167,273 +181,12 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             currentStage: -1, // Not yet in pipeline
             startCycle: undefined, // Will be set when the instruction starts
             stalled: false,
+            registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
           };
         }
       })
     );
   }, [instructions, isPipelined, isSuperscalarActive, superscalarFactor]);
-
-  // Core visualization logic
-  useEffect(() => {
-    if (!svgRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-
-    const margin = { top: 50, right: 30, bottom: 50, left: 100 };
-
-    // const parentElement = document.getElementById(vis.parentContainer);
-
-    const innerWidth = svgWidth - margin.left - margin.right;
-    const innerHeight = svgHeight - margin.top - margin.bottom;
-
-    // Create the main group element
-    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Define defs for SVG patterns
-    const defs = svg.append("defs");
-
-    // Create patterns for each pipeline stage with the SVG icons
-    STAGE_IMAGES.forEach((image, index) => {
-      defs
-        .append("pattern")
-        .attr("id", `stage-pattern-${index}`)
-        .attr("patternUnits", "objectBoundingBox")
-        .attr("width", 1)
-        .attr("height", 1)
-        .attr("patternContentUnits", "objectBoundingBox")
-        .append("image")
-        .attr("href", image)
-        .attr("width", 1)
-        .attr("height", 1)
-        .attr("preserveAspectRatio", "xMidYMid meet");
-    });
-
-    // X and Y scales
-    // Convert clock cycles to actual times (starting at 9:00 AM)
-    const timeLabels = d3.range(0, cycles + 5).map((cycle) => {
-      const minutes = cycle * 30; // Each cycle is 30 minutes
-      const hours = Math.floor(9 + minutes / 60); // Start at 9 AM
-      const mins = minutes % 60;
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const hour12 = hours > 12 ? hours - 12 : hours;
-      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-    });
-
-    const xScale = d3
-      .scaleBand()
-      .domain(d3.range(0, cycles + 5).map(String))
-      .range([0, innerWidth])
-      .padding(0.02); // make spacing almost indistinguishable
-
-    const yScale = d3
-      .scaleBand()
-      .domain(pipelineInstructions.map((instr) => instr.id.toString()))
-      .range([0, innerHeight])
-      .padding(0.1);
-
-    // Add X axis
-    const xAxis = g
-      .append("g")
-      .attr("transform", `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(xScale).tickFormat((_, i) => timeLabels[i]));
-
-    // Adjust tick position to align with the left edge of each band
-    xAxis.selectAll(".tick")
-      .attr("transform", function() {
-        const tickValue = d3.select(this).datum();
-        return `translate(${xScale(String(tickValue))},0)`;
-      });
-
-    // Rotate the tick labels
-    xAxis
-      .selectAll("text")
-      .attr("transform", "rotate(60)")
-      .attr("text-anchor", "start")
-      .attr("y", 0)
-      .attr("x", 9)
-      .attr("dy", ".35em");
-
-    // Add Y axis
-    g.append("g")
-      .call(
-        d3.axisLeft(yScale).tickFormat((d) => {
-          const instr = pipelineInstructions.find((i) => i.id.toString() === d);
-          return instr ? instr.name : d;
-        })
-      )
-      .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", -80)
-      .attr("x", -innerHeight / 2)
-      .attr("fill", "black")
-      .attr("text-anchor", "middle")
-      .text("Laundry Load");
-
-    // Draw grid lines
-    g.append("g")
-      .attr("class", "grid")
-      .selectAll("line")
-      .data(d3.range(0, cycles + 5))
-      .enter()
-      .append("line")
-      .attr("x1", (d) => xScale(String(d))!)
-      .attr("x2", (d) => xScale(String(d))!)
-      .attr("y1", 0)
-      .attr("y2", innerHeight)
-      .attr("stroke", "#e0e0e0")
-      .attr("stroke-width", 1);
-
-    g.append("g")
-      .attr("class", "grid")
-      .selectAll("line")
-      .data(pipelineInstructions.map((instr) => instr.id.toString()))
-      .enter()
-      .append("line")
-      .attr("x1", 0)
-      .attr("x2", innerWidth)
-      .attr("y1", (d) => yScale(d)! + yScale.bandwidth())
-      .attr("y2", (d) => yScale(d)! + yScale.bandwidth())
-      .attr("stroke", "#e0e0e0")
-      .attr("stroke-width", 1);
-
-    // Draw pipeline stages for each instruction
-    pipelineInstructions.forEach((instr) => {
-      if (
-        instr.startCycle === undefined ||
-        instr.currentStage === undefined ||
-        instr.currentStage < 0
-      ) {
-        return;
-      }
-
-      // For each cycle this instruction has been in the pipeline
-      for (
-        let stage = 0;
-        stage <= Math.min(instr.currentStage, PIPELINE_STAGES.length - 1);
-        stage++
-      ) {
-        const cycle = instr.startCycle + stage;
-        if (cycle > cycles) continue;
-
-        const stageName = PIPELINE_STAGES[stage];
-
-        // Create a group for the stage
-        const stageGroup = g
-          .append("g")
-          .attr(
-            "transform",
-            `translate(${xScale(String(cycle))!}, ${yScale(instr.id.toString())!})`
-          )
-          .attr("opacity", 0.7)
-          .on("mouseover", function (event) {
-            d3.select(this).attr("opacity", 1);
-
-            const tooltip = svg
-              .append("g")
-              .attr("class", "tooltip")
-              .attr("transform", `translate(${event.offsetX + 10},${event.offsetY - 10})`);
-
-            tooltip
-              .append("rect")
-              .attr("fill", "white")
-              .attr("stroke", "black")
-              .attr("rx", 5)
-              .attr("ry", 5)
-              .attr("width", 220)
-              .attr("height", 60)
-              .attr("opacity", 0.9);
-
-            tooltip.append("text").attr("x", 10).attr("y", 20).text(`Laundry: ${instr.name}`);
-
-            tooltip
-              .append("text")
-              .attr("x", 10)
-              .attr("y", 40)
-              .text(`Stage: ${stageName} (${timeLabels[cycle]})`);
-          })
-          .on("mouseout", function () {
-            d3.select(this).attr("opacity", 0.7);
-            svg.selectAll(".tooltip").remove();
-          });
-
-        // Add colored background rectangle
-        stageGroup
-          .append("rect")
-          .attr("width", xScale.bandwidth())
-          .attr("height", yScale.bandwidth())
-          .attr("fill", instr.stalled && stage === instr.currentStage ? "#f8d7da" : instr.color)
-          .attr("stroke", "black")
-          .attr("rx", 4);
-
-        // Calculate inner rectangle size for the icon (slightly smaller)
-        const innerWidth = xScale.bandwidth() * 0.8;
-        const innerHeight = yScale.bandwidth() * 0.8;
-        const innerX = (xScale.bandwidth() - innerWidth) / 2;
-        const innerY = (yScale.bandwidth() - innerHeight) / 2;
-
-        // Add SVG icon on top
-        stageGroup
-          .append("rect")
-          .attr("width", innerWidth)
-          .attr("height", innerHeight)
-          .attr("x", innerX)
-          .attr("y", innerY)
-          .attr("fill", `url(#stage-pattern-${stage})`)
-          .attr("stroke", "white")
-          .attr("stroke-width", 1)
-          .attr("rx", 4);
-
-        // Add a light overlay to tint the icon with instruction color
-        stageGroup
-          .append("rect")
-          .attr("width", innerWidth)
-          .attr("height", innerHeight)
-          .attr("x", innerX)
-          .attr("y", innerY)
-          .attr("fill", instr.color)
-          .attr("opacity", 0.2)
-          .attr("rx", 4);
-
-        // Add superscalar indicator for instructions that start in the same cycle
-        // Only add this to the first stage (stage 0) when in superscalar mode
-        if (isSuperscalarActive && stage === 0) {
-          // Check if there are multiple instructions starting in this cycle
-          const parallelInstructions = pipelineInstructions.filter(
-            (i) => i.startCycle === instr.startCycle
-          );
-
-          if (parallelInstructions.length > 1) {
-            // Only add the badge to the first instruction in this cycle
-            if (instr.id === parallelInstructions[0].id) {
-              // Add a superscalar badge to indicate parallel execution
-              const badgeGroup = stageGroup
-                .append("g")
-                .attr("transform", `translate(${xScale.bandwidth() - 20}, 5)`);
-
-              badgeGroup
-                .append("circle")
-                .attr("r", 10)
-                .attr("fill", "#9333ea") // Purple for superscalar
-                .attr("stroke", "white")
-                .attr("stroke-width", 1);
-
-              badgeGroup
-                .append("text")
-                .attr("x", 0)
-                .attr("y", 3)
-                .attr("text-anchor", "middle")
-                .attr("dominant-baseline", "middle")
-                .attr("fill", "white")
-                .attr("font-size", "10px")
-                .attr("font-weight", "bold")
-                .text(`${parallelInstructions.length}x`);
-            }
-          }
-        }
-      }
-    });
-  }, [svgWidth, svgHeight, cycles, pipelineInstructions]);
 
   // Simulation logic
   useEffect(() => {
@@ -476,6 +229,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               return {
                 ...instr,
                 currentStage: instr.currentStage !== undefined ? instr.currentStage + 1 : 0,
+                registers: instr.registers,
               };
             });
           } else {
@@ -498,6 +252,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               return {
                 ...instr,
                 currentStage: instr.currentStage !== undefined ? instr.currentStage + 1 : 0,
+                registers: instr.registers,
               };
             });
           }
@@ -519,7 +274,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             if (nextInstructionIndex !== -1) {
               return prevInstructions.map((instr, index) => {
                 if (index === nextInstructionIndex) {
-                  return { ...instr, currentStage: 0, startCycle: cycles };
+                  return { ...instr, currentStage: 0, startCycle: cycles, registers: instr.registers };
                 }
                 return instr;
               });
@@ -538,12 +293,14 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             updatedInstructions[activeInstructionIndex] = {
               ...updatedInstructions[activeInstructionIndex],
               currentStage: updatedInstructions[activeInstructionIndex].currentStage! + 1,
+              registers: updatedInstructions[activeInstructionIndex].registers,
             };
           } else {
             // This instruction is done, mark it as completed
             updatedInstructions[activeInstructionIndex] = {
               ...updatedInstructions[activeInstructionIndex],
               currentStage: PIPELINE_STAGES.length,
+              registers: updatedInstructions[activeInstructionIndex].registers,
             };
 
             // Immediately start the next instruction if available
@@ -556,6 +313,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 ...updatedInstructions[nextInstructionIndex],
                 currentStage: 0,
                 startCycle: cycles,
+                registers: updatedInstructions[nextInstructionIndex].registers,
               };
             }
           }
@@ -566,7 +324,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     }, speed);
 
     return () => clearTimeout(timer);
-  }, [isRunning, cycles, speed, isPipelined]);
+  }, [isRunning, cycles, speed, isPipelined, isSuperscalarActive]);
 
   const handleStart = () => {
     setIsRunning(true);
@@ -588,6 +346,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               currentStage: -1,
               startCycle: Math.floor(index / superscalarFactor),
               stalled: false,
+              registers: instr.registers,
             };
           } else {
             return {
@@ -595,6 +354,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               currentStage: -1,
               startCycle: index,
               stalled: false,
+              registers: instr.registers,
             };
           }
         } else {
@@ -603,6 +363,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             currentStage: -1,
             startCycle: undefined,
             stalled: false,
+            registers: instr.registers,
           };
         }
       })
@@ -652,6 +413,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       currentStage: -1,
       startCycle: startCycle,
       stalled: false,
+      registers: { src: [], dest: [] }, // Add empty registers as this is the laundry simulation
     };
 
     setPipelineInstructions([...pipelineInstructions, newInstruction]);
@@ -685,6 +447,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         ...instr,
         id: newId,
         startCycle: startCycle,
+        registers: instr.registers,
       };
     });
 
@@ -692,12 +455,28 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     setCycles(0);
   };
 
-  // Calculate total cycles to complete all instructions
-  const totalCyclesRequired = isPipelined
-    ? isSuperscalarActive
-      ? Math.ceil(pipelineInstructions.length / superscalarFactor) + PIPELINE_STAGES.length - 1
-      : pipelineInstructions.length + PIPELINE_STAGES.length - 1
-    : pipelineInstructions.length * PIPELINE_STAGES.length;
+  // Convert clock cycles to actual times (starting at 9:00 AM)
+  const getTimeLabels = () => {
+    return d3.range(0, cycles + 5).map((cycle) => {
+      const minutes = cycle * 30; // Each cycle is 30 minutes
+      const hours = Math.floor(9 + minutes / 60); // Start at 9 AM
+      const mins = minutes % 60;
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const hour12 = hours > 12 ? hours - 12 : hours;
+      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+    });
+  };
+
+  const getCurrentTimeLabel = () => {
+    if (cycles === 0) return "9:00 AM";
+    
+    const minutes = Math.floor(cycles / 2) * 30;
+    const hours = Math.floor(9 + minutes / 60);
+    const mins = minutes % 60;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const hour12 = hours > 12 ? hours - 12 : hours;
+    return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+  };
 
   // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
   const cpi =
@@ -721,6 +500,48 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       : "1.00"
     : (1 / PIPELINE_STAGES.length).toFixed(2);
 
+  // Set up D3 scales for our chart
+  const margin = { top: 50, right: 30, bottom: 50, left: 100 };
+  const innerWidth = svgWidth - margin.left - margin.right;
+  const innerHeight = svgHeight - margin.top - margin.bottom;
+
+  // X scale for cycles
+  const xScale = d3
+    .scaleBand()
+    .domain(d3.range(0, cycles + 5).map(String))
+    .range([0, innerWidth])
+    .padding(0.02);
+
+  // Y scale for instructions
+  const yScale = d3
+    .scaleBand()
+    .domain(pipelineInstructions.map((instr) => instr.id.toString()))
+    .range([0, innerHeight])
+    .padding(0.1);
+
+  const timeLabels = getTimeLabels();
+
+  // Handle tooltip display
+  const handleStageMouseEnter = (
+    event: React.MouseEvent,
+    instruction: Instruction,
+    stageName: string,
+    timeLabel: string
+  ) => {
+    setTooltip({
+      visible: true,
+      x: event.nativeEvent.offsetX,
+      y: event.nativeEvent.offsetY,
+      instructionName: instruction.name,
+      stageName,
+      timeLabel,
+    });
+  };
+
+  const handleStageMouseLeave = () => {
+    setTooltip({ ...tooltip, visible: false });
+  };
+
   return (
     <div className="flex w-full flex-col lg:flex-row lg:gap-6">
       {/* Visualization Container - Left side on desktop */}
@@ -742,17 +563,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           <div className="flex items-center gap-4">
             <div className="text-center">
               <h3 className="text-lg font-medium">
-                Current Time:{" "}
-                {cycles > 0
-                  ? (() => {
-                      const minutes = Math.floor(cycles / 2) * 30;
-                      const hours = Math.floor(9 + minutes / 60);
-                      const mins = minutes % 60;
-                      const ampm = hours >= 12 ? "PM" : "AM";
-                      const hour12 = hours > 12 ? hours - 12 : hours;
-                      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-                    })()
-                  : "9:00 AM"}
+                Current Time: {getCurrentTimeLabel()}
                 <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
               </h3>
             </div>
@@ -778,7 +589,104 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
           style={{ height: "500px" }}
         >
-          <svg ref={svgRef} width={svgWidth} height={svgHeight}></svg>
+          <svg width={svgWidth} height={svgHeight}>
+            <g transform={`translate(${margin.left},${margin.top})`}>
+              {/* Define patterns for stage icons */}
+              <StagePatterns stageImages={STAGE_IMAGES} />
+              
+              {/* Draw X and Y axes */}
+              <Axis 
+                scale={xScale} 
+                orient="bottom" 
+                transform={`translate(0,${innerHeight})`} 
+                timeLabels={timeLabels}
+                label="Clock Cycle"
+                labelOffset={{ x: innerWidth / 2, y: 40 }}
+              />
+              
+              <Axis 
+                scale={yScale} 
+                orient="left" 
+                instructions={pipelineInstructions}
+                label="Laundry Load"
+                labelOffset={{ x: -innerHeight / 2, y: -80 }}
+              />
+              
+              {/* Draw grid lines */}
+              <Grid 
+                scale={xScale} 
+                ticks={d3.range(0, cycles + 5)} 
+                orientation="vertical" 
+                length={innerHeight} 
+              />
+              
+              <Grid 
+                scale={yScale} 
+                ticks={pipelineInstructions.map(instr => instr.id.toString())} 
+                orientation="horizontal" 
+                length={innerWidth} 
+              />
+              
+              {/* Draw pipeline stages for each instruction */}
+              {pipelineInstructions.map((instr) => {
+                if (
+                  instr.startCycle === undefined ||
+                  instr.currentStage === undefined ||
+                  instr.currentStage < 0
+                ) {
+                  return null;
+                }
+
+                // Render all stages this instruction has gone through
+                return Array.from({ length: Math.min(instr.currentStage, PIPELINE_STAGES.length - 1) + 1 }).map((_, stageIndex) => {
+                  const cycle = (instr.startCycle || 0) + stageIndex;
+                  if (cycle > cycles) return null;
+
+                  const stageName = PIPELINE_STAGES[stageIndex];
+                  
+                  // For superscalar badge, check if there are multiple instructions in this cycle
+                  const parallelInstructions = isSuperscalarActive && stageIndex === 0
+                    ? pipelineInstructions.filter(i => i.startCycle === instr.startCycle)
+                    : [];
+                  
+                  const isFirstInGroup = parallelInstructions.length > 0 && 
+                    instr.id === parallelInstructions[0].id;
+
+                  return (
+                    <PipelineStage
+                      key={`instr-${instr.id}-stage-${stageIndex}`}
+                      instruction={instr}
+                      stage={stageIndex}
+                      stageName={stageName}
+                      cycle={cycle}
+                      xPos={xScale(String(cycle))!}
+                      yPos={yScale(instr.id.toString())!}
+                      width={xScale.bandwidth()}
+                      height={yScale.bandwidth()}
+                      timeLabel={timeLabels[cycle]}
+                      stageImage={STAGE_IMAGES[stageIndex]}
+                      onMouseEnter={handleStageMouseEnter}
+                      onMouseLeave={handleStageMouseLeave}
+                      isSuperscalarActive={isSuperscalarActive}
+                      parallelInstructions={parallelInstructions}
+                      isFirstInGroup={isFirstInGroup}
+                    />
+                  );
+                });
+              })}
+              
+              {/* Tooltip */}
+              {tooltip.visible && (
+                <PipelineTooltip
+                  x={tooltip.x}
+                  y={tooltip.y}
+                  instructionName={tooltip.instructionName}
+                  stageName={tooltip.stageName}
+                  timeLabel={tooltip.timeLabel}
+                />
+              )}
+            </g>
+          </svg>
         </div>
 
         {pipelineInstructions.every(
@@ -798,14 +706,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               <div className="ml-3">
                 <p className="text-sm text-green-700">
                   <strong>All done!</strong> All laundry loads have been completed. Final time:{" "}
-                  {(() => {
-                    const minutes = Math.floor(cycles / 2) * 30;
-                    const hours = Math.floor(9 + minutes / 60);
-                    const mins = minutes % 60;
-                    const ampm = hours >= 12 ? "PM" : "AM";
-                    const hour12 = hours > 12 ? hours - 12 : hours;
-                    return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-                  })()}
+                  {getCurrentTimeLabel()}
                   . It took {cycles} "cycles" to complete all {pipelineInstructions.length} loads of
                   laundry.
                 </p>
@@ -985,7 +886,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               </ul>
             </div>
           </div>
-          
         </div>
       </div>
     </div>

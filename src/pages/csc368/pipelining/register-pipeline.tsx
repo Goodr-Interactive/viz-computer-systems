@@ -9,19 +9,19 @@ export const RegisterPipeline: React.FunctionComponent = () => {
         Processor Pipeline with RISC-V Instructions
       </h1>
 
-      <div className="w-full max-w-4xl rounded-lg bg-white p-6 shadow-md">
+      <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
         <RegisterPipelineVisualization />
       </div>
 
       <div className="mt-4 flex gap-[16px]">
         <Button asChild variant="outline">
+          <a href="/csc368/pipelining/registers">D3.js Version</a>
+        </Button>
+        <Button asChild variant="outline">
           <a href="/csc368/pipelining">Back to Laundry Pipeline</a>
         </Button>
         <Button asChild variant="outline">
           <a href="/csc368">Back to CSC368</a>
-        </Button>
-        <Button asChild variant="secondary" disabled>
-          <a href="#">Next Visualization (Coming Soon)</a>
         </Button>
       </div>
     </div>

@@ -62,7 +62,6 @@ const PIPELINE_STAGES: PipelineStageConfig[] = [
     description: "Writes results back to registers"
   },
 ];
-const PIPELINE_REGISTERS = ["IF/ID", "ID/EX", "EX/MEM", "MEM/WB"];
 
 // Define some sample instructions for visualization
 const DEFAULT_INSTRUCTIONS = [
@@ -1017,41 +1016,6 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
     );
   };
 
-  // Create a component for pipeline register lines
-  const PipelineRegisterLines = () => {
-    if (!isPipelined || cycles === 0) return null;
-    
-    return (
-      <g className="register-lines" opacity={tooltip.visible ? 1 : 0}>
-        {PIPELINE_REGISTERS.map((registerName, index) => {
-          const xPosition = xScale(String(0))! + xScale.bandwidth() * (index + 1.5);
-          
-          return (
-            <g key={`register-${index}`}>
-              <line
-                x1={xPosition}
-                y1={0}
-                x2={xPosition}
-                y2={innerHeight}
-                stroke="#9333ea"
-                strokeWidth={2}
-                strokeDasharray="5,5"
-              />
-              <text
-                x={xPosition}
-                y={-10}
-                textAnchor="middle"
-                fill="#9333ea"
-                fontWeight="bold"
-              >
-                {registerName}
-              </text>
-            </g>
-          );
-        })}
-      </g>
-    );
-  };
 
   return (
     <div className="flex w-full flex-col lg:flex-row lg:gap-6">
@@ -1168,9 +1132,6 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                 orientation="horizontal" 
                 length={innerWidth} 
               />
-              
-              {/* Draw pipeline register lines (only visible on hover) */}
-              <PipelineRegisterLines />
               
               {/* Custom tooltip for register pipeline */}
               <RegisterPipelineTooltip />

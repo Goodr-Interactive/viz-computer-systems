@@ -207,28 +207,22 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
 
   // Initialize pipeline
   useEffect(() => {
-    setPipelineInstructions(
-      instructions.map((instr, index) => {
-        if (isPipelined) {
-          // Standard pipeline: One instruction per cycle
-          return {
-            ...instr,
-            currentStage: -1, // Not yet in pipeline
-            startCycle: index, // Start one cycle after the previous instruction
-            stalled: false,
-          };
-        } else {
-          // Non-pipelined mode
-          return {
-            ...instr,
-            currentStage: -1, // Not yet in pipeline
-            startCycle: undefined, // Will be set when the instruction starts
-            stalled: false,
-          };
-        }
-      })
-    );
-  }, [instructions]);
+    // Initialize pipelineInstructions based on defaultInstructions or an empty array
+    // This effect runs when defaultInstructions or stageConfigs change, or on initial mount.
+    const initialInstructions = instructions.map((instr, index) => ({
+      ...instr,
+      id: index,
+      currentStage: -1, // Initialize to -1 (not started)
+      stageProgress: 0,
+      stageDuration: 0, // Will be set when entering a stage
+      stalled: false,
+      // Ensure startCycle is undefined initially or handled appropriately
+      startCycle: undefined, 
+    }));
+    setPipelineInstructions(initialInstructions);
+    // If you want to reset cycles too when instructions/configs change:
+    // setCycles(0); 
+  }, [instructions]); // Assuming stageConfigs might not be a direct dependency here for re-init, but for logic inside.
 
   // Simulation logic
   useEffect(() => {
@@ -293,26 +287,137 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
       // Update each instruction's position in the pipeline
       setPipelineInstructions((prevInstructions) => {
         if (isPipelined) {
-          // Standard pipelined execution - one instruction can start per cycle
-          return prevInstructions.map((instr) => {
-            // If the instruction hasn't started yet
-            if (instr.startCycle !== undefined && cycles < instr.startCycle) {
-              return instr;
+          // First, identify instructions that need to stall.
+          const stallMap = new Map<number, {stalled: boolean; reason?: string}>();
+          
+          prevInstructions.forEach((instr_being_checked, idx_being_checked) => {
+            // Determine the current or target stage for instr_being_checked
+            let stage_of_instr_being_checked: number | undefined;
+            if (instr_being_checked.currentStage === -1) { // Targeting stage 0
+              if (stageConfigs.length > 0) {
+                stage_of_instr_being_checked = 0;
+              } else {
+                return; // No stages to target, so cannot be stalled by stage occupancy
+              }
+            } else if (instr_being_checked.currentStage !== undefined && 
+                       instr_being_checked.currentStage >= 0 && 
+                       instr_being_checked.currentStage < stageConfigs.length) {
+              stage_of_instr_being_checked = instr_being_checked.currentStage; // Already in this stage
+            } else {
+              return; // Completed, or invalid state, not subject to these stalls
             }
 
-            // If the instruction has already completed all stages
-            if (
-              instr.currentStage !== undefined &&
-              instr.currentStage >= stageConfigs.length
-            ) {
-              return instr;
+            // Check against previous instructions in program order
+            for (let prevIdx = 0; prevIdx < idx_being_checked; prevIdx++) {
+              const prevInstr = prevInstructions[prevIdx];
+
+              if (prevInstr.currentStage === undefined || prevInstr.currentStage < 0 || 
+                  prevInstr.currentStage >= stageConfigs.length) {
+                continue; // Skip prevInstr if not in a valid pipeline stage or completed
+              }
+
+              const prevStageConfig = stageConfigs[prevInstr.currentStage];
+              if (!prevStageConfig) continue; 
+
+              const prevRequiredCycles = prevStageConfig.duration;
+              const prevProgress = prevInstr.stageProgress || 0;
+
+              // Rule 1: Structural Hazard for the stage `instr_being_checked` is in or targeting.
+              if (prevInstr.currentStage === stage_of_instr_being_checked) {
+                if (prevProgress < prevRequiredCycles) {
+                  stallMap.set(idx_being_checked, {
+                    stalled: true,
+                    reason: `Waiting for ${prevInstr.name} in stage ${stageConfigs[stage_of_instr_being_checked]?.name || 'Unknown'} (structural)`
+                  });
+                  break; // Found stall reason for instr_being_checked
+                }
+              }
+
+              // Rule 2: In-order execution constraint.
+              // If instr_being_checked is already in the pipeline (not -1),
+              // and prevInstr is in an earlier stage and not done, then instr_being_checked stalls.
+              if (instr_being_checked.currentStage !== -1 && // Only applies if instr_being_checked is active in the pipeline
+                  prevInstr.currentStage < instr_being_checked.currentStage) {
+                if (prevProgress < prevRequiredCycles) {
+                  stallMap.set(idx_being_checked, {
+                    stalled: true,
+                    reason: `Waiting for ${prevInstr.name} in stage ${prevStageConfig.name} (in-order)`
+                  });
+                  break; // Found stall reason for instr_being_checked
+                }
+              }
+            }
+          });
+          
+          let canStartNewInstructionThisCycle = true; // Allow one new instruction to start per cycle
+
+          return prevInstructions.map((instr, idx) => {
+            let updatedInstr = { ...instr }; // Start with a copy
+
+            // 1. Handle instructions already completed
+            if (updatedInstr.currentStage !== undefined && updatedInstr.currentStage >= stageConfigs.length) {
+              return updatedInstr;
             }
 
-            // Otherwise, advance the instruction to the next stage
-            return {
-              ...instr,
-              currentStage: instr.currentStage !== undefined ? instr.currentStage + 1 : 0,
-            };
+            // 2. Handle instructions scheduled to start at a specific future cycle (if currentStage is -1)
+            if (updatedInstr.currentStage === -1 && updatedInstr.startCycle !== undefined && updatedInstr.startCycle > cycles) {
+              return updatedInstr; // Not its time to start yet
+            }
+            
+            // 3. Check if this instruction is stalled by the stallMap
+            if (stallMap.get(idx)?.stalled) {
+              return {
+                ...updatedInstr,
+                stalled: true,
+                stallReason: stallMap.get(idx)?.reason,
+              };
+            }
+
+            // 4. If not stalled by stallMap, try to start (if at -1) or advance
+            if (updatedInstr.currentStage === -1) { // Instruction is waiting to enter the pipeline
+              if (canStartNewInstructionThisCycle) {
+                canStartNewInstructionThisCycle = false; // Consume the slot for this cycle
+                updatedInstr = {
+                  ...updatedInstr,
+                  currentStage: 0,
+                  stageProgress: 1,
+                  stageDuration: stageConfigs[0]?.duration || 1,
+                  stalled: false,
+                  startCycle: cycles, 
+                };
+              } else {
+                // Another instruction started this cycle, or it couldn't start due to other reasons (e.g. stallMap)
+                // It remains at currentStage: -1. Ensure stalled is false if not stalled by stallMap.
+                updatedInstr.stalled = false; // Not stalled by pipeline entry rate limit itself
+              }
+            } else if (typeof updatedInstr.currentStage === 'number' && updatedInstr.currentStage < stageConfigs.length) {
+              // Instruction is in the pipeline and not stalled by stallMap, advance it
+              const currentStageConfig = stageConfigs[updatedInstr.currentStage];
+              if (!currentStageConfig) {
+                console.warn(`Undefined stage config for index: ${updatedInstr.currentStage}.`);
+                return updatedInstr; 
+              }
+
+              const requiredCycles = currentStageConfig.duration;
+              if ((updatedInstr.stageProgress || 0) >= requiredCycles) {
+                const nextStage = updatedInstr.currentStage + 1;
+                const nextStageConfig = nextStage < stageConfigs.length ? stageConfigs[nextStage] : null;
+                updatedInstr = {
+                  ...updatedInstr,
+                  currentStage: nextStage,
+                  stageProgress: 1,
+                  stageDuration: nextStageConfig?.duration || 1,
+                  stalled: false,
+                };
+              } else {
+                updatedInstr = {
+                  ...updatedInstr,
+                  stageProgress: (updatedInstr.stageProgress || 0) + 1,
+                  stalled: false,
+                };
+              }
+            }
+            return updatedInstr;
           });
         } else {
           // Non-pipelined execution - only one instruction can be active at a time
@@ -332,7 +437,13 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             if (nextInstructionIndex !== -1) {
               return prevInstructions.map((instr, index) => {
                 if (index === nextInstructionIndex) {
-                  return { ...instr, currentStage: 0, startCycle: cycles };
+                  return { 
+                    ...instr, 
+                    currentStage: 0, 
+                    startCycle: cycles,
+                    stageProgress: 1, // First cycle in this stage
+                    stageDuration: stageConfigs[0]?.duration || 1, // Set initial stage duration
+                  };
                 }
                 return instr;
               });
@@ -347,28 +458,63 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             updatedInstructions[activeInstructionIndex].currentStage !== undefined &&
             updatedInstructions[activeInstructionIndex].currentStage < stageConfigs.length - 1
           ) {
-            // Simply advance this instruction to the next stage
-            updatedInstructions[activeInstructionIndex] = {
-              ...updatedInstructions[activeInstructionIndex],
-              currentStage: updatedInstructions[activeInstructionIndex].currentStage! + 1,
-            };
+            // Check if we've completed the required cycles for the current stage
+            const currentStage = updatedInstructions[activeInstructionIndex].currentStage!;
+            const currentStageConfig = stageConfigs[currentStage];
+            const requiredCycles = currentStageConfig.duration;
+            const currentProgress = updatedInstructions[activeInstructionIndex].stageProgress || 0;
+            
+            if (currentProgress >= requiredCycles) {
+              // Move to the next stage
+              const nextStage = currentStage + 1;
+              const nextStageConfig = nextStage < stageConfigs.length ? stageConfigs[nextStage] : null;
+              
+              updatedInstructions[activeInstructionIndex] = {
+                ...updatedInstructions[activeInstructionIndex],
+                currentStage: nextStage,
+                stageProgress: 1, // First cycle in new stage
+                stageDuration: nextStageConfig?.duration || 1, // Set duration for the next stage
+              };
+            } else {
+              // Increment progress in current stage
+              updatedInstructions[activeInstructionIndex] = {
+                ...updatedInstructions[activeInstructionIndex],
+                stageProgress: currentProgress + 1,
+              };
+            }
           } else {
-            // This instruction is done, mark it as completed
-            updatedInstructions[activeInstructionIndex] = {
-              ...updatedInstructions[activeInstructionIndex],
-              currentStage: stageConfigs.length,
-            };
+            // Check if we've completed the final stage
+            const currentStage = updatedInstructions[activeInstructionIndex].currentStage!;
+            const currentStageConfig = stageConfigs[currentStage];
+            const requiredCycles = currentStageConfig.duration;
+            const currentProgress = updatedInstructions[activeInstructionIndex].stageProgress || 0;
+            
+            if (currentProgress >= requiredCycles) {
+              // This instruction is done, mark it as completed
+              updatedInstructions[activeInstructionIndex] = {
+                ...updatedInstructions[activeInstructionIndex],
+                currentStage: stageConfigs.length,
+              };
 
-            // Immediately start the next instruction if available
-            const nextInstructionIndex = updatedInstructions.findIndex(
-              (instr) => instr.currentStage === -1
-            );
+              // Immediately start the next instruction if available
+              const nextInstructionIndex = updatedInstructions.findIndex(
+                (instr) => instr.currentStage === -1
+              );
 
-            if (nextInstructionIndex !== -1) {
-              updatedInstructions[nextInstructionIndex] = {
-                ...updatedInstructions[nextInstructionIndex],
-                currentStage: 0,
-                startCycle: cycles,
+              if (nextInstructionIndex !== -1) {
+                updatedInstructions[nextInstructionIndex] = {
+                  ...updatedInstructions[nextInstructionIndex],
+                  currentStage: 0,
+                  startCycle: cycles,
+                  stageProgress: 1, // First cycle in this stage
+                  stageDuration: stageConfigs[0]?.duration || 1,
+                };
+              }
+            } else {
+              // Increment progress in the final stage
+              updatedInstructions[activeInstructionIndex] = {
+                ...updatedInstructions[activeInstructionIndex],
+                stageProgress: currentProgress + 1,
               };
             }
           }
@@ -379,7 +525,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
     }, speed);
 
     return () => clearTimeout(timer);
-  }, [isRunning, cycles, speed, isPipelined]);
+  }, [isRunning, cycles, speed, isPipelined, pipelineInstructions, stageConfigs]); // <<< FIX: Add pipelineInstructions and stageConfigs
 
   const handleStart = () => {
     setIsRunning(true);
@@ -390,37 +536,43 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
   };
 
   const handleReset = () => {
-    setIsRunning(false);
     setCycles(0);
-    
-    // Reset registers
-    setRegisters({
-      x0: 0,
-      x1: 0,
-      x2: 0,
-      x3: 0,
-      x20: 0x1000,
-    });
-    
-    setPipelineInstructions(
-      instructions.map((instr, index) => {
-        if (isPipelined) {
-          return {
-            ...instr,
-            currentStage: -1,
-            startCycle: index,
-            stalled: false,
-          };
-        } else {
-          return {
-            ...instr,
-            currentStage: -1,
-            startCycle: undefined,
-            stalled: false,
-          };
-        }
-      })
-    );
+    // setActiveInstructionIndex(0); // Commented out due to "Cannot find name" error. Review non-pipelined active instruction logic.
+    // TODO: Determine how activeInstructionIndex or its equivalent should be reset for non-pipelined mode.
+    // If using activeInstructionId, perhaps:
+    // setActiveInstructionId(defaultInstructions.length > 0 ? defaultInstructions[0].id : null);
+
+
+    let updatedInstructions;
+
+    if (isPipelined) {
+      updatedInstructions = DEFAULT_INSTRUCTIONS.map((instr, index) => ({
+        ...instr,
+        id: instr.id !== undefined ? instr.id : index, // Prefer existing id if available
+        currentStage: -1,
+        stageProgress: 0,
+        stageDuration: 0,
+        stalled: false,
+        startCycle: undefined,
+      }));
+    } else {
+      updatedInstructions = DEFAULT_INSTRUCTIONS.map((instr, index) => ({
+        ...instr,
+        id: instr.id !== undefined ? instr.id : index,
+        currentStage: index === 0 ? 0 : -1, 
+        stageProgress: index === 0 ? 1 : 0, // Start progress for the first instruction
+        stageDuration: index === 0 && stageConfigs.length > 0 && stageConfigs[0] ? stageConfigs[0].duration : 0,
+        stalled: false,
+        startCycle: index === 0 ? 0 : undefined,
+      }));
+      // If non-pipelined mode relies on an activeInstructionId state:
+      if (DEFAULT_INSTRUCTIONS.length > 0) {
+        // setActiveInstructionId(defaultInstructions[0].id); // Example: set first instruction as active
+      } else {
+        // setActiveInstructionId(null);
+      }
+    }
+    setPipelineInstructions(updatedInstructions);
   };
 
   const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -435,73 +587,18 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
 
   // Add instruction handlers
   const handleAddInstruction = () => {
-    if (!newInstructionName.trim()) return;
-
-    setIsRunning(false);
-
-    const newInstructionId = pipelineInstructions.length + 1;
-    let startCycle;
-
-    if (isPipelined) {
-      startCycle = pipelineInstructions.length;
-    } else {
-      startCycle = undefined;
-    }
-
-    // Parse instruction to determine register usage
-    let registerInfo = { src: [], dest: [] } as { src: string[], dest: string[] };
-    
-    // Very basic parsing - should be more robust in a real implementation
-    if (newInstructionName.startsWith("lw ")) {
-      // Format: lw rd, offset(rs1)
-      const parts = newInstructionName.split(/[ ,]+/);
-      if (parts.length >= 3) {
-        const dest = parts[1];
-        const srcMatch = parts[2].match(/\(([^)]+)\)/);
-        const src = srcMatch ? srcMatch[1] : "";
-        registerInfo = { src: [src], dest: [dest] };
-      }
-    } else if (newInstructionName.startsWith("sw ")) {
-      // Format: sw rs2, offset(rs1)
-      const parts = newInstructionName.split(/[ ,]+/);
-      if (parts.length >= 3) {
-        const src1 = parts[1];
-        const srcMatch = parts[2].match(/\(([^)]+)\)/);
-        const src2 = srcMatch ? srcMatch[1] : "";
-        registerInfo = { src: [src1, src2], dest: [] };
-      }
-    } else if (newInstructionName.startsWith("add ")) {
-      // Format: add rd, rs1, rs2
-      const parts = newInstructionName.split(/[ ,]+/);
-      if (parts.length >= 4) {
-        const dest = parts[1];
-        const src1 = parts[2];
-        const src2 = parts[3];
-        registerInfo = { src: [src1, src2], dest: [dest] };
-      }
-    } else if (newInstructionName.startsWith("blt ")) {
-      // Format: blt rs1, rs2, label
-      const parts = newInstructionName.split(/[ ,]+/);
-      if (parts.length >= 4) {
-        const src1 = parts[1];
-        const src2 = parts[2];
-        registerInfo = { src: [src1, src2], dest: [] };
-      }
-    }
-
     const newInstruction: Instruction = {
-      id: newInstructionId,
-      name: newInstructionName.trim(),
+      id: Date.now(), // Consider a more robust ID generation if needed
+      name: `I${pipelineInstructions.length + 1}`,
       color: availableColors[pipelineInstructions.length % availableColors.length],
-      registers: registerInfo,
-      currentStage: -1,
-      startCycle: startCycle,
+      currentStage: -1, // Initialize to -1 (not started)
+      stageProgress: 0,
+      stageDuration: 0, // Will be set when entering a stage
       stalled: false,
+      registers: { src: [], dest: [] }, // Default empty, can be customized by user
+      // startCycle will be set when the instruction actually starts
     };
-
-    setPipelineInstructions([...pipelineInstructions, newInstruction]);
-    setNewInstructionName("");
-    setShowAddForm(false);
+    setPipelineInstructions(prevInstructions => [...prevInstructions, newInstruction]);
   };
 
   const handleRemoveInstruction = (id: number) => {
@@ -581,18 +678,36 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             </svg>
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
           {stageConfigs.map((stage, index) => (
             <div key={index} className="flex items-center space-x-2 p-2 rounded bg-gray-50">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: stage.color }}>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: stage.color }}>
                 <span className="text-white font-bold">{stage.abbreviation}</span>
               </div>
-              <div>
+              <div className="flex-grow">
                 <div className="font-medium">{stage.name}</div>
-                <div className="text-xs text-gray-500">Duration: {stage.duration} cycle{stage.duration > 1 ? 's' : ''}</div>
+                <div className="text-xs text-gray-500">{stage.description}</div>
+                <div className={`text-sm mt-1 ${stage.duration > 1 ? 'font-semibold text-indigo-600' : ''}`}>
+                  Duration: {stage.duration} cycle{stage.duration > 1 ? 's' : ''}
+                </div>
               </div>
+              {stage.duration > 1 && (
+                <div className="bg-yellow-100 px-2 py-1 rounded text-xs text-yellow-800 whitespace-nowrap">
+                  Multi-cycle
+                </div>
+              )}
             </div>
           ))}
+        </div>
+        <div className="mt-3 text-sm text-gray-500 border-t pt-2">
+          <p className="flex items-center">
+            <span className="inline-block w-3 h-3 bg-red-200 mr-2 border border-red-500"></span>
+            Stalled stages appear in red with a pattern
+          </p>
+          <p className="flex items-center mt-1">
+            <span className="mr-2 font-mono text-xs">F(2/5)</span>
+            Format shows current progress / total cycles for the stage
+          </p>
         </div>
       </div>
     );
@@ -722,7 +837,23 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
           <button 
             onClick={() => {
               // Reset all durations to default
-              setStageConfigs(stageConfigs.map(stage => ({ ...stage, duration: stage.defaultDuration })));
+              const defaultConfigs = stageConfigs.map(stage => ({ ...stage, duration: stage.defaultDuration }));
+              setStageConfigs(defaultConfigs);
+              
+              // Also update instructions if they're currently running
+              if (cycles > 0) {
+                setPipelineInstructions(prevInstructions => 
+                  prevInstructions.map(instr => {
+                    if (instr.currentStage !== undefined && instr.currentStage >= 0 && instr.currentStage < stageConfigs.length) {
+                      return {
+                        ...instr,
+                        stageDuration: defaultConfigs[instr.currentStage].duration
+                      };
+                    }
+                    return instr;
+                  })
+                );
+              }
             }}
             className="rounded border border-gray-300 bg-white px-3 py-1 text-sm hover:bg-gray-50"
           >
@@ -785,6 +916,12 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
   const RegisterPipelineTooltip = () => {
     if (!tooltip.visible) return null;
 
+    // Find stage config and progress information
+    const stageIndex = stageConfigs.findIndex(s => s.name === tooltip.stageName);
+    const instruction = pipelineInstructions.find(i => i.name === tooltip.instructionName);
+    const stageConfig = stageIndex >= 0 ? stageConfigs[stageIndex] : null;
+    const stageProgress = instruction?.stageProgress || 0;
+
     return (
       <g className="tooltip" transform={`translate(${tooltip.x + 10}, ${tooltip.y - 10})`}>
         <rect
@@ -793,7 +930,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
           rx={5}
           ry={5}
           width={220}
-          height={90}
+          height={instruction?.stalled ? 130 : 110}
           opacity={0.9}
         />
         <text x={10} y={20}>
@@ -802,12 +939,22 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
         <text x={10} y={40}>
           {`Stage: ${tooltip.stageName} (${tooltip.timeLabel})`}
         </text>
-        <text x={10} y={60}>
+        {stageConfig && (
+          <text x={10} y={60} fill={instruction?.stalled ? "red" : "black"}>
+            {`Progress: ${stageProgress}/${stageConfig.duration} cycles${instruction?.stalled ? " (STALLED)" : ""}`}
+          </text>
+        )}
+        <text x={10} y={80}>
           {`Source: ${tooltip.registers?.src.join(", ") || "none"}`}
         </text>
-        <text x={10} y={80}>
+        <text x={10} y={100}>
           {`Destination: ${tooltip.registers?.dest.join(", ") || "none"}`}
         </text>
+        {instruction?.stalled && (
+          <text x={10} y={120} fill="red" fontWeight="bold">
+            Stalled: Waiting for previous instruction
+          </text>
+        )}
       </g>
     );
   };
@@ -965,7 +1112,11 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                       onMouseEnter={handleStageMouseEnter}
                       onMouseLeave={handleStageMouseLeave}
                       color={stageConfig.color}
-                      abbreviation={stageConfig.abbreviation}
+                      abbreviation={`${stageConfig.abbreviation}${
+                        instr.stalled ? '!' : 
+                        ((instr.stageProgress || 0) > 1) ? 
+                          `(${instr.stageProgress}/${stageConfig.duration})` : ''
+                      }`}
                     />
                   );
                 });

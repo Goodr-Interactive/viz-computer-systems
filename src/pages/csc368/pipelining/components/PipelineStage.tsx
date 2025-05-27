@@ -6,6 +6,7 @@ interface PipelineStageProps {
   stage: number;
   stageName: string;
   cycle: number;
+  cycleLength?: number; 
   xPos: number;
   yPos: number;
   width: number;
@@ -26,6 +27,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
   stage,
   stageName,
   cycle,
+  cycleLength,
   xPos,
   yPos,
   width,
@@ -40,7 +42,10 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
   color, // Add color prop
   abbreviation, // Add abbreviation prop
 }) => {
-  // Calculate inner rectangle size for the icon (slightly smaller)
+  const displayableCycleLength = cycleLength || 1;
+  const actualWidth = width * displayableCycleLength; // Calculate the true width for the stage
+
+  // Calculate inner rectangle size for the icon (slightly smaller, based on single cycle width)
   const innerWidth = width * 0.8;
   const innerHeight = height * 0.8;
   const innerX = (width - innerWidth) / 2;
@@ -56,14 +61,36 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
     >
       {/* Background Rectangle */}
       <rect
-        width={width}
+        width={actualWidth} // Use the calculated actualWidth
         height={height}
-        fill={instruction.stalled && stage === instruction.currentStage 
-          ? "#f8d7da" 
-          : color || instruction.color}
-        stroke="black"
+        fill={instruction.stalled ? "#f8d7da" : color || instruction.color}
+        stroke={instruction.stalled ? "red" : "black"}
+        strokeWidth={instruction.stalled ? 2 : 1}
         rx={4}
       />
+
+      {/* Stall indicator - diagonal lines pattern */}
+      {instruction.stalled && (
+        <pattern
+          id={`stall-pattern-${instruction.id}-${stage}-${cycle}`}
+          width="10"
+          height="10"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <line x1="0" y1="0" x2="0" y2="10" stroke="red" strokeWidth="2" />
+        </pattern>
+      )}
+
+      {instruction.stalled && (
+        <rect
+          width={actualWidth} // Use the calculated actualWidth
+          height={height}
+          fill={`url(#stall-pattern-${instruction.id}-${stage}-${cycle})`}
+          rx={4}
+          opacity={0.3}
+        />
+      )}
 
       {/* Stage Icon or Abbreviation */}
       {stageImage ? (
@@ -92,7 +119,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
           />
           <text
             x={width / 2}
-            y={height / 2}
+            y={height / 2 - (instruction.stageDuration && instruction.stageDuration > 1 ? 8 : 0)} // Adjust y based on if progress is shown
             textAnchor="middle"
             dominantBaseline="middle"
             fill={color || instruction.color}
@@ -101,6 +128,21 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
           >
             {abbreviation}
           </text>
+          
+          {/* Show progress indicator for multi-cycle stages */}
+          {instruction.stageDuration && instruction.stageDuration > 1 && instruction.stageProgress && (
+            <text
+              x={width / 2}
+              y={height / 2 + 10}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill={color || instruction.color}
+              fontSize="12px"
+              fontWeight="bold"
+            >
+              {`${instruction.stageProgress}/${instruction.stageDuration || '?'}`}
+            </text>
+          )}
         </g>
       ) : null}
 

@@ -1,3 +1,11 @@
+export interface StageHistoryEntry {
+  stageIndex: number;
+  entryCycle: number;
+  duration: number; // Duration of this specific stage instance
+  abbreviation: string; // Base abbreviation for this stage
+  color: string; // Color for this stage
+}
+
 export interface Instruction {
   id: number;
   name: string;
@@ -12,5 +20,6 @@ export interface Instruction {
     src: string[];
     dest: string[];
   };
+  stageHistory?: StageHistoryEntry[]; // Added to track all stages entered
 }
 

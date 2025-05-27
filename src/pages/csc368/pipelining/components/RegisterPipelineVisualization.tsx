@@ -9,8 +9,59 @@ import { Grid } from "./Grid";
 import { StagePatterns } from "./StagePatterns";
 import type { Instruction } from "./types";
 
+// Define the pipeline stage configuration type
+interface PipelineStageConfig {
+  name: string;
+  abbreviation: string;
+  color: string;
+  defaultDuration: number;
+  duration: number;
+  description: string;
+}
+
 // Define the instruction stages with register visualization
-const PIPELINE_STAGES = ["Fetch", "Decode", "Execute", "Memory", "Writeback"];
+const PIPELINE_STAGES: PipelineStageConfig[] = [
+  { 
+    name: "Fetch", 
+    abbreviation: "F", 
+    color: "#4285F4", 
+    defaultDuration: 1, 
+    duration: 1,
+    description: "Fetches instruction from memory"
+  },
+  { 
+    name: "Decode", 
+    abbreviation: "D", 
+    color: "#EA4335", 
+    defaultDuration: 1, 
+    duration: 1,
+    description: "Decodes instruction and reads registers"
+  },
+  { 
+    name: "Execute", 
+    abbreviation: "E", 
+    color: "#FBBC05", 
+    defaultDuration: 1, 
+    duration: 1,
+    description: "Performs ALU operations"
+  },
+  { 
+    name: "Memory", 
+    abbreviation: "M", 
+    color: "#34A853", 
+    defaultDuration: 1, 
+    duration: 1,
+    description: "Accesses data memory"
+  },
+  { 
+    name: "Writeback", 
+    abbreviation: "W", 
+    color: "#8F44AD", 
+    defaultDuration: 1, 
+    duration: 1,
+    description: "Writes results back to registers"
+  },
+];
 const PIPELINE_REGISTERS = ["IF/ID", "ID/EX", "EX/MEM", "MEM/WB"];
 
 // Define some sample instructions for visualization
@@ -28,16 +79,18 @@ const DEFAULT_INSTRUCTIONS = [
 ];
 
 
-interface RegisterPipelineVisualization {
+interface RegisterPipelineVisualizationProps {
   width?: number;
   height?: number;
   instructions?: Instruction[];
+  pipelineStages?: PipelineStageConfig[];
 }
 
-export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualization> = ({
+export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizationProps> = ({
   width,
   height,
   instructions = DEFAULT_INSTRUCTIONS,
+  pipelineStages = PIPELINE_STAGES,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
@@ -47,6 +100,12 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
   const [isPipelined, setIsPipelined] = useState<boolean>(true); // Toggle between pipelined and non-pipelined
+  const [stageConfigs, setStageConfigs] = useState<PipelineStageConfig[]>(pipelineStages);
+  const [showLegend, setShowLegend] = useState<boolean>(true);
+  const [showSystemInfo, setShowSystemInfo] = useState<boolean>(true);
+  const [stageConfigOpen, setStageConfigOpen] = useState<boolean>(false);
+  const [timeUnit, setTimeUnit] = useState<'cycles' | 'seconds' | 'minutes' | 'hours'>('cycles');
+  const [cycleTime, setCycleTime] = useState<number>(1); // Time in nanoseconds per cycle
 
   // Register state
   const [registers, setRegisters] = useState<Record<string, number>>({
@@ -197,9 +256,9 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
         pipelineInstructions
           .filter(
             (instr) => 
-              instr.currentStage === PIPELINE_STAGES.length - 1 && 
+              instr.currentStage === stageConfigs.length - 1 && 
               instr.startCycle !== undefined && 
-              instr.startCycle + PIPELINE_STAGES.length - 1 === cycles
+              instr.startCycle + stageConfigs.length - 1 === cycles
           )
           .forEach((instr) => {
             // Update destination registers based on instruction type
@@ -244,7 +303,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             // If the instruction has already completed all stages
             if (
               instr.currentStage !== undefined &&
-              instr.currentStage >= PIPELINE_STAGES.length
+              instr.currentStage >= stageConfigs.length
             ) {
               return instr;
             }
@@ -261,7 +320,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             (instr) =>
               instr.currentStage !== undefined &&
               instr.currentStage >= 0 &&
-              instr.currentStage < PIPELINE_STAGES.length
+              instr.currentStage < stageConfigs.length
           );
 
           if (activeInstructionIndex === -1) {
@@ -286,7 +345,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
 
           if (
             updatedInstructions[activeInstructionIndex].currentStage !== undefined &&
-            updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length - 1
+            updatedInstructions[activeInstructionIndex].currentStage < stageConfigs.length - 1
           ) {
             // Simply advance this instruction to the next stage
             updatedInstructions[activeInstructionIndex] = {
@@ -297,7 +356,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             // This instruction is done, mark it as completed
             updatedInstructions[activeInstructionIndex] = {
               ...updatedInstructions[activeInstructionIndex],
-              currentStage: PIPELINE_STAGES.length,
+              currentStage: stageConfigs.length,
             };
 
             // Immediately start the next instruction if available
@@ -486,9 +545,199 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
     cycles > 0 ? (Math.min(cycles, pipelineInstructions.length) / cycles).toFixed(2) : "0.00";
 
   // Calculate theoretical maximum metrics
-  const theoreticalMaxCPI = isPipelined ? "1.00" : PIPELINE_STAGES.length.toFixed(2);
-  const theoreticalMaxIPC = isPipelined ? "1.00" : (1 / PIPELINE_STAGES.length).toFixed(2);
+  const theoreticalMaxCPI = isPipelined ? "1.00" : stageConfigs.length.toFixed(2);
+  const theoreticalMaxIPC = isPipelined ? "1.00" : (1 / stageConfigs.length).toFixed(2);
+  
+  // Convert time to selected unit
+  const convertTime = (cycles: number): string => {
+    const cycleTimeNs = cycleTime; // Time in nanoseconds per cycle
+    switch (timeUnit) {
+      case 'seconds':
+        return ((cycles * cycleTimeNs) / 1000000000).toFixed(9) + ' s';
+      case 'minutes':
+        return ((cycles * cycleTimeNs) / 60000000000).toFixed(9) + ' min';
+      case 'hours':
+        return ((cycles * cycleTimeNs) / 3600000000000).toFixed(12) + ' hr';
+      case 'cycles':
+      default:
+        return cycles.toString() + ' cycles';
+    }
+  };
 
+  // Stage Legend Component
+  const PipelineStageLegend = () => {
+    if (!showLegend) return null;
+    
+    return (
+      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-medium">Pipeline Stages</h3>
+          <button 
+            onClick={() => setShowLegend(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+          {stageConfigs.map((stage, index) => (
+            <div key={index} className="flex items-center space-x-2 p-2 rounded bg-gray-50">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: stage.color }}>
+                <span className="text-white font-bold">{stage.abbreviation}</span>
+              </div>
+              <div>
+                <div className="font-medium">{stage.name}</div>
+                <div className="text-xs text-gray-500">Duration: {stage.duration} cycle{stage.duration > 1 ? 's' : ''}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // System Information Panel
+  const SystemInformationPanel = () => {
+    if (!showSystemInfo) return null;
+    
+    return (
+      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-medium">System Information</h3>
+          <button 
+            onClick={() => setShowSystemInfo(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="mb-2">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-medium">Time Unit:</span>
+            <div className="flex gap-2">
+              {(['cycles', 'seconds', 'minutes', 'hours'] as const).map(unit => (
+                <button
+                  key={unit}
+                  onClick={() => setTimeUnit(unit)}
+                  className={`px-2 py-1 text-xs rounded ${timeUnit === unit ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
+                >
+                  {unit.charAt(0).toUpperCase() + unit.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="mb-1">
+            <span className="font-medium">Cycle Time: </span>
+            <input 
+              type="number" 
+              value={cycleTime}
+              onChange={(e) => setCycleTime(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
+            /> ns
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded bg-gray-50 p-2">
+            <div className="text-sm text-gray-500">Total Time</div>
+            <div className="font-mono font-medium">{convertTime(cycles)}</div>
+          </div>
+          <div className="rounded bg-gray-50 p-2">
+            <div className="text-sm text-gray-500">Ideal Time (Pipelined)</div>
+            <div className="font-mono font-medium">{convertTime(pipelineInstructions.length + stageConfigs.length - 1)}</div>
+          </div>
+          <div className="rounded bg-gray-50 p-2">
+            <div className="text-sm text-gray-500">Ideal Time (Sequential)</div>
+            <div className="font-mono font-medium">{convertTime(pipelineInstructions.length * stageConfigs.length)}</div>
+          </div>
+          <div className="rounded bg-gray-50 p-2">
+            <div className="text-sm text-gray-500">Speedup</div>
+            <div className="font-mono font-medium">
+              {cycles > 0 
+                ? (pipelineInstructions.length * stageConfigs.length / cycles).toFixed(2) + 'x'
+                : 'N/A'
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Stage Configuration UI
+  const PipelineStageConfig = () => {
+    if (!stageConfigOpen) return null;
+    
+    return (
+      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-medium">Stage Configuration</h3>
+          <button 
+            onClick={() => setStageConfigOpen(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="space-y-2">
+          {stageConfigs.map((stage, index) => (
+            <div key={index} className="flex items-center gap-2 rounded bg-gray-50 p-2">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: stage.color }}>
+                <span className="text-white font-bold">{stage.abbreviation}</span>
+              </div>
+              <div className="flex-grow">
+                <div className="font-medium">{stage.name}</div>
+                <div className="text-xs text-gray-500">{stage.description}</div>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2 text-sm font-medium">Duration:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={stage.duration}
+                  onChange={(e) => {
+                    const newValue = Math.max(1, parseInt(e.target.value) || 1);
+                    const updatedConfigs = [...stageConfigs];
+                    updatedConfigs[index] = { ...stage, duration: newValue };
+                    setStageConfigs(updatedConfigs);
+                  }}
+                  className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="mt-4 flex justify-end space-x-2">
+          <button 
+            onClick={() => {
+              // Reset all durations to default
+              setStageConfigs(stageConfigs.map(stage => ({ ...stage, duration: stage.defaultDuration })));
+            }}
+            className="rounded border border-gray-300 bg-white px-3 py-1 text-sm hover:bg-gray-50"
+          >
+            Reset to Default
+          </button>
+          <button 
+            onClick={() => setStageConfigOpen(false)}
+            className="rounded bg-purple-600 px-3 py-1 text-sm text-white hover:bg-purple-700"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    );
+  }
   // Set up D3 scales for our chart
   const margin = { top: 50, right: 30, bottom: 50, left: 100 };
   const innerWidth = svgWidth - margin.left - margin.right;
@@ -694,27 +943,29 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                 }
 
                 // Render all stages this instruction has gone through
-                return Array.from({ length: Math.min(instr.currentStage, PIPELINE_STAGES.length - 1) + 1 }).map((_, stageIndex) => {
+                return Array.from({ length: Math.min(instr.currentStage, stageConfigs.length - 1) + 1 }).map((_, stageIndex) => {
                   const cycle = (instr.startCycle ?? 0) + stageIndex;
                   if (cycle > cycles) return null;
 
-                  const stageName = PIPELINE_STAGES[stageIndex];
+                  const stageConfig = stageConfigs[stageIndex];
 
                   return (
                     <PipelineStage
                       key={`instr-${instr.id}-stage-${stageIndex}`}
                       instruction={instr}
                       stage={stageIndex}
-                      stageName={stageName}
+                      stageName={stageConfig.name}
                       cycle={cycle}
                       xPos={xScale(String(cycle))!}
                       yPos={yScale(instr.id.toString())!}
                       width={xScale.bandwidth()}
                       height={yScale.bandwidth()}
                       timeLabel={timeLabels[cycle]}
-                      stageImage="" // No stage images for register pipeline
+                      stageImage=""
                       onMouseEnter={handleStageMouseEnter}
                       onMouseLeave={handleStageMouseLeave}
+                      color={stageConfig.color}
+                      abbreviation={stageConfig.abbreviation}
                     />
                   );
                 });
@@ -726,29 +977,9 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
           </svg>
         </div>
 
-        {pipelineInstructions.every(
-          (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
-        ) && (
-          <div className="mb-4 w-full border-l-4 border-green-400 bg-green-50 p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-green-700">
-                  <strong>All done!</strong> All instructions have been completed. It took {cycles} cycles
-                  to complete all {pipelineInstructions.length} instructions.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+
+        {/* Display Legend if enabled */}
+        {showLegend && <PipelineStageLegend />}
 
         {/* Register Values Display */}
         <div className="my-2 w-full border-t border-b border-gray-200 py-4">
@@ -795,7 +1026,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             <span className="ml-2 self-center text-sm">
               {pipelineInstructions.every(
                 (instr) =>
-                  instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+                  instr.currentStage !== undefined && instr.currentStage >= stageConfigs.length
               )
                 ? "Start Over"
                 : isRunning ? "Running..." : "Ready"}
@@ -817,6 +1048,41 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                   {isPipelined ? "Pipelined Mode" : "Non-pipelined Mode"}
                 </span>
               </label>
+            </div>
+          </div>
+
+          {/* UI Display Controls */}
+          <div className="mb-4">
+            <h3 className="mb-2 font-semibold">Display Options</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowLegend(!showLegend)}
+                className="w-full rounded bg-gray-100 px-3 py-2 text-sm text-left hover:bg-gray-200 flex justify-between items-center"
+              >
+                <span>{showLegend ? "Hide" : "Show"} Stage Legend</span>
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setShowSystemInfo(!showSystemInfo)}
+                className="w-full rounded bg-gray-100 px-3 py-2 text-sm text-left hover:bg-gray-200 flex justify-between items-center"
+              >
+                <span>{showSystemInfo ? "Hide" : "Show"} System Information</span>
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setStageConfigOpen(!stageConfigOpen)}
+                className="w-full rounded bg-gray-100 px-3 py-2 text-sm text-left hover:bg-gray-200 flex justify-between items-center"
+              >
+                <span>Configure Pipeline Stages</span>
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                </svg>
+              </button>
             </div>
           </div>
           
@@ -907,6 +1173,12 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             </div>
           </div>
         </div>
+
+        {/* Stage Configuration UI */}
+        {stageConfigOpen && <PipelineStageConfig />}
+
+        {/* Display System Information if enabled */}
+        {showSystemInfo && <SystemInformationPanel />}
       </div>
     </div>
   );

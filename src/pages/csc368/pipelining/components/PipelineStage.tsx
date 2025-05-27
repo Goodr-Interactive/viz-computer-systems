@@ -17,6 +17,8 @@ interface PipelineStageProps {
   isSuperscalarActive?: boolean;
   parallelInstructions?: Instruction[];
   isFirstInGroup?: boolean;
+  color?: string; // Add color prop
+  abbreviation?: string; // Add abbreviation prop
 }
 
 export const PipelineStage: React.FC<PipelineStageProps> = ({
@@ -35,6 +37,8 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
   isSuperscalarActive = false,
   parallelInstructions = [],
   isFirstInGroup = false,
+  color, // Add color prop
+  abbreviation, // Add abbreviation prop
 }) => {
   // Calculate inner rectangle size for the icon (slightly smaller)
   const innerWidth = width * 0.8;
@@ -54,22 +58,51 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
       <rect
         width={width}
         height={height}
-        fill={instruction.stalled && stage === instruction.currentStage ? "#f8d7da" : instruction.color}
+        fill={instruction.stalled && stage === instruction.currentStage 
+          ? "#f8d7da" 
+          : color || instruction.color}
         stroke="black"
         rx={4}
       />
 
-      {/* Stage Icon */}
-      <rect
-        width={innerWidth}
-        height={innerHeight}
-        x={innerX}
-        y={innerY}
-        fill={`url(#stage-pattern-${stage})`}
-        stroke="white"
-        strokeWidth={1}
-        rx={4}
-      />
+      {/* Stage Icon or Abbreviation */}
+      {stageImage ? (
+        <rect
+          width={innerWidth}
+          height={innerHeight}
+          x={innerX}
+          y={innerY}
+          fill={`url(#stage-pattern-${stage})`}
+          stroke="white"
+          strokeWidth={1}
+          rx={4}
+        />
+      ) : abbreviation ? (
+        <g>
+          <rect
+            width={innerWidth}
+            height={innerHeight}
+            x={innerX}
+            y={innerY}
+            fill="white"
+            stroke="white"
+            strokeWidth={1}
+            rx={4}
+            opacity={0.9}
+          />
+          <text
+            x={width / 2}
+            y={height / 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={color || instruction.color}
+            fontSize="16px"
+            fontWeight="bold"
+          >
+            {abbreviation}
+          </text>
+        </g>
+      ) : null}
 
       {/* Tint Overlay */}
       <rect
@@ -77,7 +110,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
         height={innerHeight}
         x={innerX}
         y={innerY}
-        fill={instruction.color}
+        fill={color || instruction.color}
         opacity={0.2}
         rx={4}
       />

@@ -15,9 +15,6 @@ export const RegisterPipeline: React.FunctionComponent = () => {
 
       <div className="mt-4 flex gap-[16px]">
         <Button asChild variant="outline">
-          <a href="/csc368/pipelining/registers">D3.js Version</a>
-        </Button>
-        <Button asChild variant="outline">
           <a href="/csc368/pipelining">Back to Laundry Pipeline</a>
         </Button>
         <Button asChild variant="outline">

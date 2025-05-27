@@ -688,32 +688,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             </g>
           </svg>
         </div>
-
-        {pipelineInstructions.every(
-          (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
-        ) && (
-          <div className="mb-4 w-full border-l-4 border-green-400 bg-green-50 p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-green-700">
-                  <strong>All done!</strong> All laundry loads have been completed. Final time:{" "}
-                  {getCurrentTimeLabel()}
-                  . It took {cycles} "cycles" to complete all {pipelineInstructions.length} loads of
-                  laundry.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Controls and Instructions Container - Right side on desktop */}

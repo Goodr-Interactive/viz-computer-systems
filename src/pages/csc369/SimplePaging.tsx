@@ -5,10 +5,8 @@ import { PagingSystem } from "./components/paging/PagingSystem";
 import { PhysicalMemorySize, PageSize, VirtualAddressBits } from "./components/paging/types";
 import {
   PageTableLevelColors,
-  physicalMemoryOptions,
-  pageSizeOptions,
-  virtualBitsOptions,
 } from "./components/paging/constants";
+import { instructorConfig } from "./components/paging/config";
 import {
   Select,
   SelectContent,
@@ -23,10 +21,10 @@ import { SectionHeading } from "./components/paging/ui/SectionHeading";
 import { SubsectionHeading } from "./components/paging/ui/SubsectionHeading";
 
 export const SimplePaging: React.FunctionComponent = () => {
-  // Set default values
-  const [physicalMemory, setPhysicalMemory] = useState<PhysicalMemorySize>(PhysicalMemorySize.GB_1);
-  const [pageSize, setPageSize] = useState<PageSize>(PageSize.B_512);
-  const [virtualBits, setVirtualBits] = useState<VirtualAddressBits>(VirtualAddressBits.BITS_30);
+  // Set default values from instructor config
+  const [physicalMemory, setPhysicalMemory] = useState<PhysicalMemorySize>(instructorConfig.defaults.physicalMemory);
+  const [pageSize, setPageSize] = useState<PageSize>(instructorConfig.defaults.pageSize);
+  const [virtualBits, setVirtualBits] = useState<VirtualAddressBits>(instructorConfig.defaults.virtualBits);
   const [pagingSystem, setPagingSystem] = useState<PagingSystem>(
     new PagingSystem(physicalMemory, pageSize, virtualBits)
   );
@@ -60,7 +58,11 @@ export const SimplePaging: React.FunctionComponent = () => {
     <div className="flex w-full flex-col items-center gap-10 p-8 pb-24">
       {/* Configuration Section */}
       <section className="w-full max-w-6xl">
-        <SectionHeading>Paging System Configuration</SectionHeading>
+        <SectionHeading>Paging System Visualization</SectionHeading>
+        
+        <p className="text-muted-foreground mb-6">
+          This visualization demonstrates hierarchical paging in a 32-bit byte-addressable system with 32-bit page table entries, where each page table is constrained to fit within a single physical frame. Adjust the three parameters below to observe how changes in physical memory size, page size, and virtual address bits affect the address structure, page table hierarchy, and system calculations.
+        </p>
 
         <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col gap-2">
@@ -75,7 +77,7 @@ export const SimplePaging: React.FunctionComponent = () => {
                 <SelectValue placeholder="Select physical memory size" />
               </SelectTrigger>
               <SelectContent>
-                {physicalMemoryOptions.map((option) => (
+                {instructorConfig.physicalMemoryOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value.toString()}>
                     {option.label}
                   </SelectItem>
@@ -96,7 +98,7 @@ export const SimplePaging: React.FunctionComponent = () => {
                 <SelectValue placeholder="Select page size" />
               </SelectTrigger>
               <SelectContent>
-                {pageSizeOptions.map((option) => (
+                {instructorConfig.pageSizeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value.toString()}>
                     {option.label}
                   </SelectItem>
@@ -117,7 +119,7 @@ export const SimplePaging: React.FunctionComponent = () => {
                 <SelectValue placeholder="Select virtual address bits" />
               </SelectTrigger>
               <SelectContent>
-                {virtualBitsOptions.map((option) => (
+                {instructorConfig.virtualBitsOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value.toString()}>
                     {option.label}
                   </SelectItem>
@@ -138,7 +140,7 @@ export const SimplePaging: React.FunctionComponent = () => {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`virtual-${virtualBits}-${pageSize}-${physicalMemory}`}
-                    className="flex flex-wrap items-center gap-2"
+                    className="pr-4 flex flex-wrap items-center justify-end gap-2"
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       {summary.bitsPerLevel.map((bits, index) => {
@@ -211,7 +213,7 @@ export const SimplePaging: React.FunctionComponent = () => {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`physical-${virtualBits}-${pageSize}-${physicalMemory}`}
-                  className="flex flex-wrap items-center gap-2"
+                  className="pr-4 flex flex-wrap items-center justify-end gap-2"
                 >
                   {unusedBits > 0 && (
                     <AnimatedBinaryBlock
@@ -287,11 +289,10 @@ export const SimplePaging: React.FunctionComponent = () => {
             {/* PTE Structure - Non-Collapsible */}
             <div className="bg-muted/50 rounded-lg p-6">
               <SubsectionHeading>Page Table Entry (PTE) Structure</SubsectionHeading>
-              <p className="text-muted-foreground mb-3 text-sm">Each PTE is 32 bits (4 bytes)</p>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`pte-${virtualBits}-${pageSize}-${physicalMemory}`}
-                  className="flex flex-wrap items-center gap-2"
+                  className="pr-4 flex flex-wrap items-center justify-end gap-2"
                 >
                   {/* Modified bit */}
                   <AnimatedBinaryBlock
@@ -422,13 +423,13 @@ export const SimplePaging: React.FunctionComponent = () => {
         </LayoutGroup>
       </section>
 
-      {/* System Information Section - Moved to Bottom */}
+      {/* Calculation Hints Section */}
       <section className="bg-muted/50 w-full max-w-6xl rounded-lg p-6">
         <CollapsibleHeading
           collapsed={derivedValuesCollapsed}
           onClick={() => setDerivedValuesCollapsed(!derivedValuesCollapsed)}
         >
-          System Information
+          Calculations for Common Problems
         </CollapsibleHeading>
 
         <AnimatePresence>

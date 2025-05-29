@@ -3,24 +3,11 @@ import * as d3 from "d3";
 
 // Import React components
 import { PipelineStage } from "./PipelineStage";
-import { PipelineTooltip } from "./PipelineTooltip";
 import { Axis } from "./Axis";
 import { Grid } from "./Grid";
-import { StagePatterns } from "./StagePatterns";
 import type { Instruction } from "./types";
 
-// Define the grid cell type for our 2D pipeline representation
-interface PipelineGridCell {
-  instruction?: Instruction;
-  stageIndex?: number;
-  stageConfig?: PipelineStageConfig;
-  isStalled?: boolean;
-  stallReason?: string;
-  progress?: number;
-  duration?: number;
-  entryCycle?: number;
-  isEmpty: boolean;
-}
+
 
 // Define the pipeline stage configuration type
 interface PipelineStageConfig {
@@ -150,10 +137,6 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
     registers: { src: [], dest: [] },
   });
   
-  // Pipeline grid state - 2D array representing the entire pipeline visualization
-  // First dimension is instruction ID, second dimension is clock cycle
-  const [pipelineGrid, setPipelineGrid] = useState<PipelineGridCell[][]>([]);
-
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
@@ -775,6 +758,8 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
   const theoreticalMaxCPI = isPipelined ? "1.00" : stageConfigs.length.toFixed(2);
   const theoreticalMaxIPC = isPipelined ? "1.00" : (1 / stageConfigs.length).toFixed(2);
   
+
+  
   // Convert time to selected unit
   const convertTime = (cycles: number): string => {
     const cycleTimeNs = cycleTime; // Time in nanoseconds per cycle
@@ -894,6 +879,22 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             <div className="font-mono font-medium">{convertTime(cycles)}</div>
           </div>
           <div className="rounded bg-gray-50 p-2">
+            <div className="text-sm text-gray-500">Sequential Time (Actual Durations)</div>
+            <div className="font-mono font-medium">{convertTime((() => {
+              // Count instructions that have been started (currentStage >= 0) or completed
+              const startedOrCompletedInstructions = pipelineInstructions.filter(instr => 
+                instr.currentStage !== undefined && instr.currentStage >= 0
+              ).length;
+              
+              // If no instructions have started, show 0
+              if (startedOrCompletedInstructions === 0) return 0;
+              
+              // Calculate sequential time for started/completed instructions
+              const totalDurationPerInstruction = stageConfigs.reduce((sum, stage) => sum + stage.duration, 0);
+              return startedOrCompletedInstructions * totalDurationPerInstruction;
+            })())}</div>
+            </div>
+          <div className="rounded bg-gray-50 p-2">
             <div className="text-sm text-gray-500">Ideal Time (Pipelined)</div>
             <div className="font-mono font-medium">{convertTime(pipelineInstructions.length + stageConfigs.length - 1)}</div>
           </div>
@@ -901,11 +902,22 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             <div className="text-sm text-gray-500">Ideal Time (Sequential)</div>
             <div className="font-mono font-medium">{convertTime(pipelineInstructions.length * stageConfigs.length)}</div>
           </div>
+
           <div className="rounded bg-gray-50 p-2">
-            <div className="text-sm text-gray-500">Speedup</div>
+            <div className="text-sm text-gray-500">Speedup vs Sequential</div>
             <div className="font-mono font-medium">
               {cycles > 0 
-                ? (pipelineInstructions.length * stageConfigs.length / cycles).toFixed(2) + 'x'
+                ? (() => {
+                    // Count instructions that have been started (currentStage >= 0) or completed
+                    const startedOrCompletedInstructions = pipelineInstructions.filter(instr => 
+                      instr.currentStage !== undefined && instr.currentStage >= 0
+                    ).length;
+                    
+                    if (startedOrCompletedInstructions === 0) return 'N/A';
+                    
+                    const sequentialTime = startedOrCompletedInstructions * stageConfigs.reduce((sum, stage) => sum + stage.duration, 0);
+                    return (sequentialTime / cycles).toFixed(2) + 'x';
+                  })()
                 : 'N/A'
               }
             </div>
@@ -1089,61 +1101,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
     );
   };
 
-  // Helper function to update the pipeline grid based on instruction state
-  const updatePipelineGrid = (updatedInstructions: Instruction[]) => {
-    // Determine the maximum cycle we need to display
-    const maxCycle = Math.max(
-      cycles + 5, // Show a few cycles ahead
-      ...updatedInstructions
-        .filter(instr => instr.stageHistory && instr.stageHistory.length > 0)
-        .flatMap(instr => 
-          instr.stageHistory!.map(hist => hist.entryCycle + (hist.duration || 1))
-        )
-    );
-    
-    // Initialize a new grid with empty cells
-    const newGrid: PipelineGridCell[][] = Array(updatedInstructions.length)
-      .fill(null)
-      .map(() => 
-        Array(maxCycle + 1)
-          .fill(null)
-          .map(() => ({ isEmpty: true }))
-      );
-    
-    // Populate the grid based on instruction state
-    updatedInstructions.forEach((instr, instrIdx) => {
-      if (!instr.stageHistory) return;
-      
-      instr.stageHistory.forEach(histEntry => {
-        const stageConfig = stageConfigs[histEntry.stageIndex];
-        if (!stageConfig) return;
-        
-        // For each cycle this stage occupies
-        for (let i = 0; i < histEntry.duration; i++) {
-          const cycleIdx = histEntry.entryCycle + i;
-          if (cycleIdx > maxCycle) continue; // Skip if beyond our grid
-          
-          // Determine if this is the active stage and if it's stalled
-          const isCurrentActiveStage = instr.currentStage === histEntry.stageIndex;
-          const isStalled = isCurrentActiveStage && instr.stalled;
-          
-          newGrid[instrIdx][cycleIdx] = {
-            instruction: instr,
-            stageIndex: histEntry.stageIndex,
-            stageConfig: stageConfig,
-            isStalled: isStalled,
-            stallReason: isStalled ? instr.stallReason : undefined,
-            progress: isCurrentActiveStage ? instr.stageProgress : undefined,
-            duration: histEntry.duration,
-            entryCycle: histEntry.entryCycle,
-            isEmpty: false
-          };
-        }
-      });
-    });
-    
-    setPipelineGrid(newGrid);
-  };
+
 
   return (
     <div className="flex w-full flex-col lg:flex-row lg:gap-6">

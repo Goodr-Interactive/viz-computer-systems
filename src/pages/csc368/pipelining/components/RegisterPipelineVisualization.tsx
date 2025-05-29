@@ -9,6 +9,19 @@ import { Grid } from "./Grid";
 import { StagePatterns } from "./StagePatterns";
 import type { Instruction } from "./types";
 
+// Define the grid cell type for our 2D pipeline representation
+interface PipelineGridCell {
+  instruction?: Instruction;
+  stageIndex?: number;
+  stageConfig?: PipelineStageConfig;
+  isStalled?: boolean;
+  stallReason?: string;
+  progress?: number;
+  duration?: number;
+  entryCycle?: number;
+  isEmpty: boolean;
+}
+
 // Define the pipeline stage configuration type
 interface PipelineStageConfig {
   name: string;
@@ -136,6 +149,10 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
     timeLabel: "",
     registers: { src: [], dest: [] },
   });
+  
+  // Pipeline grid state - 2D array representing the entire pipeline visualization
+  // First dimension is instruction ID, second dimension is clock cycle
+  const [pipelineGrid, setPipelineGrid] = useState<PipelineGridCell[][]>([]);
 
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
@@ -284,70 +301,126 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
         return newRegisters;
       });
 
+      // TODO: Fix issues with the pipeline instructions
       // Update each instruction's position in the pipeline
       setPipelineInstructions((prevInstructions) => {
         if (isPipelined) {
           // First, identify instructions that need to stall.
           const stallMap = new Map<number, {stalled: boolean; reason?: string}>();
           
-          prevInstructions.forEach((instr_being_checked, idx_being_checked) => {
-            // Determine the current or target stage for instr_being_checked
-            let stage_of_instr_being_checked: number | undefined;
-            if (instr_being_checked.currentStage === -1) { // Targeting stage 0
-              if (stageConfigs.length > 0) {
-                stage_of_instr_being_checked = 0;
-              } else {
-                return; // No stages to target, so cannot be stalled by stage occupancy
-              }
-            } else if (instr_being_checked.currentStage !== undefined && 
-                       instr_being_checked.currentStage >= 0 && 
-                       instr_being_checked.currentStage < stageConfigs.length) {
-              stage_of_instr_being_checked = instr_being_checked.currentStage; // Already in this stage
-            } else {
-              return; // Completed, or invalid state, not subject to these stalls
-            }
-
-            // Check against previous instructions in program order
-            for (let prevIdx = 0; prevIdx < idx_being_checked; prevIdx++) {
-              const prevInstr = prevInstructions[prevIdx];
-
-              if (prevInstr.currentStage === undefined || prevInstr.currentStage < 0 || 
-                  prevInstr.currentStage >= stageConfigs.length) {
-                continue; // Skip prevInstr if not in a valid pipeline stage or completed
-              }
-
-              const prevStageConfig = stageConfigs[prevInstr.currentStage];
-              if (!prevStageConfig) continue; 
-
-              const prevRequiredCycles = prevStageConfig.duration;
-              const prevProgress = prevInstr.stageProgress || 0;
-
-              // Rule 1: Structural Hazard for the stage `instr_being_checked` is in or targeting.
-              if (prevInstr.currentStage === stage_of_instr_being_checked) {
-                if (prevProgress < prevRequiredCycles) {
-                  stallMap.set(idx_being_checked, {
-                    stalled: true,
-                    reason: `Waiting for ${prevInstr.name} in stage ${stageConfigs[stage_of_instr_being_checked]?.name || 'Unknown'} (structural)`
-                  });
-                  break; // Found stall reason for instr_being_checked
-                }
-              }
-
-              // Rule 2: In-order execution constraint.
-              // If instr_being_checked is already in the pipeline (not -1),
-              // and prevInstr is in an earlier stage and not done, then instr_being_checked stalls.
-              if (instr_being_checked.currentStage !== -1 && // Only applies if instr_being_checked is active in the pipeline
-                  prevInstr.currentStage < instr_being_checked.currentStage) {
-                if (prevProgress < prevRequiredCycles) {
-                  stallMap.set(idx_being_checked, {
-                    stalled: true,
-                    reason: `Waiting for ${prevInstr.name} in stage ${prevStageConfig.name} (in-order)`
-                  });
-                  break; // Found stall reason for instr_being_checked
-                }
+          // Track which stages are currently occupied
+          const stageOccupancy = new Map<number, { 
+            instructionId: number; 
+            instructionName: string;
+          }>();
+          
+          // First pass: identify all currently occupied stages
+          prevInstructions.forEach((instr) => {
+            if (instr.currentStage !== undefined && 
+                instr.currentStage >= 0 && 
+                instr.currentStage < stageConfigs.length) {
+              
+              // Only consider a stage occupied if the instruction will still be there next cycle
+              const currentStageConfig = stageConfigs[instr.currentStage];
+              const currentProgress = instr.stageProgress || 0;
+              
+              // If instruction will advance next cycle, stage will be free
+              if (currentProgress < currentStageConfig.duration) {
+                // Instruction will still be in this stage next cycle
+                stageOccupancy.set(instr.currentStage, {
+                  instructionId: instr.id,
+                  instructionName: instr.name
+                });
               }
             }
           });
+          
+          // Second pass: process instructions in order to ensure proper stall propagation
+          for (let idx_being_checked = 0; idx_being_checked < prevInstructions.length; idx_being_checked++) {
+            const instr_being_checked = prevInstructions[idx_being_checked];
+            
+            // Skip if instruction is already completed
+            if (instr_being_checked.currentStage !== undefined && 
+                instr_being_checked.currentStage >= stageConfigs.length) {
+              continue;
+            }
+            
+            // Determine the target stage for this instruction
+            let target_stage: number | undefined;
+            
+            if (instr_being_checked.currentStage === -1) {
+              // Instruction wants to enter the first stage
+              target_stage = 0;
+            } else if (instr_being_checked.currentStage !== undefined && 
+                       instr_being_checked.currentStage >= 0 && 
+                       instr_being_checked.currentStage < stageConfigs.length) {
+              // Check if instruction can advance to next stage
+              const currentStageConfig = stageConfigs[instr_being_checked.currentStage];
+              const currentProgress = instr_being_checked.stageProgress || 0;
+              
+              if (currentProgress >= currentStageConfig.duration) {
+                // Instruction is ready to move to next stage
+                target_stage = instr_being_checked.currentStage + 1;
+                
+                // If target stage is beyond pipeline, instruction is completing
+                if (target_stage >= stageConfigs.length) {
+                  continue; // Instruction is completing, no stall needed
+                }
+              } else {
+                // Instruction still needs more cycles in current stage
+                continue; // No advancement needed, no stall check required
+              }
+            } else {
+              continue; // Invalid state
+            }
+
+            // Check for structural hazards - is the target stage occupied?
+            if (target_stage !== undefined) {
+              const occupancy = stageOccupancy.get(target_stage);
+              if (occupancy && occupancy.instructionId !== instr_being_checked.id) {
+                // Target stage is occupied by another instruction
+                stallMap.set(idx_being_checked, {
+                  stalled: true,
+                  reason: `Waiting for ${occupancy.instructionName} to leave stage ${stageConfigs[target_stage]?.name || 'Unknown'} (structural hazard)`
+                });
+                continue; // This instruction is stalled, check next instruction
+              }
+            }
+
+            // Check for in-order execution constraints
+            for (let prevIdx = 0; prevIdx < idx_being_checked; prevIdx++) {
+              const prevInstr = prevInstructions[prevIdx];
+
+              // Skip if previous instruction is completed
+              if (prevInstr.currentStage === undefined || 
+                  prevInstr.currentStage < 0 || 
+                  prevInstr.currentStage >= stageConfigs.length) {
+                continue;
+              }
+
+              // Check if previous instruction is already stalled (stall propagation)
+              if (stallMap.get(prevIdx)?.stalled) {
+                stallMap.set(idx_being_checked, {
+                  stalled: true,
+                  reason: `Waiting for ${prevInstr.name} (stall propagation)`
+                });
+                break;
+              }
+
+              // In-order constraint: prevent current instruction from advancing beyond previous instruction
+              // Only apply this if current instruction would advance to a stage that is ahead of where
+              // the previous instruction currently is
+              if (target_stage !== undefined && 
+                  prevInstr.currentStage !== undefined && 
+                  target_stage > prevInstr.currentStage) {
+                stallMap.set(idx_being_checked, {
+                  stalled: true,
+                  reason: `Cannot advance past ${prevInstr.name} (in-order execution)`
+                });
+                break;
+              }
+            }
+          }
           
           let canStartNewInstructionThisCycle = true; // Allow one new instruction to start per cycle
 
@@ -1016,6 +1089,61 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
     );
   };
 
+  // Helper function to update the pipeline grid based on instruction state
+  const updatePipelineGrid = (updatedInstructions: Instruction[]) => {
+    // Determine the maximum cycle we need to display
+    const maxCycle = Math.max(
+      cycles + 5, // Show a few cycles ahead
+      ...updatedInstructions
+        .filter(instr => instr.stageHistory && instr.stageHistory.length > 0)
+        .flatMap(instr => 
+          instr.stageHistory!.map(hist => hist.entryCycle + (hist.duration || 1))
+        )
+    );
+    
+    // Initialize a new grid with empty cells
+    const newGrid: PipelineGridCell[][] = Array(updatedInstructions.length)
+      .fill(null)
+      .map(() => 
+        Array(maxCycle + 1)
+          .fill(null)
+          .map(() => ({ isEmpty: true }))
+      );
+    
+    // Populate the grid based on instruction state
+    updatedInstructions.forEach((instr, instrIdx) => {
+      if (!instr.stageHistory) return;
+      
+      instr.stageHistory.forEach(histEntry => {
+        const stageConfig = stageConfigs[histEntry.stageIndex];
+        if (!stageConfig) return;
+        
+        // For each cycle this stage occupies
+        for (let i = 0; i < histEntry.duration; i++) {
+          const cycleIdx = histEntry.entryCycle + i;
+          if (cycleIdx > maxCycle) continue; // Skip if beyond our grid
+          
+          // Determine if this is the active stage and if it's stalled
+          const isCurrentActiveStage = instr.currentStage === histEntry.stageIndex;
+          const isStalled = isCurrentActiveStage && instr.stalled;
+          
+          newGrid[instrIdx][cycleIdx] = {
+            instruction: instr,
+            stageIndex: histEntry.stageIndex,
+            stageConfig: stageConfig,
+            isStalled: isStalled,
+            stallReason: isStalled ? instr.stallReason : undefined,
+            progress: isCurrentActiveStage ? instr.stageProgress : undefined,
+            duration: histEntry.duration,
+            entryCycle: histEntry.entryCycle,
+            isEmpty: false
+          };
+        }
+      });
+    });
+    
+    setPipelineGrid(newGrid);
+  };
 
   return (
     <div className="flex w-full flex-col lg:flex-row lg:gap-6">

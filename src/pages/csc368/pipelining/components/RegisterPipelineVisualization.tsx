@@ -7,8 +7,6 @@ import { Axis } from "./Axis";
 import { Grid } from "./Grid";
 import type { Instruction } from "./types";
 
-
-
 // Define the pipeline stage configuration type
 interface PipelineStageConfig {
   name: string;
@@ -105,6 +103,10 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
   const [stageConfigOpen, setStageConfigOpen] = useState<boolean>(false);
   const [timeUnit, setTimeUnit] = useState<'cycles' | 'seconds' | 'minutes' | 'hours'>('cycles');
   const [cycleTime, setCycleTime] = useState<number>(1); // Time in nanoseconds per cycle
+
+  // Cycle highlighting state
+  const [cycleHighlightMode, setCycleHighlightMode] = useState<'none' | 'current' | 'specific'>('none');
+  const [highlightedCycle, setHighlightedCycle] = useState<number>(0);
 
   // Register state
   const [registers, setRegisters] = useState<Record<string, number>>({
@@ -203,6 +205,13 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+
+  // Update highlighted cycle when cycles change in 'current' mode
+  useEffect(() => {
+    if (cycleHighlightMode === 'current') {
+      setHighlightedCycle(cycles);
+    }
+  }, [cycles, cycleHighlightMode]);
 
   // Initialize pipeline
   useEffect(() => {
@@ -1006,6 +1015,21 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
 
   const timeLabels = getTimeLabels();
 
+  // Determine which cycle to highlight
+  const getHighlightedCycleNumber = (): number | null => {
+    switch (cycleHighlightMode) {
+      case 'current': // highlight the cycle that was just finished
+        return cycles - 1;
+      case 'specific':
+        return highlightedCycle;
+      case 'none':
+      default:
+        return null;
+    }
+  };
+
+  const highlightCycleNumber = getHighlightedCycleNumber();
+
   // Handle tooltip display
   const handleStageMouseEnter = (
     event: React.MouseEvent,
@@ -1133,6 +1157,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                 timeLabels={timeLabels}
                 label="Clock Cycle"
                 labelOffset={{ x: innerWidth / 2, y: 40 }}
+                highlightedCycle={highlightCycleNumber}
               />
               
               <Axis 
@@ -1192,6 +1217,22 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                 orientation="horizontal" 
                 length={innerWidth} 
               />
+              
+              {/* Cycle highlighting background */}
+              {highlightCycleNumber !== null && highlightCycleNumber <= cycles + 4 && (
+                <rect
+                  x={xScale(String(highlightCycleNumber))!}
+                  y={0}
+                  width={xScale.bandwidth()}
+                  height={innerHeight}
+                  fill="rgba(255, 215, 0, 0.3)"
+                  stroke="rgba(255, 215, 0, 0.8)"
+                  strokeWidth={2}
+                  rx={4}
+                  ry={4}
+                  pointerEvents="none"
+                />
+              )}
               
               {/* Custom tooltip for register pipeline */}
               <RegisterPipelineTooltip />
@@ -1270,6 +1311,60 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                   {isPipelined ? "Pipelined Mode" : "Non-pipelined Mode"}
                 </span>
               </label>
+            </div>
+          </div>
+
+          {/* Cycle Highlighting Controls */}
+          <div className="mb-4">
+            <h3 className="mb-2 font-semibold">Cycle Highlighting</h3>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="cycleHighlight"
+                  value="none"
+                  checked={cycleHighlightMode === 'none'}
+                  onChange={(e) => setCycleHighlightMode(e.target.value as 'none' | 'current' | 'specific')}
+                  className="mr-2"
+                />
+                <span className="text-sm">No highlighting</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="cycleHighlight"
+                  value="current"
+                  checked={cycleHighlightMode === 'current'}
+                  onChange={(e) => setCycleHighlightMode(e.target.value as 'none' | 'current' | 'specific')}
+                  className="mr-2"
+                />
+                <span className="text-sm">Highlight current cycle</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="cycleHighlight"
+                  value="specific"
+                  checked={cycleHighlightMode === 'specific'}
+                  onChange={(e) => setCycleHighlightMode(e.target.value as 'none' | 'current' | 'specific')}
+                  className="mr-2"
+                />
+                <span className="text-sm">Highlight specific cycle</span>
+              </label>
+              
+              {cycleHighlightMode === 'specific' && (
+                <div className="ml-6 flex items-center gap-2">
+                  <span className="text-sm">Cycle:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={cycles + 4}
+                    value={highlightedCycle}
+                    onChange={(e) => setHighlightedCycle(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                  />
+                </div>
+              )}
             </div>
           </div>
 

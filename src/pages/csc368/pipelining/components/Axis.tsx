@@ -11,6 +11,7 @@ interface AxisProps {
   instructions?: Instruction[];
   label?: string;
   labelOffset?: { x: number; y: number };
+  highlightedCycle?: number | null;
 }
 
 export const Axis: React.FC<AxisProps> = ({
@@ -22,6 +23,7 @@ export const Axis: React.FC<AxisProps> = ({
   instructions,
   label,
   labelOffset = { x: 0, y: 0 },
+  highlightedCycle = null,
 }) => {
   const ref = React.useRef<SVGGElement>(null);
 
@@ -75,7 +77,17 @@ export const Axis: React.FC<AxisProps> = ({
         .attr("text-anchor", "middle")
         .text(label);
     }
-  }, [scale, orient, transform, tickFormat, timeLabels, instructions, label, labelOffset]);
+
+    // Highlight specific cycle tick if specified
+    if (highlightedCycle !== null && orient === "bottom") {
+      g.selectAll(".tick")
+        .filter((d) => String(d) === String(highlightedCycle))
+        .select("text")
+        .attr("fill", "#FFD700")
+        .attr("font-weight", "bold")
+        .attr("font-size", "14px");
+    }
+  }, [scale, orient, transform, tickFormat, timeLabels, instructions, label, labelOffset, highlightedCycle]);
 
   return <g ref={ref} transform={transform}></g>;
 };

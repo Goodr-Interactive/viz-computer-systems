@@ -230,7 +230,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
 
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
-      (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+      (instr) => instr.currentStage !== undefined && instr.currentStage >= stageConfigs.length
     );
 
     if (allInstructionsCompleted) {
@@ -242,49 +242,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
       // Increment cycle
       setCycles((prev) => prev + 1);
 
-      // Update registers based on completed instructions
-      setRegisters((prevRegisters) => {
-        const newRegisters = { ...prevRegisters };
-        
-        // Process instructions that just completed the writeback stage
-        pipelineInstructions
-          .filter(
-            (instr) => 
-              instr.currentStage === stageConfigs.length - 1 && 
-              instr.startCycle !== undefined && 
-              instr.startCycle + stageConfigs.length - 1 === cycles
-          )
-          .forEach((instr) => {
-            // Update destination registers based on instruction type
-            if (instr.name.startsWith("lw ")) {
-              // Load instruction: simulate loading from memory
-              instr.registers.dest.forEach((reg) => {
-                if (reg !== "x0") { // Can't write to x0 in RISC-V
-                  // Simulate memory operation: address + offset
-                  const srcReg = instr.registers.src[0]; // Base address register
-                  const offsetMatch = instr.name.match(/(\d+)\(([^)]+)\)/);
-                  const offset = offsetMatch ? parseInt(offsetMatch[1]) : 0;
-                  const memoryAddress = prevRegisters[srcReg] + offset;
-                  
-                  // Simple simulation: value is address / 4 (arbitrary but deterministic)
-                  newRegisters[reg] = Math.floor(memoryAddress / 4);
-                }
-              });
-            } else if (instr.name.startsWith("add ")) {
-              // Add instruction: add source registers
-              const destReg = instr.registers.dest[0];
-              if (destReg !== "x0") { // Can't write to x0
-                const [src1, src2] = instr.registers.src;
-                newRegisters[destReg] = prevRegisters[src1] + prevRegisters[src2];
-              }
-            }
-            // sw and blt don't update registers in this simple simulation
-          });
-        
-        return newRegisters;
-      });
-
-      // TODO: Fix issues with the pipeline instructions
+      
       // Update each instruction's position in the pipeline
       setPipelineInstructions((prevInstructions) => {
         if (isPipelined) {
@@ -1230,7 +1188,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
         {showLegend && <PipelineStageLegend />}
 
         {/* Register Values Display */}
-        <div className="my-2 w-full border-t border-b border-gray-200 py-4">
+        {/* <div className="my-2 w-full border-t border-b border-gray-200 py-4">
           <h3 className="mb-2 text-lg font-medium">Register Values</h3>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {Object.entries(registers).map(([reg, value]) => (
@@ -1240,7 +1198,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Controls and Instructions Container - Right side on desktop */}

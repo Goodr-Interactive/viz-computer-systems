@@ -479,6 +479,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
             );
 
             if (nextInstructionIndex !== -1) {
+              const firstStageConfig = stageConfigs[0];
               return prevInstructions.map((instr, index) => {
                 if (index === nextInstructionIndex) {
                   return { 
@@ -486,7 +487,14 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                     currentStage: 0, 
                     startCycle: cycles,
                     stageProgress: 1, // First cycle in this stage
-                    stageDuration: index === 0 && stageConfigs.length > 0 && stageConfigs[0] ? stageConfigs[0].duration : 0,
+                    stageDuration: firstStageConfig?.duration || 1,
+                    stageHistory: [{
+                      stageIndex: 0,
+                      entryCycle: cycles,
+                      duration: firstStageConfig?.duration || 1,
+                      abbreviation: firstStageConfig?.abbreviation || 'F',
+                      color: firstStageConfig?.color || '#4285F4',
+                    }],
                   };
                 }
                 return instr;
@@ -554,18 +562,26 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
                 currentStage: stageConfigs.length,
               };
 
-              // Immediately start the next instruction if available
+              // Immediately start the next instruction if available in the SAME cycle
               const nextInstructionIndex = updatedInstructions.findIndex(
                 (instr) => instr.currentStage === -1
               );
 
               if (nextInstructionIndex !== -1) {
+                const firstStageConfig = stageConfigs[0];
                 updatedInstructions[nextInstructionIndex] = {
                   ...updatedInstructions[nextInstructionIndex],
                   currentStage: 0,
-                  startCycle: cycles,
+                  startCycle: cycles, // Start in the current cycle, not the next
                   stageProgress: 1, // First cycle in this stage
-                  stageDuration: stageConfigs[0]?.duration || 1,
+                  stageDuration: firstStageConfig?.duration || 1,
+                  stageHistory: [{
+                    stageIndex: 0,
+                    entryCycle: cycles, // Entry in current cycle
+                    duration: firstStageConfig?.duration || 1,
+                    abbreviation: firstStageConfig?.abbreviation || 'F',
+                    color: firstStageConfig?.color || '#4285F4',
+                  }],
                 };
               }
             } else {

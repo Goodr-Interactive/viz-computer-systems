@@ -43,12 +43,19 @@ export interface BinaryBlockProps {
    * Optional click handler for the entire block group
    */
   onClick?: () => void;
+  /**
+   * Optional array of digits to display inside each block (monospaced)
+   * Array length should match the number of blocks
+   */
+  digits?: (string | number)[];
 }
 
 /**
  * Represents the physical memory size options in bytes
  */
 export const PhysicalMemorySize = {
+  KB_32: 32 * 1024,
+  KB_64: 64 * 1024,
   MB_128: 128 * 1024 * 1024,
   MB_256: 256 * 1024 * 1024,
   MB_512: 512 * 1024 * 1024,
@@ -63,6 +70,7 @@ export type PhysicalMemorySize = (typeof PhysicalMemorySize)[keyof typeof Physic
  * Represents the page size options in bytes
  */
 export const PageSize = {
+  B_256: 256,
   B_512: 512,
   KB_1: 1 * 1024,
   KB_2: 2 * 1024,

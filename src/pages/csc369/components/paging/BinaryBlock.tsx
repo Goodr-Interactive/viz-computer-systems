@@ -15,6 +15,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
   showBitNumbers = true,
   className,
   onClick,
+  digits,
 }) => {
   const blockArray = Array.from({ length: blocks }, (_, i) => i);
 
@@ -43,14 +44,20 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
           <div key={index}>
             <div
               className={cn(
-                "h-8 w-8 border-y border-r transition-colors",
+                "h-8 w-8 border-y border-r transition-colors flex items-center justify-center",
                 index === 0 && showLeftBorder && "border-l",
                 color,
                 borderColor,
                 hoverColor
               )}
               aria-label={`Block ${index}`}
-            />
+            >
+              {digits && digits[index] !== undefined && (
+                <span className="font-mono text-sm font-medium text-gray-800">
+                  {digits[index]}
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>

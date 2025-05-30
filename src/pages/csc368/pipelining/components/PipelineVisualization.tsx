@@ -176,7 +176,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
     const timer = setTimeout(() => {
       // Increment cycle
-      setCycles((prev) => prev + 1);
+      const nextCycles = cycles + 1;
+      setCycles(nextCycles);
 
       // Update each instruction's position in the pipeline
       setPipelineInstructions((prevInstructions) => {
@@ -185,7 +186,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             // Superscalar pipelined execution - multiple instructions can start in the same cycle
             return prevInstructions.map((instr) => {
               // If the instruction hasn't started yet
-              if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+              if (instr.startCycle !== undefined && nextCycles < instr.startCycle) {
                 return instr;
               }
 
@@ -196,7 +197,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
               // Otherwise, advance the instruction to the next stage
               const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
-              const completed = nextStage >= PIPELINE_STAGES.length;
+              const completed = nextStage > PIPELINE_STAGES.length;
               
               return {
                 ...instr,
@@ -209,7 +210,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             // Standard pipelined execution - only one instruction can start per cycle
             return prevInstructions.map((instr) => {
               // If the instruction hasn't started yet
-              if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+              if (instr.startCycle !== undefined && nextCycles < instr.startCycle) {
                 return instr;
               }
 
@@ -220,7 +221,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
               // Otherwise, advance the instruction to the next stage
               const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
-              const completed = nextStage >= PIPELINE_STAGES.length;
+              const completed = nextStage > PIPELINE_STAGES.length;
               
               return {
                 ...instr,
@@ -249,7 +250,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             if (nextInstructionIndex !== -1) {
               return prevInstructions.map((instr, index) => {
                 if (index === nextInstructionIndex) {
-                  return { ...instr, currentStage: 1, startCycle: cycles, registers: instr.registers };
+                  return { ...instr, currentStage: 1, startCycle: nextCycles, registers: instr.registers };
                 }
                 return instr;
               });
@@ -288,7 +289,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               updatedInstructions[nextInstructionIndex] = {
                 ...updatedInstructions[nextInstructionIndex],
                 currentStage: 1,
-                startCycle: cycles,
+                startCycle: nextCycles,
                 registers: updatedInstructions[nextInstructionIndex].registers,
               };
             }
@@ -313,7 +314,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     }
 
     // Manually advance one cycle
-    setCycles((prev) => prev + 1);
+    const newCycles = cycles + 1;
+    setCycles(newCycles);
 
     // Update each instruction's position in the pipeline (same logic as the useEffect)
     setPipelineInstructions((prevInstructions) => {
@@ -322,7 +324,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           // Superscalar pipelined execution - multiple instructions can start in the same cycle
           return prevInstructions.map((instr) => {
             // If the instruction hasn't started yet
-            if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+            if (instr.startCycle !== undefined && newCycles < instr.startCycle) {
               return instr;
             }
 
@@ -333,7 +335,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
             // Otherwise, advance the instruction to the next stage
             const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
-            const completed = nextStage >= PIPELINE_STAGES.length;
+            const completed = nextStage > PIPELINE_STAGES.length;
             
             return {
               ...instr,
@@ -387,7 +389,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           if (nextInstructionIndex !== -1) {
             return prevInstructions.map((instr, index) => {
               if (index === nextInstructionIndex) {
-                return { ...instr, currentStage: 1, startCycle: cycles, registers: instr.registers };
+                return { ...instr, currentStage: 1, startCycle: newCycles, registers: instr.registers };
               }
               return instr;
             });
@@ -426,7 +428,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             updatedInstructions[nextInstructionIndex] = {
               ...updatedInstructions[nextInstructionIndex],
               currentStage: 1,
-              startCycle: cycles,
+              startCycle: newCycles,
               registers: updatedInstructions[nextInstructionIndex].registers,
             };
           }

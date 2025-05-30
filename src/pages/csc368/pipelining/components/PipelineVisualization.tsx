@@ -501,7 +501,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     : (1 / PIPELINE_STAGES.length).toFixed(2);
 
   // Set up D3 scales for our chart
-  const margin = { top: 50, right: 30, bottom: 50, left: 100 };
+  const margin = { top: 50, right: 30, bottom: 80, left: 120 };
   const innerWidth = svgWidth - margin.left - margin.right;
   const innerHeight = svgHeight - margin.top - margin.bottom;
 
@@ -543,9 +543,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   };
 
   return (
-    <div className="flex w-full flex-col lg:flex-row lg:gap-6">
+    <div className="flex w-full flex-col xl:flex-row xl:gap-6">
       {/* Visualization Container - Left side on desktop */}
-      <div className="flex w-full flex-col items-center lg:w-2/3">
+      <div className="flex w-full flex-col items-center xl:w-3/4">
         <div className="mb-2 w-full flex flex-col justify-between md:flex-row md:items-center">
           <div className="flex items-center space-x-2">
             <span>Slow</span>
@@ -587,7 +587,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         <div
           ref={containerRef}
           className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
-          style={{ height: "500px" }}
+          style={{ height: "700px" }}
         >
           <svg width={svgWidth} height={svgHeight}>
             <g transform={`translate(${margin.left},${margin.top})`}>
@@ -601,7 +601,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 transform={`translate(0,${innerHeight})`} 
                 timeLabels={timeLabels}
                 label="Clock Cycle"
-                labelOffset={{ x: innerWidth / 2, y: 40 }}
+                labelOffset={{ x: innerWidth / 2, y: 65 }}
               />
               
               <Axis 
@@ -609,7 +609,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 orient="left" 
                 instructions={pipelineInstructions}
                 label="Laundry Load"
-                labelOffset={{ x: -innerHeight / 2, y: -80 }}
+                labelOffset={{ x: -innerHeight / 2, y: -90 }}
               />
               
               {/* Draw grid lines */}
@@ -691,7 +691,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       </div>
 
       {/* Controls and Instructions Container - Right side on desktop */}
-      <div className="flex w-full flex-col lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+      <div className="flex w-full flex-col xl:w-1/4 xl:sticky xl:top-4 xl:self-start">
         <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
           <div className="mb-4 flex flex-wrap gap-3">

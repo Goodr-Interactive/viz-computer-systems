@@ -169,6 +169,22 @@ export const TIMING_CONFIG = {
 };
 
 /**
+ * PERFORMANCE METRICS CONFIGURATION
+ * 
+ * Configuration for performance metrics display.
+ * 
+ * Usage:
+ * - SHOW_LOADS_PER_HOUR: Whether to display loads per hour metric
+ * - LOADS_PER_HOUR_LABEL: Custom label for the loads per hour metric
+ * - METRIC_DISPLAY_PRECISION: Number of decimal places to show
+ */
+export const PERFORMANCE_CONFIG = {
+  SHOW_LOADS_PER_HOUR: true,           // Show loads per hour metric
+  LOADS_PER_HOUR_LABEL: "Loads Per Hour", // Label for the metric
+  METRIC_DISPLAY_PRECISION: 1,         // Show 1 decimal place
+};
+
+/**
  * STAGE SCALING UTILITIES
  * 
  * Helper functions to calculate stage scaling based on stage lengths.

@@ -23,6 +23,7 @@ import {
   TIMING_CONFIG,
   LAYOUT_CONFIG,
   SUPERSCALAR_CONFIG,
+  PERFORMANCE_CONFIG,
   getStageScalingFactor,
   getStageTimingInfo
 } from "./config";
@@ -441,7 +442,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const getCurrentTimeLabel = () => {
     if (cycles === 0) return `${TIMING_CONFIG.START_TIME_HOUR}:00 AM`;
     
-    const minutes = Math.floor(cycles / 2) * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+    const minutes = cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
     const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
     const mins = minutes % 60;
     const ampm = hours >= 12 ? "PM" : "AM";
@@ -449,27 +450,27 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
   };
 
-  // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
-  const cpi =
-    pipelineInstructions.length > 0 && cycles > 0
-      ? (cycles / Math.min(cycles, pipelineInstructions.length)).toFixed(2)
-      : "0.00";
-
-  const ipc =
-    cycles > 0 ? (Math.min(cycles, pipelineInstructions.length) / cycles).toFixed(2) : "0.00";
-
-  // Calculate theoretical maximum metrics
-  const theoreticalMaxCPI = isPipelined
+  // Calculate laundry loads per hour performance metric
+  // This shows how many loads of laundry can be completed per hour
+  const completedInstructions = pipelineInstructions.filter(
+    instr => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+  ).length;
+  
+  // Convert cycles to hours and calculate loads per hour
+  const currentTimeInHours = cycles > 0 ? (cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES) / 60 : 0;
+  const loadsPerHour = currentTimeInHours > 0 
+    ? (completedInstructions / currentTimeInHours).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) 
+    : "0.0";
+  
+  // Theoretical maximum loads per hour calculation
+  // In pipelined mode: 1 load per cycle after initial fill
+  // In non-pipelined mode: 1 load per (number of stages) cycles
+  const cyclesPerHour = 60 / TIMING_CONFIG.CYCLE_DURATION_MINUTES; // How many cycles in an hour
+  const theoreticalMaxLoadsPerHour = isPipelined
     ? isSuperscalarActive
-      ? (1 / superscalarFactor).toFixed(2)
-      : "1.00"
-    : PIPELINE_STAGES.length.toFixed(2);
-
-  const theoreticalMaxIPC = isPipelined
-    ? isSuperscalarActive
-      ? superscalarFactor.toString()
-      : "1.00"
-    : (1 / PIPELINE_STAGES.length).toFixed(2);
+      ? (cyclesPerHour * superscalarFactor).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) // Multiple loads can start per cycle
+      : cyclesPerHour.toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) // One load per cycle
+    : (cyclesPerHour / PIPELINE_STAGES.length).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION); // One load every N cycles
 
   // Set up D3 scales for our chart
   const margin = LAYOUT_CONFIG.MARGINS;
@@ -542,13 +543,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             <div className="flex items-center gap-2 text-center">
               <div>
                 <h3 className="text-lg font-medium">
-                  CPI: {cpi} <span className="text-xs text-gray-500">(min: {theoreticalMaxCPI})</span>
-                </h3>
-              </div>
-              <div className="text-xl">|</div>
-              <div>
-                <h3 className="text-lg font-medium">
-                  IPC: {ipc} <span className="text-xs text-gray-500">(max: {theoreticalMaxIPC})</span>
+                  {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour} <span className="text-xs text-gray-500">(max: {theoreticalMaxLoadsPerHour})</span>
                 </h3>
               </div>
             </div>

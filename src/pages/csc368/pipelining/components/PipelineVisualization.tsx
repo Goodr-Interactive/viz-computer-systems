@@ -517,7 +517,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   ).length;
   
   // Convert cycles to hours and calculate loads per hour
-  const currentTimeInHours = cycles > 0 ? (cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES) / 60 : 0;
+  const currentTimeInHours = cycles > 0 ? (cycles/2 * TIMING_CONFIG.CYCLE_DURATION_MINUTES) / 60 : 0;
   const loadsPerHour = currentTimeInHours > 0 
     ? (completedInstructions / currentTimeInHours).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) 
     : "0.0";
@@ -561,10 +561,21 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     stageName: string,
     timeLabel: string
   ) => {
+    // Get the SVG element to calculate proper coordinates
+    const svgElement = containerRef.current?.querySelector('svg');
+    if (!svgElement) return;
+    
+    // Get SVG bounding rect for coordinate conversion
+    const svgRect = svgElement.getBoundingClientRect();
+    
+    // Convert mouse position to SVG coordinates
+    const svgX = event.clientX - svgRect.left - margin.left;
+    const svgY = event.clientY - svgRect.top - margin.top;
+    
     setTooltip({
       visible: true,
-      x: event.nativeEvent.offsetX,
-      y: event.nativeEvent.offsetY,
+      x: svgX,
+      y: svgY,
       instructionName: instruction.name,
       stageName,
       timeLabel,
@@ -604,7 +615,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             <div className="flex items-center gap-2 text-center">
               <div>
                 <h3 className="text-lg font-medium">
-                  {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour} <span className="text-xs text-gray-500">(max: {theoreticalMaxLoadsPerHour})</span>
+                  {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour} <span className="text-xs text-gray-500"></span>
                 </h3>
               </div>
             </div>
@@ -711,6 +722,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                   instructionName={tooltip.instructionName}
                   stageName={tooltip.stageName}
                   timeLabel={tooltip.timeLabel}
+                  svgWidth={svgWidth}
+                  svgHeight={svgHeight}
+                  margin={margin}
                 />
               )}
             </g>

@@ -647,7 +647,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   ).length;
   
   // Convert cycles to hours and calculate loads per hour
-  const currentTimeInHours = cycles > 0 ? (cycles/2 * TIMING_CONFIG.CYCLE_DURATION_MINUTES) / 60 : 0;
+  const currentTimeInHours = cycles > 0 ? (cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES) / 60 : 0;
   const loadsPerHour = currentTimeInHours > 0 
     ? (completedInstructions / currentTimeInHours).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) 
     : "0.0";

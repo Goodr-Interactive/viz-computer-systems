@@ -22,7 +22,7 @@ import {
   LAYOUT_CONFIG,
   PERFORMANCE_CONFIG,
   getStageScalingFactor,
-  getStageTimingInfo, 
+  getStageTimingInfo,
   FEATURE_FLAGS,
 } from "./config";
 
@@ -45,7 +45,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isPipelined, setIsPipelined] = useState<boolean>(FEATURE_FLAGS.IS_PIPELINED_MODE);
-  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(FEATURE_FLAGS.IS_SUPERSCALAR_MODE);
+  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(
+    FEATURE_FLAGS.IS_SUPERSCALAR_MODE
+  );
   const [superscalarFactor] = useState<number>(FEATURE_FLAGS.DEFAULT_SUPERSCALAR_WIDTH);
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
@@ -195,7 +197,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               // Otherwise, advance the instruction to the next stage
               const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
               const completed = nextStage > PIPELINE_STAGES.length;
-              
+
               return {
                 ...instr,
                 currentStage: completed ? PIPELINE_STAGES.length : nextStage,
@@ -219,7 +221,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               // Otherwise, advance the instruction to the next stage
               const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
               const completed = nextStage > PIPELINE_STAGES.length;
-              
+
               return {
                 ...instr,
                 currentStage: completed ? PIPELINE_STAGES.length : nextStage,
@@ -247,7 +249,12 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             if (nextInstructionIndex !== -1) {
               return prevInstructions.map((instr, index) => {
                 if (index === nextInstructionIndex) {
-                  return { ...instr, currentStage: 1, startCycle: nextCycles, registers: instr.registers };
+                  return {
+                    ...instr,
+                    currentStage: 1,
+                    startCycle: nextCycles,
+                    registers: instr.registers,
+                  };
                 }
                 return instr;
               });
@@ -333,7 +340,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             // Otherwise, advance the instruction to the next stage
             const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
             const completed = nextStage > PIPELINE_STAGES.length;
-            
+
             return {
               ...instr,
               currentStage: completed ? PIPELINE_STAGES.length : nextStage,
@@ -357,7 +364,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             // Otherwise, advance the instruction to the next stage
             const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
             const completed = nextStage >= PIPELINE_STAGES.length;
-            
+
             return {
               ...instr,
               currentStage: completed ? PIPELINE_STAGES.length : nextStage,
@@ -386,7 +393,12 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           if (nextInstructionIndex !== -1) {
             return prevInstructions.map((instr, index) => {
               if (index === nextInstructionIndex) {
-                return { ...instr, currentStage: 1, startCycle: newCycles, registers: instr.registers };
+                return {
+                  ...instr,
+                  currentStage: 1,
+                  startCycle: newCycles,
+                  registers: instr.registers,
+                };
               }
               return instr;
             });
@@ -560,14 +572,14 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   // Calculate the maximum cycle needed to show all instruction stages
   const getMaxCycleNeeded = () => {
     if (pipelineInstructions.length === 0) return Math.max(0, cycles);
-    
+
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
       (instr) => instr.isCompleted === true
     );
-    
+
     let maxCycle = 0;
-    
+
     pipelineInstructions.forEach((instr) => {
       if (instr.startCycle !== undefined) {
         // Calculate when this instruction will complete all stages
@@ -575,17 +587,17 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         maxCycle = Math.max(maxCycle, completionCycle);
       }
     });
-    
+
     // If all instructions are completed, don't show any extra cycles
     if (allInstructionsCompleted) {
       return maxCycle;
     }
-    
+
     // If simulation is running, show current cycle + small buffer for next operations
     if (isRunning) {
       return Math.max(maxCycle, cycles + 1);
     }
-    
+
     // If simulation is paused but not complete, show up to current cycle
     return Math.max(maxCycle, cycles);
   };
@@ -598,19 +610,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
       const mins = minutes % 60;
       const ampm = hours >= 12 ? "PM" : "AM";
-      const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+      const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
       return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
     });
   };
 
   const getCurrentTimeLabel = () => {
     if (cycles === -1) return `Not Started`;
-    
+
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
       (instr) => instr.isCompleted === true
     );
-    
+
     // If all instructions are completed, show time based on actual completion
     // rather than the current cycle counter which might be higher
     if (allInstructionsCompleted && pipelineInstructions.length > 0) {
@@ -627,31 +639,34 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
       const mins = minutes % 60;
       const ampm = hours >= 12 ? "PM" : "AM";
-      const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+      const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
       return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
     }
-    
+
     // Otherwise, use current cycle
     const minutes = cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
     const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
     const mins = minutes % 60;
     const ampm = hours >= 12 ? "PM" : "AM";
-    const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+    const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
     return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
   };
 
   // Calculate laundry loads per hour performance metric
   // This shows how many loads of laundry can be completed per hour
   const completedInstructions = pipelineInstructions.filter(
-    instr => instr.isCompleted === true
+    (instr) => instr.isCompleted === true
   ).length;
-  
+
   // Convert cycles to hours and calculate loads per hour
   const currentTimeInHours = cycles > 0 ? (cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES) / 60 : 0;
-  const loadsPerHour = currentTimeInHours > 0 
-    ? (completedInstructions / currentTimeInHours).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) 
-    : "0.0";
-  
+  const loadsPerHour =
+    currentTimeInHours > 0
+      ? (completedInstructions / currentTimeInHours).toFixed(
+          PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION
+        )
+      : "0.0";
+
   // Set up D3 scales for our chart
   const margin = LAYOUT_CONFIG.MARGINS;
   const innerWidth = svgWidth - margin.left - margin.right;
@@ -682,16 +697,16 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     timeLabel: string
   ) => {
     // Get the SVG element to calculate proper coordinates
-    const svgElement = containerRef.current?.querySelector('svg');
+    const svgElement = containerRef.current?.querySelector("svg");
     if (!svgElement) return;
-    
+
     // Get SVG bounding rect for coordinate conversion
     const svgRect = svgElement.getBoundingClientRect();
-    
+
     // Convert mouse position to SVG coordinates
     const svgX = event.clientX - svgRect.left - margin.left;
     const svgY = event.clientY - svgRect.top - margin.top;
-    
+
     setTooltip({
       visible: true,
       x: svgX,
@@ -710,7 +725,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     <div className="flex w-full flex-col xl:flex-row xl:gap-6">
       {/* Visualization Container - Left side on desktop */}
       <div className="flex w-full flex-col items-center xl:w-3/4">
-        <div className="mb-2 w-full flex flex-col justify-between md:flex-row md:items-center">
+        <div className="mb-2 flex w-full flex-col justify-between md:flex-row md:items-center">
           <div className="flex items-center gap-4">
             <div className="text-center">
               <h3 className="text-lg font-medium">
@@ -722,7 +737,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             <div className="flex items-center gap-2 text-center">
               <div>
                 <h3 className="text-lg font-medium">
-                  {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour} <span className="text-xs text-gray-500"></span>
+                  {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour}{" "}
+                  <span className="text-xs text-gray-500"></span>
                 </h3>
               </div>
             </div>
@@ -738,57 +754,57 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             <g transform={`translate(${margin.left},${margin.top})`}>
               {/* Define patterns for stage icons */}
               <StagePatterns stageImages={STAGE_IMAGES} />
-              
+
               {/* Draw X and Y axes */}
-              <Axis 
-                scale={xScale} 
-                orient="bottom" 
-                transform={`translate(0,${innerHeight})`} 
+              <Axis
+                scale={xScale}
+                orient="bottom"
+                transform={`translate(0,${innerHeight})`}
                 timeLabels={timeLabels}
                 label="Clock Cycle"
                 labelOffset={{ x: innerWidth / 2, y: 65 }}
               />
-              
-              <Axis 
-                scale={yScale} 
-                orient="left" 
+
+              <Axis
+                scale={yScale}
+                orient="left"
                 instructions={pipelineInstructions}
                 label="Laundry Load"
                 labelOffset={{ x: -innerHeight / 2, y: -90 }}
               />
-              
+
               {/* Draw grid lines */}
-              <Grid 
-                scale={xScale} 
-                ticks={d3.range(0, maxCycle + 1)} 
-                orientation="vertical" 
-                length={innerHeight} 
+              <Grid
+                scale={xScale}
+                ticks={d3.range(0, maxCycle + 1)}
+                orientation="vertical"
+                length={innerHeight}
               />
-              
-              <Grid 
-                scale={yScale} 
-                ticks={pipelineInstructions.map(instr => instr.id.toString())} 
-                orientation="horizontal" 
-                length={innerWidth} 
+
+              <Grid
+                scale={yScale}
+                ticks={pipelineInstructions.map((instr) => instr.id.toString())}
+                orientation="horizontal"
+                length={innerWidth}
               />
-              
+
               {/* Current cycle indicator line if feature flag is on */}
               {FEATURE_FLAGS.SHOW_CYCLES_INDICATOR && cycles >= 0 && (
                 <line
-                  x1={xScale(String(cycles-1))! + xScale.bandwidth()}
+                  x1={xScale(String(cycles - 1))! + xScale.bandwidth()}
                   y1={0}
-                  x2={xScale(String(cycles-1))! + xScale.bandwidth()}
+                  x2={xScale(String(cycles - 1))! + xScale.bandwidth()}
                   y2={innerHeight}
                   stroke="#FF6B35"
                   strokeWidth={3}
                   strokeDasharray="5,5"
                   opacity={0.8}
                   style={{
-                    filter: 'drop-shadow(0px 0px 3px rgba(255, 107, 53, 0.3))'
+                    filter: "drop-shadow(0px 0px 3px rgba(255, 107, 53, 0.3))",
                   }}
                 />
               )}
-              
+
               {/* Draw pipeline stages for each instruction */}
               {pipelineInstructions.map((instr) => {
                 if (
@@ -800,19 +816,22 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 }
 
                 // Render all stages this instruction has gone through
-                return Array.from({ length: Math.min(instr.currentStage, PIPELINE_STAGES.length - 1) + 1 }).map((_, stageIndex) => {
+                return Array.from({
+                  length: Math.min(instr.currentStage, PIPELINE_STAGES.length - 1) + 1,
+                }).map((_, stageIndex) => {
                   const cycle = (instr.startCycle || 0) + stageIndex;
                   if (cycle > cycles) return null;
 
                   const stageName = PIPELINE_STAGES[stageIndex];
-                  
+
                   // For superscalar badge, check if there are multiple instructions in this cycle
-                  const parallelInstructions = isSuperscalarActive && stageIndex === 0
-                    ? pipelineInstructions.filter(i => i.startCycle === instr.startCycle)
-                    : [];
-                  
-                  const isFirstInGroup = parallelInstructions.length > 0 && 
-                    instr.id === parallelInstructions[0].id;
+                  const parallelInstructions =
+                    isSuperscalarActive && stageIndex === 0
+                      ? pipelineInstructions.filter((i) => i.startCycle === instr.startCycle)
+                      : [];
+
+                  const isFirstInGroup =
+                    parallelInstructions.length > 0 && instr.id === parallelInstructions[0].id;
 
                   return (
                     <PipelineStage
@@ -837,7 +856,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                   );
                 });
               })}
-              
+
               {/* Tooltip */}
               {tooltip.visible && (
                 <PipelineTooltip
@@ -857,15 +876,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       </div>
 
       {/* Controls and Instructions Container - Right side on desktop */}
-      <div className="flex w-full flex-col xl:w-1/4 xl:sticky xl:top-4 xl:self-start">
+      <div className="flex w-full flex-col xl:sticky xl:top-4 xl:w-1/4 xl:self-start">
         <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
           <div className="mb-4 flex flex-wrap gap-3">
             <button
               onClick={handleStepForward}
-              disabled={pipelineInstructions.every(
-                (instr) => instr.isCompleted === true
-              )}
+              disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
               className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
               title="Step Forward One Cycle"
             >
@@ -873,13 +890,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             </button>
             <button
               onClick={() => setIsRunning(!isRunning)}
-              disabled={pipelineInstructions.every(
-                (instr) => instr.isCompleted === true
-              )}
+              disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
               className={`flex items-center justify-center rounded px-4 py-2 text-white disabled:opacity-50 ${
-                isRunning 
-                  ? "bg-orange-500 hover:bg-orange-600" 
-                  : "bg-blue-500 hover:bg-blue-600"
+                isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-blue-500 hover:bg-blue-600"
               }`}
               title={isRunning ? "Pause Auto Run" : "Run Automatically"}
             >
@@ -893,11 +906,11 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               <img src={resetSvg} alt="Reset" className="h-6 w-6" />
             </button>
             <span className="ml-2 self-center text-sm">
-              {pipelineInstructions.every(
-                (instr) => instr.isCompleted === true
-              )
+              {pipelineInstructions.every((instr) => instr.isCompleted === true)
                 ? "All Complete"
-                : isRunning ? "Running..." : "Ready"}
+                : isRunning
+                  ? "Running..."
+                  : "Ready"}
             </span>
           </div>
 
@@ -913,61 +926,55 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                     onChange={togglePipelineMode}
                     className="peer sr-only"
                   />
-                <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                <span className="ml-3 text-sm font-medium">
-                  {isPipelined ? "Pipelined Mode" : "Pipelined Mode"}
-                </span>
-              </label>
-
-              {/* Superscalar toggle, only available in pipelined mode */}
-              {isPipelined && (
-                <label className="inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    checked={isSuperscalarActive}
-                    onChange={() => {
-                      setIsSuperscalarActive(!isSuperscalarActive);
-                      handleReset();
-                    }}
-                    className="peer sr-only"
-                  />
-                  <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                  <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                   <span className="ml-3 text-sm font-medium">
-                    {isSuperscalarActive ? (
-                      <span className="flex items-center gap-2">
-                        Superscalar Mode ({superscalarFactor}-way)
-                        <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                          {superscalarFactor}x
-                        </span>
-                      </span>
-                    ) : (
-                      "Superscalar Mode"
-                    )}
+                    {isPipelined ? "Pipelined Mode" : "Pipelined Mode"}
                   </span>
                 </label>
-              )}
+
+                {/* Superscalar toggle, only available in pipelined mode */}
+                {isPipelined && (
+                  <label className="inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={isSuperscalarActive}
+                      onChange={() => {
+                        setIsSuperscalarActive(!isSuperscalarActive);
+                        handleReset();
+                      }}
+                      className="peer sr-only"
+                    />
+                    <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                    <span className="ml-3 text-sm font-medium">
+                      {isSuperscalarActive ? (
+                        <span className="flex items-center gap-2">
+                          Superscalar Mode ({superscalarFactor}-way)
+                          <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                            {superscalarFactor}x
+                          </span>
+                        </span>
+                      ) : (
+                        "Superscalar Mode"
+                      )}
+                    </span>
+                  </label>
+                )}
+              </div>
             </div>
-          </div>
           )}
 
-          
           {/* Visual Symbols Legend */}
           <div className="mb-4">
             <h3 className="mb-2 font-semibold">Visual Elements Legend</h3>
             <div className="space-y-3 text-sm">
-              
               {/* Stage Icons Section */}
               <div>
-                <div className="font-medium mb-2">Pipeline Stages:</div>
+                <div className="mb-2 font-medium">Pipeline Stages:</div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                   {PIPELINE_STAGES.map((stageName, index) => (
-                    <div key={index} className="flex items-center space-x-2 p-2 rounded bg-gray-50">
+                    <div key={index} className="flex items-center space-x-2 rounded bg-gray-50 p-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white">
-                        <img 
-                          src={STAGE_IMAGES[index]} 
-                          alt={stageName} 
-                          className="h-6 w-6"
-                        />
+                        <img src={STAGE_IMAGES[index]} alt={stageName} className="h-6 w-6" />
                       </div>
                       <span className="text-xs">{stageName}</span>
                       <span className="text-xs">{stageTimingInfo.stageLengths[index]} mins</span>
@@ -977,7 +984,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               </div>
             </div>
           </div>
-          
+
           {/* Instruction Management UI */}
           <div className="mb-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -1029,7 +1036,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             <div className="max-h-40 overflow-y-auto rounded border border-gray-200">
               <ul className="divide-y divide-gray-200">
                 {pipelineInstructions.map((instr) => (
-                  <li key={instr.id} className="flex items-center justify-between py-2 px-3">
+                  <li key={instr.id} className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-center">
                       <div
                         className="mr-2 h-4 w-4 rounded-full"

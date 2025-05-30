@@ -53,7 +53,7 @@ export const Axis: React.FC<AxisProps> = ({
 
     if (orient === "bottom") {
       // Adjust tick position to align with the left edge of each band
-      g.selectAll(".tick").attr("transform", function() {
+      g.selectAll(".tick").attr("transform", function () {
         const tickValue = d3.select(this).datum();
         return `translate(${scale(String(tickValue))},0)`;
       });
@@ -87,7 +87,17 @@ export const Axis: React.FC<AxisProps> = ({
         .attr("font-weight", "bold")
         .attr("font-size", "14px");
     }
-  }, [scale, orient, transform, tickFormat, timeLabels, instructions, label, labelOffset, highlightedCycle]);
+  }, [
+    scale,
+    orient,
+    transform,
+    tickFormat,
+    timeLabels,
+    instructions,
+    label,
+    labelOffset,
+    highlightedCycle,
+  ]);
 
   return <g ref={ref} transform={transform}></g>;
 };

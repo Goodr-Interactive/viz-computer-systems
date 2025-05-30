@@ -6,14 +6,19 @@ interface PipelineStageProps {
   stage: number;
   stageName: string;
   cycle: number;
-  cycleLength?: number; 
+  cycleLength?: number;
   xPos: number;
   yPos: number;
   width: number;
   height: number;
   timeLabel: string;
   stageImage: string;
-  onMouseEnter: (event: React.MouseEvent, instruction: Instruction, stageName: string, timeLabel: string) => void;
+  onMouseEnter: (
+    event: React.MouseEvent,
+    instruction: Instruction,
+    stageName: string,
+    timeLabel: string
+  ) => void;
   onMouseLeave: () => void;
   isSuperscalarActive?: boolean;
   parallelInstructions?: Instruction[];
@@ -128,21 +133,23 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
           >
             {abbreviation}
           </text>
-          
+
           {/* Show progress indicator for multi-cycle stages */}
-          {instruction.stageDuration && instruction.stageDuration > 1 && instruction.stageProgress && (
-            <text
-              x={width / 2}
-              y={height / 2 + 10}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill={color || instruction.color}
-              fontSize="12px"
-              fontWeight="bold"
-            >
-              {`${instruction.stageProgress}/${instruction.stageDuration || '?'}`}
-            </text>
-          )}
+          {instruction.stageDuration &&
+            instruction.stageDuration > 1 &&
+            instruction.stageProgress && (
+              <text
+                x={width / 2}
+                y={height / 2 + 10}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill={color || instruction.color}
+                fontSize="12px"
+                fontWeight="bold"
+              >
+                {`${instruction.stageProgress}/${instruction.stageDuration || "?"}`}
+              </text>
+            )}
         </g>
       ) : null}
 

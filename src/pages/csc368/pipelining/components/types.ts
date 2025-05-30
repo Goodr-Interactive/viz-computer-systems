@@ -23,4 +23,3 @@ export interface Instruction {
   };
   stageHistory?: StageHistoryEntry[]; // Added to track all stages entered
 }
-

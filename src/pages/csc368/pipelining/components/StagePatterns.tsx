@@ -16,12 +16,7 @@ export const StagePatterns: React.FC<StagePatternProps> = ({ stageImages }) => {
           height={1}
           patternContentUnits="objectBoundingBox"
         >
-          <image
-            href={image}
-            width={1}
-            height={1}
-            preserveAspectRatio="xMidYMid meet"
-          />
+          <image href={image} width={1} height={1} preserveAspectRatio="xMidYMid meet" />
         </pattern>
       ))}
     </defs>

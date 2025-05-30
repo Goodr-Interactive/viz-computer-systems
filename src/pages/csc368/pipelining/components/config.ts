@@ -23,7 +23,7 @@ export const FEATURE_FLAGS = {
   IS_PIPELINED_MODE: true, 
 
   // Enable/disable superscalar mode by default. Requires IS_PIPELINED_MODE to be true.
-  IS_SUPERSCALAR_ENABLED: false, 
+  IS_SUPERSCALAR_MODE: false, 
 
   // Default superscalar width
   DEFAULT_SUPERSCALAR_WIDTH: 3,

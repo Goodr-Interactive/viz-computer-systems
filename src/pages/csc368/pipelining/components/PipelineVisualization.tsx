@@ -45,7 +45,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isPipelined, setIsPipelined] = useState<boolean>(FEATURE_FLAGS.IS_PIPELINED_MODE);
-  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(FEATURE_FLAGS.IS_SUPERSCALAR_ENABLED);
+  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(FEATURE_FLAGS.IS_SUPERSCALAR_MODE);
   const [superscalarFactor] = useState<number>(FEATURE_FLAGS.DEFAULT_SUPERSCALAR_WIDTH);
   const [tooltip, setTooltip] = useState<{
     visible: boolean;

@@ -17,9 +17,6 @@ export const Pipelining: React.FunctionComponent = () => {
         <Button asChild variant="outline">
           <a href="/csc368">Back to CSC368</a>
         </Button>
-        <Button asChild variant="outline" disabled>
-          <a href="/csc368/pipelining/registers">Next Visualization CPU Instructions with Pipelines</a>
-        </Button>
       </div>
     </div>
   );

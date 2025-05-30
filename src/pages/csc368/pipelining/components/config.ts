@@ -16,6 +16,26 @@ import closetSvg from "@/assets/closet.svg";
 import type { Instruction } from "./types";
 
 /**
+ * FEATURE FLAGS CONFIGURATION
+ */
+export const FEATURE_FLAGS = {
+  // Enable/disable pipelined mode by defaults
+  IS_PIPELINED_MODE: true, 
+
+  // Enable/disable superscalar mode by default. Requires IS_PIPELINED_MODE to be true.
+  IS_SUPERSCALAR_ENABLED: false, 
+
+  // Default superscalar width
+  DEFAULT_SUPERSCALAR_WIDTH: 3,
+
+  // Enable/disable ability to change modes in the UI
+  SHOW_MODE_SELECTION: true, 
+
+  // Enable/disable current cycle indicator
+  SHOW_CYCLES_INDICATOR: false, 
+}
+
+/**
  * PIPELINE STAGES CONFIGURATION
  * 
  * These define the stages of the pipeline that instructions go through.
@@ -51,12 +71,12 @@ export const PIPELINE_STAGES = [
  * Example: If Wash takes 100ns and Dry takes 50ns, Wash gets full width,
  * Dry gets half width, and the clock period is 100ns.
  */
-export const STAGE_LENGTHS = [
-  5,   // Sort: 25 minutes
-  30,  // Wash: 20 minutes (longest - determines clock period)
-  30,   // Dry: 80 minutes
-  5,   // Fold: 40 minutes
-  5    // Put Away: 30 minutes
+export const STAGE_LENGTHS = [ // at least one should be 30 mins for viz to work/make sense
+  5,   // Sort: 5 minutes
+  30,  // Wash: 30 minutes (longest - determines clock period)
+  30,   // Dry: 30 minutes
+  15,   // Fold total minutes
+  5    // Put Away: 5 minutes
 ];
 
 /**
@@ -78,50 +98,7 @@ export const STAGE_IMAGES = [
   closetSvg         // Icon for "Put Away" stage
 ];
 
-/**
- * DEFAULT INSTRUCTIONS CONFIGURATION
- * 
- * These are the initial instructions that appear when the visualization loads.
- * Each instruction represents a "load" of laundry that goes through the pipeline.
- * 
- * Usage:
- * - Add/remove instructions by modifying this array
- * - Each instruction needs: id (unique number), name (display text), color (hex), registers (empty for laundry sim)
- * - Colors should be hex codes for consistent styling
- * - IDs should be sequential starting from 1
- */
-export const DEFAULT_INSTRUCTIONS: Instruction[] = [
-  { 
-    id: 1, 
-    name: "Load 1 (shirts)", 
-    color: "#4285F4",  // Google Blue
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 2, 
-    name: "Load 2 (pants)", 
-    color: "#EA4335",  // Google Red
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 3, 
-    name: "Load 3 (socks)", 
-    color: "#FBBC05",  // Google Yellow
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 4, 
-    name: "Load 4 (sheets)", 
-    color: "#34A853",  // Google Green
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 5, 
-    name: "Load 5 (jackets)", 
-    color: "#8F44AD",  // Purple
-    registers: { src: [], dest: [] } 
-  },
-];
+
 
 /**
  * AVAILABLE COLORS CONFIGURATION
@@ -151,6 +128,85 @@ export const AVAILABLE_COLORS = [
   "#2196F3", // Blue
   "#FF9800", // Orange
 ];
+
+/**
+ * DEFAULT INSTRUCTIONS CONFIGURATION
+ * 
+ * These are the initial instructions that appear when the visualization loads.
+ * Each instruction represents a "load" of laundry that goes through the pipeline.
+ * 
+ * Usage:
+ * - Add/remove instructions by modifying this array
+ * - Each instruction needs: id (unique number), name (display text), color (hex), registers (empty for laundry sim)
+ * - Colors should be hex codes for consistent styling
+ * - IDs should be sequential starting from 1
+ */
+export const DEFAULT_INSTRUCTIONS: Instruction[] = [
+  { 
+    id: 1, 
+    name: "Shirts", 
+    color: AVAILABLE_COLORS[0],  // Google Blue
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 2, 
+    name: "Pants", 
+    color: AVAILABLE_COLORS[1],  // Google Red
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 3, 
+    name: "Socks", 
+    color: AVAILABLE_COLORS[2],  // Google Yellow
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 4, 
+    name: "Sheets", 
+    color: AVAILABLE_COLORS[3],  // Google Green
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 5, 
+    name: "Jackets", 
+    color: AVAILABLE_COLORS[4],  // Purple
+    registers: { src: [], dest: [] } 
+  },
+  // loads for showing additional features (uncomment to use)
+  /** 
+  {
+    id: 6, 
+    name: "Friend's Socks", 
+    color: AVAILABLE_COLORS[5],  // Google Yellow
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 7, 
+    name: "Friend's Pants", 
+    color: AVAILABLE_COLORS[6],  // Google Green
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 8, 
+    name: "Friend's Socks", 
+    color: AVAILABLE_COLORS[7],  // Google Yellow
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 9, 
+    name: "Friend's Sheets", 
+    color: AVAILABLE_COLORS[8],  // Google Green
+    registers: { src: [], dest: [] } 
+  },
+  { 
+    id: 10, 
+    name: "Friend's Jackets", 
+    color: AVAILABLE_COLORS[9],  // Purple
+    registers: { src: [], dest: [] } 
+  },
+  */
+];
+
 
 /**
  * TIMING CONFIGURATION
@@ -258,18 +314,4 @@ export const LAYOUT_CONFIG = {
     cycles: 0.02,            // Padding between cycle columns
     instructions: 0.1        // Padding between instruction rows
   }
-};
-
-/**
- * SUPERSCALAR CONFIGURATION
- * 
- * Configuration for superscalar pipeline features.
- * 
- * Usage:
- * - DEFAULT_SUPERSCALAR_WIDTH: How many instructions can start per cycle in superscalar mode
- * - IS_SUPERSCALAR_ENABLED: Whether superscalar mode is available
- */
-export const SUPERSCALAR_CONFIG = {
-  DEFAULT_SUPERSCALAR_WIDTH: 2,
-  IS_SUPERSCALAR_ENABLED: true
 };

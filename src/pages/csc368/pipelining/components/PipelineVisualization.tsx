@@ -20,26 +20,23 @@ import {
   AVAILABLE_COLORS,
   TIMING_CONFIG,
   LAYOUT_CONFIG,
-  SUPERSCALAR_CONFIG,
   PERFORMANCE_CONFIG,
   getStageScalingFactor,
-  getStageTimingInfo
+  getStageTimingInfo, 
+  FEATURE_FLAGS,
 } from "./config";
 
 interface PipelineVisualizationProps {
   width?: number;
   height?: number;
   instructions?: Instruction[];
-  isSuperscalar?: boolean;
   superscalarWidth?: number;
 }
 
 export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   width,
   height,
-  instructions = DEFAULT_INSTRUCTIONS,
-  isSuperscalar = false,
-  superscalarWidth = 2,
+  instructions = DEFAULT_INSTRUCTIONS, // show only a subset of default instructions
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
@@ -47,9 +44,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [cycles, setCycles] = useState<number>(-1);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [isPipelined, setIsPipelined] = useState<boolean>(true);
-  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar);
-  const [superscalarFactor] = useState<number>(superscalarWidth || SUPERSCALAR_CONFIG.DEFAULT_SUPERSCALAR_WIDTH);
+  const [isPipelined, setIsPipelined] = useState<boolean>(FEATURE_FLAGS.IS_PIPELINED_MODE);
+  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(FEATURE_FLAGS.IS_SUPERSCALAR_ENABLED);
+  const [superscalarFactor] = useState<number>(FEATURE_FLAGS.DEFAULT_SUPERSCALAR_WIDTH);
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -775,6 +772,23 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 length={innerWidth} 
               />
               
+              {/* Current cycle indicator line if feature flag is on */}
+              {FEATURE_FLAGS.SHOW_CYCLES_INDICATOR && cycles >= 0 && (
+                <line
+                  x1={xScale(String(cycles-1))! + xScale.bandwidth()}
+                  y1={0}
+                  x2={xScale(String(cycles-1))! + xScale.bandwidth()}
+                  y2={innerHeight}
+                  stroke="#FF6B35"
+                  strokeWidth={3}
+                  strokeDasharray="5,5"
+                  opacity={0.8}
+                  style={{
+                    filter: 'drop-shadow(0px 0px 3px rgba(255, 107, 53, 0.3))'
+                  }}
+                />
+              )}
+              
               {/* Draw pipeline stages for each instruction */}
               {pipelineInstructions.map((instr) => {
                 if (
@@ -887,16 +901,18 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             </span>
           </div>
 
-          <div className="mb-4">
-            <h3 className="mb-2 font-semibold">Mode Selection</h3>
-            <div className="space-y-3">
-              <label className="inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  checked={isPipelined}
-                  onChange={togglePipelineMode}
-                  className="peer sr-only"
-                />
+          {/* Mode Selection */}
+          {FEATURE_FLAGS.SHOW_MODE_SELECTION && (
+            <div className="mb-4">
+              <h3 className="mb-2 font-semibold">Mode Selection</h3>
+              <div className="space-y-3">
+                <label className="inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={isPipelined}
+                    onChange={togglePipelineMode}
+                    className="peer sr-only"
+                  />
                 <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                 <span className="ml-3 text-sm font-medium">
                   {isPipelined ? "Pipelined Mode" : "Pipelined Mode"}
@@ -932,29 +948,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               )}
             </div>
           </div>
-          
-          {/* <div className="mb-4">
-            <h3 className="mb-2 font-semibold">Stage Timing</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="font-medium">Clock Period:</span>
-                <span>{stageTimingInfo.clockPeriod} time units</span>
-              </div>
-              <div className="space-y-1">
-                <div className="font-medium">Stage Durations:</div>
-                {PIPELINE_STAGES.map((stageName, index) => {
-                  const length = stageTimingInfo.stageLengths[index];
-                  const scalingFactor = stageTimingInfo.stageScalingFactors[index];
-                  return (
-                    <div key={index} className="flex justify-between text-xs pl-2">
-                      <span>{stageName}:</span>
-                      <span>{length} units ({(scalingFactor * 100).toFixed(0)}%)</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div> */}
+          )}
+
           
           {/* Visual Symbols Legend */}
           <div className="mb-4">

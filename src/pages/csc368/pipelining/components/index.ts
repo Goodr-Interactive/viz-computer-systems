@@ -1,5 +1,4 @@
 export * from "./PipelineVisualization";
-export * from "./RegisterPipelineVisualization";
 export * from "./types";
 export * from "./PipelineStage";
 export * from "./PipelineTooltip";

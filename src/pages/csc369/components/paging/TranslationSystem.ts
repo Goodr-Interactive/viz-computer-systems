@@ -55,7 +55,7 @@ export class TranslationSystem {
   private readonly physicalMemorySize: PhysicalMemorySize;
   private readonly pageSize: PageSize;
   private readonly pageTableLevels: PageTableLevel[];
-  
+
   // Calculated values
   private readonly offsetBits: number;
   private readonly pfnBits: number;
@@ -70,13 +70,13 @@ export class TranslationSystem {
     this.physicalMemorySize = physicalMemorySize;
     this.pageSize = pageSize;
     this.pageTableLevels = pageTableLevels;
-    
+
     // Calculate derived values
     this.offsetBits = Math.log2(pageSize);
     this.totalPages = physicalMemorySize / pageSize;
     this.pfnBits = Math.log2(this.totalPages);
     this.maxPfn = this.totalPages - 1;
-    
+
     // Validate configuration
     this.validateConfiguration();
   }
@@ -88,19 +88,21 @@ export class TranslationSystem {
     if (!Number.isInteger(this.offsetBits)) {
       throw new Error("Page size must be a power of 2");
     }
-    
+
     if (!Number.isInteger(this.pfnBits)) {
       throw new Error("Physical memory size must result in a power-of-2 number of pages");
     }
-    
+
     if (this.pageTableLevels.length === 0) {
       throw new Error("At least one page table level must be specified");
     }
-    
+
     // Check that each level has reasonable index bits
     for (const level of this.pageTableLevels) {
       if (level.indexBits < 2 || level.indexBits > 20) {
-        throw new Error(`Page table level index bits must be between 2 and 20, got ${level.indexBits}`);
+        throw new Error(
+          `Page table level index bits must be between 2 and 20, got ${level.indexBits}`
+        );
       }
     }
   }
@@ -113,7 +115,7 @@ export class TranslationSystem {
       // If range is too small, just use the middle
       return Math.floor((min + max) / 2);
     }
-    
+
     // Use range from min+3 to max-3 to avoid extremes
     const safeMin = min + 3;
     const safeMax = max - 3;
@@ -126,34 +128,34 @@ export class TranslationSystem {
   public generateTranslation(): TranslationValues {
     // Generate PDBR (reasonable PFN value) - will be updated later
     // let pdbr = this.generateReasonableValue(0, this.maxPfn);
-    
+
     // Generate virtual address indices
     const virtualIndices: number[] = [];
     for (const level of this.pageTableLevels) {
       const maxIndex = Math.pow(2, level.indexBits) - 1;
       virtualIndices.push(this.generateReasonableValue(0, maxIndex));
     }
-    
+
     // Generate page offset
     const maxOffset = this.pageSize - 1;
     const pageOffset = this.generateReasonableValue(0, maxOffset);
-    
+
     // Generate final PFN
     const finalPfn = this.generateReasonableValue(0, this.maxPfn);
-    
+
     // Generate page tables for each level
     const pageTables: PageTable[] = [];
     for (let levelIndex = 0; levelIndex < this.pageTableLevels.length; levelIndex++) {
       const level = this.pageTableLevels[levelIndex];
       const numEntries = Math.pow(2, level.indexBits);
       const entries: PageTableEntry[] = [];
-      
+
       // Generate the PFN for this page table itself
       const tablePfn = this.generateReasonableValue(0, this.maxPfn);
-      
+
       for (let entryIndex = 0; entryIndex < numEntries; entryIndex++) {
         const isValidPath = entryIndex === virtualIndices[levelIndex];
-        
+
         let pfn: number;
         if (isValidPath) {
           // This is the path our translation follows
@@ -162,36 +164,38 @@ export class TranslationSystem {
             pfn = finalPfn;
           } else {
             // Points to the next level page table
-            pfn = pageTables.length < this.pageTableLevels.length - 1 
-              ? this.generateReasonableValue(0, this.maxPfn) 
-              : this.generateReasonableValue(0, this.maxPfn);
+            pfn =
+              pageTables.length < this.pageTableLevels.length - 1
+                ? this.generateReasonableValue(0, this.maxPfn)
+                : this.generateReasonableValue(0, this.maxPfn);
           }
         } else {
           // Random PFN for non-path entries
           pfn = this.generateReasonableValue(0, this.maxPfn);
         }
-        
+
         entries.push({
           pfn,
-          valid: isValidPath ? true : Math.random() < 0.7 // 70% chance of being valid for non-path entries
+          valid: isValidPath ? true : Math.random() < 0.7, // 70% chance of being valid for non-path entries
         });
       }
-      
+
       pageTables.push({
         entries,
-        tablePfn
+        tablePfn,
       });
     }
-    
+
     // Ensure PDBR points to the first page table's PFN
-    const pdbr = pageTables.length > 0 ? pageTables[0].tablePfn : this.generateReasonableValue(0, this.maxPfn);
+    const pdbr =
+      pageTables.length > 0 ? pageTables[0].tablePfn : this.generateReasonableValue(0, this.maxPfn);
 
     // Update page table PFNs to point to each other correctly
     for (let i = 0; i < pageTables.length - 1; i++) {
       const currentLevelIndex = virtualIndices[i];
       pageTables[i].entries[currentLevelIndex].pfn = pageTables[i + 1].tablePfn;
     }
-    
+
     // Now update non-path entries with simple random PFNs or mark invalid
     for (let levelIndex = 0; levelIndex < pageTables.length; levelIndex++) {
       for (let entryIndex = 0; entryIndex < pageTables[levelIndex].entries.length; entryIndex++) {
@@ -199,33 +203,40 @@ export class TranslationSystem {
         if (!isValidPath) {
           // For filler entries, just use any reasonable PFN - collisions are fine
           // If we want some variety, occasionally make them invalid
-          if (Math.random() < 0.2) { // 20% chance to be invalid
+          if (Math.random() < 0.2) {
+            // 20% chance to be invalid
             pageTables[levelIndex].entries[entryIndex].valid = false;
-            pageTables[levelIndex].entries[entryIndex].pfn = this.generateReasonableValue(0, this.maxPfn);
+            pageTables[levelIndex].entries[entryIndex].pfn = this.generateReasonableValue(
+              0,
+              this.maxPfn
+            );
           } else {
             // 80% chance to be valid with any reasonable PFN (collisions allowed)
-            pageTables[levelIndex].entries[entryIndex].pfn = this.generateReasonableValue(0, this.maxPfn);
+            pageTables[levelIndex].entries[entryIndex].pfn = this.generateReasonableValue(
+              0,
+              this.maxPfn
+            );
           }
         }
       }
     }
-    
+
     // Construct virtual address
     let virtualAddress = pageOffset;
     for (let i = this.pageTableLevels.length - 1; i >= 0; i--) {
-      virtualAddress |= (virtualIndices[i] << (this.offsetBits + this.getTotalIndexBitsAfter(i)));
+      virtualAddress |= virtualIndices[i] << (this.offsetBits + this.getTotalIndexBitsAfter(i));
     }
-    
+
     // Construct physical address
     const physicalAddress = (finalPfn << this.offsetBits) | pageOffset;
-    
+
     return {
       pdbr,
       pageTables,
       finalPfn,
       virtualIndices,
       virtualAddress,
-      physicalAddress
+      physicalAddress,
     };
   }
 
@@ -246,7 +257,7 @@ export class TranslationSystem {
   public static toBinary(value: number, minBits?: number): string {
     let binary = value.toString(2);
     if (minBits && binary.length < minBits) {
-      binary = '0'.repeat(minBits - binary.length) + binary;
+      binary = "0".repeat(minBits - binary.length) + binary;
     }
     return binary;
   }
@@ -257,9 +268,9 @@ export class TranslationSystem {
   public static toHex(value: number, minDigits?: number): string {
     let hex = value.toString(16).toUpperCase();
     if (minDigits && hex.length < minDigits) {
-      hex = '0'.repeat(minDigits - hex.length) + hex;
+      hex = "0".repeat(minDigits - hex.length) + hex;
     }
-    return '0x' + hex;
+    return "0x" + hex;
   }
 
   /**
@@ -269,7 +280,7 @@ export class TranslationSystem {
     const remainder = binary.length % 8;
     if (remainder !== 0) {
       const padding = 8 - remainder;
-      return '0'.repeat(padding) + binary;
+      return "0".repeat(padding) + binary;
     }
     return binary;
   }
@@ -288,15 +299,15 @@ export class TranslationSystem {
    * Gets the virtual address breakdown for display
    */
   public getVirtualAddressBreakdown(translation: TranslationValues): {
-    indices: { bits: string; value: number; label: string }[];
+    indices: Array<{ bits: string; value: number; label: string }>;
     offset: { bits: string; value: number };
   } {
     const virtualBinary = TranslationSystem.toBinary(translation.virtualAddress);
     const paddedBinary = TranslationSystem.padToNearestByte(virtualBinary);
-    
-    const indices: { bits: string; value: number; label: string }[] = [];
+
+    const indices: Array<{ bits: string; value: number; label: string }> = [];
     let currentBit = this.offsetBits;
-    
+
     // Process levels from right to left (reverse order)
     for (let i = this.pageTableLevels.length - 1; i >= 0; i--) {
       const level = this.pageTableLevels[i];
@@ -304,17 +315,17 @@ export class TranslationSystem {
       indices.unshift({
         bits,
         value: translation.virtualIndices[i],
-        label: level.label
+        label: level.label,
       });
       currentBit += level.indexBits;
     }
-    
+
     const offsetBits = TranslationSystem.extractBits(paddedBinary, 0, this.offsetBits);
     const offsetValue = translation.virtualAddress & ((1 << this.offsetBits) - 1);
-    
+
     return {
       indices,
-      offset: { bits: offsetBits, value: offsetValue }
+      offset: { bits: offsetBits, value: offsetValue },
     };
   }
 
@@ -329,21 +340,25 @@ export class TranslationSystem {
       pfnBits: this.pfnBits,
       totalPages: this.totalPages,
       maxPfn: this.maxPfn,
-      pageTableLevels: this.pageTableLevels
+      pageTableLevels: this.pageTableLevels,
     };
   }
 
   /**
    * Gets a subset of page table entries for display (7 entries including the correct index)
    */
-  public getDisplayEntries(pageTable: PageTable, correctIndex: number, maxEntries: number = 7): {
-    entries: { entry: PageTableEntry; index: number; isCorrect: boolean }[];
+  public getDisplayEntries(
+    pageTable: PageTable,
+    correctIndex: number,
+    maxEntries = 7
+  ): {
+    entries: Array<{ entry: PageTableEntry; index: number; isCorrect: boolean }>;
     startIndex: number;
     endIndex: number;
   } {
     const totalEntries = pageTable.entries.length;
     const entriesToShow = Math.min(maxEntries, totalEntries);
-    
+
     // If we can show all entries, just show them all
     if (entriesToShow >= totalEntries) {
       const displayEntries = [];
@@ -351,37 +366,38 @@ export class TranslationSystem {
         displayEntries.push({
           entry: pageTable.entries[i],
           index: i,
-          isCorrect: i === correctIndex
+          isCorrect: i === correctIndex,
         });
       }
       return {
         entries: displayEntries,
         startIndex: 0,
-        endIndex: totalEntries - 1
+        endIndex: totalEntries - 1,
       };
     }
-    
+
     // Calculate the range where we can start while still including the correct index
     const minStartIndex = Math.max(0, correctIndex - entriesToShow + 1);
     const maxStartIndex = Math.min(correctIndex, totalEntries - entriesToShow);
-    
+
     // Randomly choose a start index within the valid range
-    const startIndex = minStartIndex + Math.floor(Math.random() * (maxStartIndex - minStartIndex + 1));
+    const startIndex =
+      minStartIndex + Math.floor(Math.random() * (maxStartIndex - minStartIndex + 1));
     const endIndex = startIndex + entriesToShow - 1;
-    
+
     const displayEntries = [];
     for (let i = startIndex; i <= endIndex; i++) {
       displayEntries.push({
         entry: pageTable.entries[i],
         index: i,
-        isCorrect: i === correctIndex
+        isCorrect: i === correctIndex,
       });
     }
-    
+
     return {
       entries: displayEntries,
       startIndex,
-      endIndex
+      endIndex,
     };
   }
-} 
+}

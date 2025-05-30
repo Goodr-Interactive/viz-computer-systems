@@ -2,10 +2,8 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { AnimatedBinaryBlock } from "./components/paging/ui/AnimatedBinaryBlock";
 import { PagingSystem } from "./components/paging/PagingSystem";
-import { PhysicalMemorySize, PageSize, VirtualAddressBits } from "./components/paging/types";
-import {
-  PageTableLevelColors,
-} from "./components/paging/constants";
+import type { PhysicalMemorySize, PageSize, VirtualAddressBits } from "./components/paging/types";
+import { PageTableLevelColors } from "./components/paging/constants";
 import { instructorConfig } from "./components/paging/config";
 import {
   Select,
@@ -22,9 +20,13 @@ import { SubsectionHeading } from "./components/paging/ui/SubsectionHeading";
 
 export const SimplePaging: React.FunctionComponent = () => {
   // Set default values from instructor config
-  const [physicalMemory, setPhysicalMemory] = useState<PhysicalMemorySize>(instructorConfig.defaults.physicalMemory);
+  const [physicalMemory, setPhysicalMemory] = useState<PhysicalMemorySize>(
+    instructorConfig.defaults.physicalMemory
+  );
   const [pageSize, setPageSize] = useState<PageSize>(instructorConfig.defaults.pageSize);
-  const [virtualBits, setVirtualBits] = useState<VirtualAddressBits>(instructorConfig.defaults.virtualBits);
+  const [virtualBits, setVirtualBits] = useState<VirtualAddressBits>(
+    instructorConfig.defaults.virtualBits
+  );
   const [pagingSystem, setPagingSystem] = useState<PagingSystem>(
     new PagingSystem(physicalMemory, pageSize, virtualBits)
   );
@@ -59,9 +61,13 @@ export const SimplePaging: React.FunctionComponent = () => {
       {/* Configuration Section */}
       <section className="w-full max-w-6xl">
         <SectionHeading>Paging System Visualization</SectionHeading>
-        
+
         <p className="text-muted-foreground mb-6">
-          This visualization demonstrates hierarchical paging in a 32-bit byte-addressable system with 32-bit page table entries, where each page table is constrained to fit within a single physical frame. Adjust the three parameters below to observe how changes in physical memory size, page size, and virtual address bits affect the address structure, page table hierarchy, and system calculations.
+          This visualization demonstrates hierarchical paging in a 32-bit byte-addressable system
+          with 32-bit page table entries, where each page table is constrained to fit within a
+          single physical frame. Adjust the three parameters below to observe how changes in
+          physical memory size, page size, and virtual address bits affect the address structure,
+          page table hierarchy, and system calculations.
         </p>
 
         <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3">
@@ -140,7 +146,7 @@ export const SimplePaging: React.FunctionComponent = () => {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`virtual-${virtualBits}-${pageSize}-${physicalMemory}`}
-                    className="pr-4 flex flex-wrap items-center justify-end gap-2"
+                    className="flex flex-wrap items-center justify-end gap-2 pr-4"
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       {summary.bitsPerLevel.map((bits, index) => {
@@ -213,7 +219,7 @@ export const SimplePaging: React.FunctionComponent = () => {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`physical-${virtualBits}-${pageSize}-${physicalMemory}`}
-                  className="pr-4 flex flex-wrap items-center justify-end gap-2"
+                  className="flex flex-wrap items-center justify-end gap-2 pr-4"
                 >
                   {unusedBits > 0 && (
                     <AnimatedBinaryBlock
@@ -292,7 +298,7 @@ export const SimplePaging: React.FunctionComponent = () => {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`pte-${virtualBits}-${pageSize}-${physicalMemory}`}
-                  className="pr-4 flex flex-wrap items-center justify-end gap-2"
+                  className="flex flex-wrap items-center justify-end gap-2 pr-4"
                 >
                   {/* Modified bit */}
                   <AnimatedBinaryBlock

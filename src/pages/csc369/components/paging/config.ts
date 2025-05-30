@@ -2,7 +2,7 @@ import { PhysicalMemorySize, PageSize, VirtualAddressBits } from "./types";
 
 /**
  * INSTRUCTOR CONFIGURATION
- * 
+ *
  * This file allows you to customize which options appear in the dropdown menus.
  * Simply comment out or remove any options you don't want to show to students.
  * You can also add new options by defining new values in the types.ts file first.
@@ -54,7 +54,7 @@ export const instructorConfig = {
 
 /**
  * QUICK PRESETS FOR COMMON SCENARIOS
- * 
+ *
  * Uncomment one of these sections to quickly configure for specific lessons:
  */
 
@@ -113,4 +113,4 @@ export const instructorConfig = {
 //     pageSize: PageSize.KB_4,
 //     virtualBits: VirtualAddressBits.BITS_30,
 //   },
-// }; 
+// };

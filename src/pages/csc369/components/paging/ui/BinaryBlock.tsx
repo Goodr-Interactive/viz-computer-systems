@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { BinaryBlockProps } from "./types";
+import type { BinaryBlockProps } from "../types";
 
 export const BinaryBlock: React.FC<BinaryBlockProps> = ({
   blocks,
@@ -44,7 +44,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
           <div key={index}>
             <div
               className={cn(
-                "h-8 w-8 border-y border-r transition-colors flex items-center justify-center",
+                "flex h-8 w-8 items-center justify-center border-y border-r transition-colors",
                 index === 0 && showLeftBorder && "border-l",
                 color,
                 borderColor,
@@ -53,9 +53,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
               aria-label={`Block ${index}`}
             >
               {digits && digits[index] !== undefined && (
-                <span className="font-mono text-sm font-medium text-gray-800">
-                  {digits[index]}
-                </span>
+                <span className="font-mono text-sm font-medium text-gray-800">{digits[index]}</span>
               )}
             </div>
           </div>

@@ -47,7 +47,7 @@ export interface BinaryBlockProps {
    * Optional array of digits to display inside each block (monospaced)
    * Array length should match the number of blocks
    */
-  digits?: (string | number)[];
+  digits?: Array<string | number>;
 }
 
 /**

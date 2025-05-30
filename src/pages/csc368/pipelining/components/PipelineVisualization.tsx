@@ -427,14 +427,48 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     setCycles(0);
   };
 
+  // Calculate the maximum cycle needed to show all instruction stages
+  const getMaxCycleNeeded = () => {
+    if (pipelineInstructions.length === 0) return Math.max(0, cycles);
+    
+    // Check if all instructions are completed
+    const allInstructionsCompleted = pipelineInstructions.every(
+      (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+    );
+    
+    let maxCycle = 0;
+    
+    pipelineInstructions.forEach((instr) => {
+      if (instr.startCycle !== undefined) {
+        // Calculate when this instruction will complete all stages
+        const completionCycle = instr.startCycle + PIPELINE_STAGES.length - 1;
+        maxCycle = Math.max(maxCycle, completionCycle);
+      }
+    });
+    
+    // If all instructions are completed, don't show any extra cycles
+    if (allInstructionsCompleted) {
+      return maxCycle;
+    }
+    
+    // If simulation is running, show current cycle + small buffer for next operations
+    if (isRunning) {
+      return Math.max(maxCycle, cycles + 1);
+    }
+    
+    // If simulation is paused but not complete, show up to current cycle
+    return Math.max(maxCycle, cycles);
+  };
+
   // Convert clock cycles to actual times (starting from config)
   const getTimeLabels = () => {
-    return d3.range(0, cycles + 5).map((cycle) => {
+    const maxCycle = getMaxCycleNeeded();
+    return d3.range(0, maxCycle + 1).map((cycle) => {
       const minutes = cycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
       const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
       const mins = minutes % 60;
       const ampm = hours >= 12 ? "PM" : "AM";
-      const hour12 = hours > 12 ? hours - 12 : hours;
+      const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
       return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
     });
   };
@@ -442,11 +476,37 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const getCurrentTimeLabel = () => {
     if (cycles === 0) return `${TIMING_CONFIG.START_TIME_HOUR}:00 AM`;
     
+    // Check if all instructions are completed
+    const allInstructionsCompleted = pipelineInstructions.every(
+      (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+    );
+    
+    // If all instructions are completed, show time based on actual completion
+    // rather than the current cycle counter which might be higher
+    if (allInstructionsCompleted && pipelineInstructions.length > 0) {
+      let maxCompletionCycle = 0;
+      pipelineInstructions.forEach((instr) => {
+        if (instr.startCycle !== undefined) {
+          const completionCycle = instr.startCycle + PIPELINE_STAGES.length - 1;
+          maxCompletionCycle = Math.max(maxCompletionCycle, completionCycle);
+        }
+      });
+      // Use the actual completion cycle + 1 for final time display
+      const finalCycle = maxCompletionCycle + 1;
+      const minutes = finalCycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+      const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
+      const mins = minutes % 60;
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+    }
+    
+    // Otherwise, use current cycle
     const minutes = cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
     const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
     const mins = minutes % 60;
     const ampm = hours >= 12 ? "PM" : "AM";
-    const hour12 = hours > 12 ? hours - 12 : hours;
+    const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
     return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
   };
 
@@ -478,9 +538,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const innerHeight = svgHeight - margin.top - margin.bottom;
 
   // X scale for cycles
+  const maxCycle = getMaxCycleNeeded();
   const xScale = d3
     .scaleBand()
-    .domain(d3.range(0, cycles + 5).map(String))
+    .domain(d3.range(0, maxCycle + 1).map(String))
     .range([0, innerWidth])
     .padding(LAYOUT_CONFIG.BAND_PADDING.cycles);
 
@@ -581,7 +642,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               {/* Draw grid lines */}
               <Grid 
                 scale={xScale} 
-                ticks={d3.range(0, cycles + 5)} 
+                ticks={d3.range(0, maxCycle + 1)} 
                 orientation="vertical" 
                 length={innerHeight} 
               />
@@ -707,7 +768,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 />
                 <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                 <span className="ml-3 text-sm font-medium">
-                  {isPipelined ? "Pipelined Mode" : "Non-pipelined Mode"}
+                  {isPipelined ? "Pipelined Mode" : "Pipelined Mode"}
                 </span>
               </label>
 

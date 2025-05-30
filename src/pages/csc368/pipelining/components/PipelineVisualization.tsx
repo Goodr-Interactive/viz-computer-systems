@@ -22,7 +22,9 @@ import {
   AVAILABLE_COLORS,
   TIMING_CONFIG,
   LAYOUT_CONFIG,
-  SUPERSCALAR_CONFIG
+  SUPERSCALAR_CONFIG,
+  getStageScalingFactor,
+  getStageTimingInfo
 } from "./config";
 
 interface PipelineVisualizationProps {
@@ -69,6 +71,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
+
+  // Get stage timing information for display
+  const stageTimingInfo = getStageTimingInfo();
 
   // Set initial dimensions based on container size
   useEffect(() => {
@@ -625,6 +630,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                       stage={stageIndex}
                       stageName={stageName}
                       cycle={cycle}
+                      cycleLength={getStageScalingFactor(stageIndex)}
                       xPos={xScale(String(cycle))!}
                       yPos={yScale(instr.id.toString())!}
                       width={xScale.bandwidth()}
@@ -737,6 +743,56 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                   </span>
                 </label>
               )}
+            </div>
+          </div>
+          
+          {/* <div className="mb-4">
+            <h3 className="mb-2 font-semibold">Stage Timing</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="font-medium">Clock Period:</span>
+                <span>{stageTimingInfo.clockPeriod} time units</span>
+              </div>
+              <div className="space-y-1">
+                <div className="font-medium">Stage Durations:</div>
+                {PIPELINE_STAGES.map((stageName, index) => {
+                  const length = stageTimingInfo.stageLengths[index];
+                  const scalingFactor = stageTimingInfo.stageScalingFactors[index];
+                  return (
+                    <div key={index} className="flex justify-between text-xs pl-2">
+                      <span>{stageName}:</span>
+                      <span>{length} units ({(scalingFactor * 100).toFixed(0)}%)</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div> */}
+          
+          {/* Visual Symbols Legend */}
+          <div className="mb-4">
+            <h3 className="mb-2 font-semibold">Visual Elements Legend</h3>
+            <div className="space-y-3 text-sm">
+              
+              {/* Stage Icons Section */}
+              <div>
+                <div className="font-medium mb-2">Pipeline Stages:</div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  {PIPELINE_STAGES.map((stageName, index) => (
+                    <div key={index} className="flex items-center space-x-2 p-2 rounded bg-gray-50">
+                      <div className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white">
+                        <img 
+                          src={STAGE_IMAGES[index]} 
+                          alt={stageName} 
+                          className="h-6 w-6"
+                        />
+                      </div>
+                      <span className="text-xs">{stageName}</span>
+                      <span className="text-xs">{stageTimingInfo.stageLengths[index]} mins</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
           

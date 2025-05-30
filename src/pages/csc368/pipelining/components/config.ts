@@ -25,6 +25,7 @@ import type { Instruction } from "./types";
  * - Add/remove stages by modifying this array
  * - Each stage name will appear as a column header in the visualization
  * - Make sure STAGE_IMAGES array has corresponding icons for each stage
+ * - Make sure STAGE_LENGTHS array has corresponding durations for each stage
  */
 export const PIPELINE_STAGES = [
   "Sort",      // Stage 0: Initial sorting/preparation
@@ -32,6 +33,30 @@ export const PIPELINE_STAGES = [
   "Dry",       // Stage 2: Drying process
   "Fold",      // Stage 3: Folding/organizing
   "Put Away"   // Stage 4: Final storage
+];
+
+/**
+ * STAGE LENGTHS CONFIGURATION
+ * 
+ * Defines the relative duration of each pipeline stage.
+ * The longest stage determines the clock period (worst-case timing).
+ * All other stages scale proportionally in the visualization.
+ * 
+ * Usage:
+ * - Values represent relative time units (e.g., nanoseconds, cycles, etc.)
+ * - The array length must match PIPELINE_STAGES length
+ * - The largest value becomes 1.0 (full cycle width) in the visualization
+ * - Smaller values scale proportionally (e.g., 0.5 = half cycle width)
+ * 
+ * Example: If Wash takes 100ns and Dry takes 50ns, Wash gets full width,
+ * Dry gets half width, and the clock period is 100ns.
+ */
+export const STAGE_LENGTHS = [
+  60,   // Sort: 60 minutes
+  100,  // Wash: 100 minutes (longest - determines clock period)
+  80,   // Dry: 80 minutes
+  40,   // Fold: 40 minutes
+  30    // Put Away: 30 minutes
 ];
 
 /**
@@ -141,6 +166,56 @@ export const TIMING_CONFIG = {
   CYCLE_DURATION_MINUTES: 30,  // Each cycle = 30 minutes of real time
   START_TIME_HOUR: 9,          // Start at 9:00 AM
   DEFAULT_SPEED_MS: 1000,      // 1 second between cycles by default
+};
+
+/**
+ * STAGE SCALING UTILITIES
+ * 
+ * Helper functions to calculate stage scaling based on stage lengths.
+ */
+
+/**
+ * Get the maximum stage length (determines clock period)
+ */
+export const getMaxStageLength = (): number => {
+  return Math.max(...STAGE_LENGTHS);
+};
+
+/**
+ * Get the scaling factor for a specific stage (0.0 to 1.0)
+ * @param stageIndex - Index of the stage in PIPELINE_STAGES
+ * @returns Scaling factor where 1.0 = full cycle width
+ */
+export const getStageScalingFactor = (stageIndex: number): number => {
+  if (stageIndex < 0 || stageIndex >= STAGE_LENGTHS.length) {
+    return 1.0; // Default to full width for invalid indices
+  }
+  return STAGE_LENGTHS[stageIndex] / getMaxStageLength();
+};
+
+/**
+ * Get all stage scaling factors
+ * @returns Array of scaling factors (0.0 to 1.0) for each stage
+ */
+export const getAllStageScalingFactors = (): number[] => {
+  const maxLength = getMaxStageLength();
+  return STAGE_LENGTHS.map(length => length / maxLength);
+};
+
+/**
+ * Get stage length information for display
+ * @returns Object with max length, lengths array, and scaling factors
+ */
+export const getStageTimingInfo = () => {
+  const maxLength = getMaxStageLength();
+  const scalingFactors = getAllStageScalingFactors();
+  
+  return {
+    maxStageLength: maxLength,
+    stageLengths: [...STAGE_LENGTHS],
+    stageScalingFactors: scalingFactors,
+    clockPeriod: maxLength, // Clock period is determined by longest stage
+  };
 };
 
 /**

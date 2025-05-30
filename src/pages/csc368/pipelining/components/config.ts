@@ -52,11 +52,11 @@ export const PIPELINE_STAGES = [
  * Dry gets half width, and the clock period is 100ns.
  */
 export const STAGE_LENGTHS = [
-  60,   // Sort: 60 minutes
-  100,  // Wash: 100 minutes (longest - determines clock period)
-  80,   // Dry: 80 minutes
-  40,   // Fold: 40 minutes
-  30    // Put Away: 30 minutes
+  5,   // Sort: 25 minutes
+  30,  // Wash: 20 minutes (longest - determines clock period)
+  30,   // Dry: 80 minutes
+  5,   // Fold: 40 minutes
+  5    // Put Away: 30 minutes
 ];
 
 /**

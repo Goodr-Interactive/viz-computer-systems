@@ -16,6 +16,7 @@ export interface Instruction {
   stageProgress?: number; // Tracks how many cycles completed in current stage
   stageDuration?: number; // Tracks the total cycles required for the current stage
   stallReason?: string; // Explains why the instruction is stalled
+  isCompleted?: boolean; // Flag to indicate if instruction has completed all stages
   registers: {
     src: string[];
     dest: string[];

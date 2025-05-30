@@ -2,8 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 // Import SVG assets for controls
-import playSvg from "@/assets/play.svg";
-import pauseSvg from "@/assets/pause.svg";
 import resetSvg from "@/assets/reset.svg";
 
 // Import React components
@@ -46,10 +44,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
   const [svgHeight, setSvgHeight] = useState<number>(height || 800);
-  const [cycles, setCycles] = useState<number>(0);
+  const [cycles, setCycles] = useState<number>(-1);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [speed, setSpeed] = useState<number>(TIMING_CONFIG.DEFAULT_SPEED_MS); // milliseconds between cycles
   const [isPipelined, setIsPipelined] = useState<boolean>(true);
   const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar);
   const [superscalarFactor] = useState<number>(superscalarWidth || SUPERSCALAR_CONFIG.DEFAULT_SUPERSCALAR_WIDTH);
@@ -131,18 +128,20 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             // For superscalar: Start two instructions per cycle
             return {
               ...instr,
-              currentStage: -1, // Not yet in pipeline
+              currentStage: 0, // Not yet in pipeline (1-based: stages 1-5)
               startCycle: Math.floor(index / superscalarFactor), // Start multiple instructions per cycle
               stalled: false,
+              isCompleted: false, // New completion flag
               registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
             };
           } else {
             // Standard pipeline: One instruction per cycle
             return {
               ...instr,
-              currentStage: -1, // Not yet in pipeline
+              currentStage: 0, // Not yet in pipeline (1-based: stages 1-5)
               startCycle: index, // Start one cycle after the previous instruction
               stalled: false,
+              isCompleted: false, // New completion flag
               registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
             };
           }
@@ -150,9 +149,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           // Non-pipelined mode
           return {
             ...instr,
-            currentStage: -1, // Not yet in pipeline
+            currentStage: 0, // Not yet in pipeline (1-based: stages 1-5)
             startCycle: undefined, // Will be set when the instruction starts
             stalled: false,
+            isCompleted: false, // New completion flag
             registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
           };
         }
@@ -160,13 +160,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     );
   }, [instructions, isPipelined, isSuperscalarActive, superscalarFactor]);
 
-  // Simulation logic
+  // Simulation logic (autoplay mode on)
   useEffect(() => {
     if (!isRunning) return;
 
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
-      (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+      (instr) => instr.isCompleted === true
     );
 
     if (allInstructionsCompleted) {
@@ -190,17 +190,18 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               }
 
               // If the instruction has already completed all stages
-              if (
-                instr.currentStage !== undefined &&
-                instr.currentStage >= PIPELINE_STAGES.length
-              ) {
+              if (instr.isCompleted) {
                 return instr;
               }
 
               // Otherwise, advance the instruction to the next stage
+              const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+              const completed = nextStage >= PIPELINE_STAGES.length;
+              
               return {
                 ...instr,
-                currentStage: instr.currentStage !== undefined ? instr.currentStage + 1 : 0,
+                currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+                isCompleted: completed,
                 registers: instr.registers,
               };
             });
@@ -213,17 +214,18 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
               }
 
               // If the instruction has already completed all stages
-              if (
-                instr.currentStage !== undefined &&
-                instr.currentStage >= PIPELINE_STAGES.length
-              ) {
+              if (instr.isCompleted) {
                 return instr;
               }
 
               // Otherwise, advance the instruction to the next stage
+              const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+              const completed = nextStage >= PIPELINE_STAGES.length;
+              
               return {
                 ...instr,
-                currentStage: instr.currentStage !== undefined ? instr.currentStage + 1 : 0,
+                currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+                isCompleted: completed,
                 registers: instr.registers,
               };
             });
@@ -233,20 +235,21 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           const activeInstructionIndex = prevInstructions.findIndex(
             (instr) =>
               instr.currentStage !== undefined &&
-              instr.currentStage >= 0 &&
-              instr.currentStage < PIPELINE_STAGES.length
+              instr.currentStage >= 1 &&
+              instr.currentStage <= PIPELINE_STAGES.length &&
+              !instr.isCompleted
           );
 
           if (activeInstructionIndex === -1) {
             // No active instruction, try to start the next one
             const nextInstructionIndex = prevInstructions.findIndex(
-              (instr) => instr.currentStage === -1
+              (instr) => instr.currentStage === 0 && !instr.isCompleted
             );
 
             if (nextInstructionIndex !== -1) {
               return prevInstructions.map((instr, index) => {
                 if (index === nextInstructionIndex) {
-                  return { ...instr, currentStage: 0, startCycle: cycles, registers: instr.registers };
+                  return { ...instr, currentStage: 1, startCycle: cycles, registers: instr.registers };
                 }
                 return instr;
               });
@@ -259,7 +262,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
           if (
             updatedInstructions[activeInstructionIndex].currentStage !== undefined &&
-            updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length - 1
+            updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length
           ) {
             // Simply advance this instruction to the next stage
             updatedInstructions[activeInstructionIndex] = {
@@ -272,18 +275,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             updatedInstructions[activeInstructionIndex] = {
               ...updatedInstructions[activeInstructionIndex],
               currentStage: PIPELINE_STAGES.length,
+              isCompleted: true,
               registers: updatedInstructions[activeInstructionIndex].registers,
             };
 
             // Immediately start the next instruction if available
             const nextInstructionIndex = updatedInstructions.findIndex(
-              (instr) => instr.currentStage === -1
+              (instr) => instr.currentStage === 0 && !instr.isCompleted
             );
 
             if (nextInstructionIndex !== -1) {
               updatedInstructions[nextInstructionIndex] = {
                 ...updatedInstructions[nextInstructionIndex],
-                currentStage: 0,
+                currentStage: 1,
                 startCycle: cycles,
                 registers: updatedInstructions[nextInstructionIndex].registers,
               };
@@ -293,57 +297,183 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           return updatedInstructions;
         }
       });
-    }, speed);
+    }, 1000); // Fixed delay of 1 second for automatic mode
 
     return () => clearTimeout(timer);
-  }, [isRunning, cycles, speed, isPipelined, isSuperscalarActive]);
+  }, [isRunning, cycles, isPipelined, isSuperscalarActive]);
 
-  const handleStart = () => {
-    setIsRunning(true);
-  };
+  const handleStepForward = () => {
+    // Check if all instructions are completed
+    const allInstructionsCompleted = pipelineInstructions.every(
+      (instr) => instr.isCompleted === true
+    );
 
-  const handlePause = () => {
-    setIsRunning(false);
+    if (allInstructionsCompleted) {
+      return; // Don't step if all instructions are completed
+    }
+
+    // Manually advance one cycle
+    setCycles((prev) => prev + 1);
+
+    // Update each instruction's position in the pipeline (same logic as the useEffect)
+    setPipelineInstructions((prevInstructions) => {
+      if (isPipelined) {
+        if (isSuperscalarActive) {
+          // Superscalar pipelined execution - multiple instructions can start in the same cycle
+          return prevInstructions.map((instr) => {
+            // If the instruction hasn't started yet
+            if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+              return instr;
+            }
+
+            // If the instruction has already completed all stages
+            if (instr.isCompleted) {
+              return instr;
+            }
+
+            // Otherwise, advance the instruction to the next stage
+            const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+            const completed = nextStage >= PIPELINE_STAGES.length;
+            
+            return {
+              ...instr,
+              currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+              isCompleted: completed,
+              registers: instr.registers,
+            };
+          });
+        } else {
+          // Standard pipelined execution - only one instruction can start per cycle
+          return prevInstructions.map((instr) => {
+            // If the instruction hasn't started yet
+            if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+              return instr;
+            }
+
+            // If the instruction has already completed all stages
+            if (instr.isCompleted) {
+              return instr;
+            }
+
+            // Otherwise, advance the instruction to the next stage
+            const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+            const completed = nextStage >= PIPELINE_STAGES.length;
+            
+            return {
+              ...instr,
+              currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+              isCompleted: completed,
+              registers: instr.registers,
+            };
+          });
+        }
+      } // if not pipelined
+      else {
+        // Non-pipelined execution - only one instruction can be active at a time
+        const activeInstructionIndex = prevInstructions.findIndex(
+          (instr) =>
+            instr.currentStage !== undefined &&
+            instr.currentStage >= 1 &&
+            instr.currentStage <= PIPELINE_STAGES.length &&
+            !instr.isCompleted
+        );
+
+        if (activeInstructionIndex === -1) {
+          // No active instruction, try to start the next one
+          const nextInstructionIndex = prevInstructions.findIndex(
+            (instr) => instr.currentStage === 0 && !instr.isCompleted
+          );
+
+          if (nextInstructionIndex !== -1) {
+            return prevInstructions.map((instr, index) => {
+              if (index === nextInstructionIndex) {
+                return { ...instr, currentStage: 1, startCycle: cycles, registers: instr.registers };
+              }
+              return instr;
+            });
+          }
+          return prevInstructions; // All done
+        }
+
+        // Advance the active instruction
+        let updatedInstructions = [...prevInstructions];
+
+        if (
+          updatedInstructions[activeInstructionIndex].currentStage !== undefined &&
+          updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length
+        ) {
+          // Simply advance this instruction to the next stage
+          updatedInstructions[activeInstructionIndex] = {
+            ...updatedInstructions[activeInstructionIndex],
+            currentStage: updatedInstructions[activeInstructionIndex].currentStage! + 1,
+            registers: updatedInstructions[activeInstructionIndex].registers,
+          };
+        } else {
+          // This instruction is done, mark it as completed
+          updatedInstructions[activeInstructionIndex] = {
+            ...updatedInstructions[activeInstructionIndex],
+            currentStage: PIPELINE_STAGES.length,
+            isCompleted: true,
+            registers: updatedInstructions[activeInstructionIndex].registers,
+          };
+
+          // Immediately start the next instruction if available
+          const nextInstructionIndex = updatedInstructions.findIndex(
+            (instr) => instr.currentStage === 0 && !instr.isCompleted
+          );
+
+          if (nextInstructionIndex !== -1) {
+            updatedInstructions[nextInstructionIndex] = {
+              ...updatedInstructions[nextInstructionIndex],
+              currentStage: 1,
+              startCycle: cycles,
+              registers: updatedInstructions[nextInstructionIndex].registers,
+            };
+          }
+        }
+
+        return updatedInstructions;
+      }
+    });
   };
 
   const handleReset = () => {
     setIsRunning(false);
-    setCycles(0);
+    setCycles(-1);
     setPipelineInstructions(
       instructions.map((instr, index) => {
         if (isPipelined) {
           if (isSuperscalarActive) {
             return {
               ...instr,
-              currentStage: -1,
+              currentStage: 0,
               startCycle: Math.floor(index / superscalarFactor),
               stalled: false,
+              isCompleted: false,
               registers: instr.registers,
             };
           } else {
             return {
               ...instr,
-              currentStage: -1,
+              currentStage: 0,
               startCycle: index,
               stalled: false,
+              isCompleted: false,
               registers: instr.registers,
             };
           }
         } else {
           return {
             ...instr,
-            currentStage: -1,
+            currentStage: 0,
             startCycle: undefined,
             stalled: false,
+            isCompleted: false,
             registers: instr.registers,
           };
         }
       })
     );
-  };
-
-  const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSpeed(2000 - parseInt(e.target.value, 10));
   };
 
   const togglePipelineMode = () => {
@@ -382,9 +512,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       id: newInstructionId,
       name: newInstructionName.trim(),
       color: AVAILABLE_COLORS[pipelineInstructions.length % AVAILABLE_COLORS.length],
-      currentStage: -1,
+      currentStage: 0,
       startCycle: startCycle,
       stalled: false,
+      isCompleted: false,
       registers: { src: [], dest: [] }, // Add empty registers as this is the laundry simulation
     };
 
@@ -433,7 +564,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
-      (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+      (instr) => instr.isCompleted === true
     );
     
     let maxCycle = 0;
@@ -474,11 +605,11 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   };
 
   const getCurrentTimeLabel = () => {
-    if (cycles === 0) return `${TIMING_CONFIG.START_TIME_HOUR}:00 AM`;
+    if (cycles === -1) return `Not Started`;
     
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
-      (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+      (instr) => instr.isCompleted === true
     );
     
     // If all instructions are completed, show time based on actual completion
@@ -513,7 +644,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   // Calculate laundry loads per hour performance metric
   // This shows how many loads of laundry can be completed per hour
   const completedInstructions = pipelineInstructions.filter(
-    instr => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+    instr => instr.isCompleted === true
   ).length;
   
   // Convert cycles to hours and calculate loads per hour
@@ -522,16 +653,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     ? (completedInstructions / currentTimeInHours).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) 
     : "0.0";
   
-  // Theoretical maximum loads per hour calculation
-  // In pipelined mode: 1 load per cycle after initial fill
-  // In non-pipelined mode: 1 load per (number of stages) cycles
-  const cyclesPerHour = 60 / TIMING_CONFIG.CYCLE_DURATION_MINUTES; // How many cycles in an hour
-  const theoreticalMaxLoadsPerHour = isPipelined
-    ? isSuperscalarActive
-      ? (cyclesPerHour * superscalarFactor).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) // Multiple loads can start per cycle
-      : cyclesPerHour.toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION) // One load per cycle
-    : (cyclesPerHour / PIPELINE_STAGES.length).toFixed(PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION); // One load every N cycles
-
   // Set up D3 scales for our chart
   const margin = LAYOUT_CONFIG.MARGINS;
   const innerWidth = svgWidth - margin.left - margin.right;
@@ -591,19 +712,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       {/* Visualization Container - Left side on desktop */}
       <div className="flex w-full flex-col items-center xl:w-3/4">
         <div className="mb-2 w-full flex flex-col justify-between md:flex-row md:items-center">
-          <div className="flex items-center space-x-2">
-            <span>Slow</span>
-            <input
-              type="range"
-              min="100"
-              max="1900"
-              value={2000 - speed}
-              onChange={handleSpeedChange}
-              className="w-40"
-            />
-            <span>Fast</span>
-          </div>
-
           <div className="flex items-center gap-4">
             <div className="text-center">
               <h3 className="text-lg font-medium">
@@ -738,34 +846,41 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
           <div className="mb-4 flex flex-wrap gap-3">
             <button
-              onClick={handleStart}
-              disabled={isRunning}
+              onClick={handleStepForward}
+              disabled={pipelineInstructions.every(
+                (instr) => instr.isCompleted === true
+              )}
               className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
-              title="Start"
+              title="Step Forward One Cycle"
             >
-              <img src={playSvg} alt="Start" className="h-6 w-6" />
+              <span className="text-sm font-medium">Forward →</span>
             </button>
             <button
-              onClick={handlePause}
-              disabled={!isRunning}
-              className="flex items-center justify-center rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
-              title="Pause"
+              onClick={() => setIsRunning(!isRunning)}
+              disabled={pipelineInstructions.every(
+                (instr) => instr.isCompleted === true
+              )}
+              className={`flex items-center justify-center rounded px-4 py-2 text-white disabled:opacity-50 ${
+                isRunning 
+                  ? "bg-orange-500 hover:bg-orange-600" 
+                  : "bg-blue-500 hover:bg-blue-600"
+              }`}
+              title={isRunning ? "Pause Auto Run" : "Run Automatically"}
             >
-              <img src={pauseSvg} alt="Pause" className="h-6 w-6" />
+              <span className="text-sm font-medium">{isRunning ? "Pause" : "Auto"}</span>
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center justify-center rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-              title="Reset"
+              className="flex items-center justify-center rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+              title="Reset to Beginning"
             >
               <img src={resetSvg} alt="Reset" className="h-6 w-6" />
             </button>
             <span className="ml-2 self-center text-sm">
               {pipelineInstructions.every(
-                (instr) =>
-                  instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+                (instr) => instr.isCompleted === true
               )
-                ? "Start Over"
+                ? "All Complete"
                 : isRunning ? "Running..." : "Ready"}
             </span>
           </div>

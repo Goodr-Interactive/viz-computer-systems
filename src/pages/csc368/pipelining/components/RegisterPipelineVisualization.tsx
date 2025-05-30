@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
+// Import SVG assets for controls
+import playSvg from "@/assets/play.svg";
+import pauseSvg from "@/assets/pause.svg";
+import resetSvg from "@/assets/reset.svg";
+
 // Import React components
 import { PipelineStage } from "./PipelineStage";
 import { Axis } from "./Axis";
@@ -1334,7 +1339,7 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
               className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
               title="Start"
             >
-              Start
+              <img src={playSvg} alt="Start" className="h-6 w-6" />
             </button>
             <button
               onClick={handlePause}
@@ -1342,14 +1347,14 @@ export const RegisterPipelineVisualization: React.FC<RegisterPipelineVisualizati
               className="flex items-center justify-center rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
               title="Pause"
             >
-              Pause
+              <img src={pauseSvg} alt="Pause" className="h-6 w-6" />
             </button>
             <button
               onClick={handleReset}
               className="flex items-center justify-center rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
               title="Reset"
             >
-              Reset
+              <img src={resetSvg} alt="Reset" className="h-6 w-6" />
             </button>
             <span className="ml-2 self-center text-sm">
               {pipelineInstructions.every(

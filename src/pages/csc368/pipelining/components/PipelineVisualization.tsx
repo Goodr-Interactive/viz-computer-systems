@@ -1,13 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
-// Import SVG assets for pipeline stages
-import shirtSvg from "@/assets/shirt.svg";
-import washingMachineSvg from "@/assets/washing-machine.svg";
-import tumbleDrySvg from "@/assets/tumble-dry.svg";
-import handDrySvg from "@/assets/hand-dry.svg";
-import closetSvg from "@/assets/closet.svg";
-
 // Import SVG assets for controls
 import playSvg from "@/assets/play.svg";
 import pauseSvg from "@/assets/pause.svg";
@@ -21,26 +14,16 @@ import { Grid } from "./Grid";
 import { StagePatterns } from "./StagePatterns";
 import type { Instruction } from "./types";
 
-// Define the instruction stages
-const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
-
-// Define SVG images for each pipeline stage
-const STAGE_IMAGES = [
-  shirtSvg, // Sort stage
-  washingMachineSvg, // Wash stage
-  tumbleDrySvg, // Dry stage
-  handDrySvg, // Fold stage
-  closetSvg, // Put Away stage
-];
-
-// Define some sample instructions for visualization
-const DEFAULT_INSTRUCTIONS = [
-  { id: 1, name: "Load 1 (shirts)", color: "#4285F4", registers: { src: [], dest: [] } },
-  { id: 2, name: "Load 2 (pants)", color: "#EA4335", registers: { src: [], dest: [] } },
-  { id: 3, name: "Load 3 (socks)", color: "#FBBC05", registers: { src: [], dest: [] } },
-  { id: 4, name: "Load 4 (sheets)", color: "#34A853", registers: { src: [], dest: [] } },
-  { id: 5, name: "Load 5 (jackets)", color: "#8F44AD", registers: { src: [], dest: [] } },
-];
+// Import configuration
+import {
+  PIPELINE_STAGES,
+  STAGE_IMAGES,
+  DEFAULT_INSTRUCTIONS,
+  AVAILABLE_COLORS,
+  TIMING_CONFIG,
+  LAYOUT_CONFIG,
+  SUPERSCALAR_CONFIG
+} from "./config";
 
 interface PipelineVisualizationProps {
   width?: number;
@@ -63,10 +46,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [cycles, setCycles] = useState<number>(0);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
+  const [speed, setSpeed] = useState<number>(TIMING_CONFIG.DEFAULT_SPEED_MS); // milliseconds between cycles
   const [isPipelined, setIsPipelined] = useState<boolean>(true);
   const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar);
-  const [superscalarFactor] = useState<number>(superscalarWidth);
+  const [superscalarFactor] = useState<number>(superscalarWidth || SUPERSCALAR_CONFIG.DEFAULT_SUPERSCALAR_WIDTH);
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -86,23 +69,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
-  const [availableColors] = useState<string[]>([
-    "#4285F4",
-    "#EA4335",
-    "#FBBC05",
-    "#34A853",
-    "#8F44AD",
-    "#FF5722",
-    "#009688",
-    "#673AB7",
-    "#3F51B5",
-    "#00BCD4",
-    "#607D8B",
-    "#795548",
-    "#9C27B0",
-    "#2196F3",
-    "#FF9800",
-  ]);
 
   // Set initial dimensions based on container size
   useEffect(() => {
@@ -122,7 +88,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
       const { width, height } = entries[0].contentRect;
       setSvgWidth(width);
-      setSvgHeight(Math.max(height, 400)); // Minimum height of 400px
+      setSvgHeight(Math.max(height, LAYOUT_CONFIG.MIN_HEIGHT)); // Minimum height from config
     });
 
     resizeObserver.observe(containerRef.current);
@@ -139,7 +105,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
         setSvgWidth(width);
-        setSvgHeight(Math.max(height, 400));
+        setSvgHeight(Math.max(height, LAYOUT_CONFIG.MIN_HEIGHT));
       }
     };
 
@@ -409,7 +375,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     const newInstruction: Instruction = {
       id: newInstructionId,
       name: newInstructionName.trim(),
-      color: availableColors[pipelineInstructions.length % availableColors.length],
+      color: AVAILABLE_COLORS[pipelineInstructions.length % AVAILABLE_COLORS.length],
       currentStage: -1,
       startCycle: startCycle,
       stalled: false,
@@ -455,11 +421,11 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     setCycles(0);
   };
 
-  // Convert clock cycles to actual times (starting at 9:00 AM)
+  // Convert clock cycles to actual times (starting from config)
   const getTimeLabels = () => {
     return d3.range(0, cycles + 5).map((cycle) => {
-      const minutes = cycle * 30; // Each cycle is 30 minutes
-      const hours = Math.floor(9 + minutes / 60); // Start at 9 AM
+      const minutes = cycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+      const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
       const mins = minutes % 60;
       const ampm = hours >= 12 ? "PM" : "AM";
       const hour12 = hours > 12 ? hours - 12 : hours;
@@ -468,10 +434,10 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   };
 
   const getCurrentTimeLabel = () => {
-    if (cycles === 0) return "9:00 AM";
+    if (cycles === 0) return `${TIMING_CONFIG.START_TIME_HOUR}:00 AM`;
     
-    const minutes = Math.floor(cycles / 2) * 30;
-    const hours = Math.floor(9 + minutes / 60);
+    const minutes = Math.floor(cycles / 2) * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+    const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
     const mins = minutes % 60;
     const ampm = hours >= 12 ? "PM" : "AM";
     const hour12 = hours > 12 ? hours - 12 : hours;
@@ -501,7 +467,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     : (1 / PIPELINE_STAGES.length).toFixed(2);
 
   // Set up D3 scales for our chart
-  const margin = { top: 50, right: 30, bottom: 80, left: 120 };
+  const margin = LAYOUT_CONFIG.MARGINS;
   const innerWidth = svgWidth - margin.left - margin.right;
   const innerHeight = svgHeight - margin.top - margin.bottom;
 
@@ -510,14 +476,14 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     .scaleBand()
     .domain(d3.range(0, cycles + 5).map(String))
     .range([0, innerWidth])
-    .padding(0.02);
+    .padding(LAYOUT_CONFIG.BAND_PADDING.cycles);
 
   // Y scale for instructions
   const yScale = d3
     .scaleBand()
     .domain(pipelineInstructions.map((instr) => instr.id.toString()))
     .range([0, innerHeight])
-    .padding(0.1);
+    .padding(LAYOUT_CONFIG.BAND_PADDING.instructions);
 
   const timeLabels = getTimeLabels();
 
@@ -587,7 +553,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         <div
           ref={containerRef}
           className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
-          style={{ height: "700px" }}
+          style={{ height: `${LAYOUT_CONFIG.CONTAINER_HEIGHT}px` }}
         >
           <svg width={svgWidth} height={svgHeight}>
             <g transform={`translate(${margin.left},${margin.top})`}>

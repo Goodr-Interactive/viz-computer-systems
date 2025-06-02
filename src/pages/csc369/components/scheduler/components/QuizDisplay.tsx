@@ -66,6 +66,7 @@ export const QuizDisplay: React.FunctionComponent<Props> = ({ controller, questi
           {message ? "Continue" : "Submit"}
         </Button>
       </div>
+      <span className="text-muted-foreground font-light text-center">In the event of a tie, choose the process<br /> with the lowest PID.</span>
     </div>
   );
 };

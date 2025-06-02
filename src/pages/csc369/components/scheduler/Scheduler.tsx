@@ -4,15 +4,22 @@ import { useScheduler } from "./hooks";
 import {
   DirectExecution,
   MenuBar,
+  Playback,
   ProcessController,
   ProcessQueue,
   SchedulerSettings,
 } from "./components";
+import type { Algorithm } from "./types";
 
-export const Scheduler: React.FunctionComponent = () => {
-  const controller = useScheduler();
 
-  const { processes } = controller;
+interface Props {
+  allowedAlgorithms?: Array<Algorithm>;
+}
+
+export const Scheduler: React.FunctionComponent<Props> = ({
+  allowedAlgorithms
+}) => {
+  const controller = useScheduler(allowedAlgorithms);
 
   return (
     <div className="flex h-[100vh] w-full flex-col px-[56px] pt-[24px] pb-[56px]">
@@ -22,15 +29,15 @@ export const Scheduler: React.FunctionComponent = () => {
       </p>
       <ResizablePanelGroup className="rounded-lg border" direction="vertical">
         <ResizablePanel className="min-h-[64px]">
-          <MenuBar controller={controller} />
+          <MenuBar controller={controller} allowedAlgorithms={allowedAlgorithms}/>
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel>
-            <DirectExecution processes={processes} />
+            <DirectExecution controller={controller}/>
           </ResizablePanel>
           <ResizableHandle />
-          <ResizablePanel className="max-w-[400px]">
+          <ResizablePanel className="max-w-[424px]">
             <ProcessQueue controller={controller} />
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -39,10 +46,13 @@ export const Scheduler: React.FunctionComponent = () => {
           <ResizablePanel>
             <SchedulerSettings controller={controller} />
           </ResizablePanel>
-
           <ResizableHandle />
           <ResizablePanel>
             <ProcessController controller={controller} />
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel>
+            <Playback controller={controller} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanelGroup>

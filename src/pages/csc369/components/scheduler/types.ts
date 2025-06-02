@@ -21,6 +21,8 @@ export interface Process {
   status: ProcessStatus;
   enquedAt: number;
   completedAt?: number;
+  vruntime: number;
+  unknownRuntime?: boolean;
 }
 
 export enum Algorithm {
@@ -37,8 +39,23 @@ export enum SchedulerState {
   PAUSED = "PAUSED",
 }
 
+export interface QuizQuestion {
+  options: Array<number>;
+  correct: number;
+}
+
+export interface QuizController {
+  answer: (pid: number) => void;
+  results: Array<[QuizQuestion, number]>;
+  question?: QuizQuestion;
+  setQuestion: (q?: QuizQuestion) => void;
+  reset: () => void;
+  skip: () => void;
+}
+
 export interface SchedulerController {
   state: SchedulerState;
+  clock: number;
   processes: Process[];
   addProcess: (process: Process) => void;
   contextSwitchFrequency: number;
@@ -48,8 +65,16 @@ export interface SchedulerController {
   pause: () => void;
   play: () => void;
   reset: () => void;
+  skipForward: () => void;
+  skipBack: () => void;
   algorithm: Algorithm;
   setAlgorithm: (algo: Algorithm) => void;
   quizMode: boolean;
   setQuizMode: (qm: boolean) => void;
+  playbackSpeed: number;
+  setPlaybackSpeed: (pbs: number) => void;
+  quiz: QuizController;
+  contextSwitchTimes: [number, number];
 }
+
+

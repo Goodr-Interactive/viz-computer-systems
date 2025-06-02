@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Home, CSC369 } from "./pages";
+import { Scheduler } from "./pages/csc369/components";
 
 interface AppRoute {
   path: string;
@@ -15,6 +16,10 @@ const ROUTES: AppRoute[] = [
   {
     path: "/csc369",
     element: <CSC369 />,
+  },
+  {
+    path: "/csc369/the-scheduler",
+    element: <Scheduler />
   },
   {
     path: "/csc368",

@@ -1,5 +1,5 @@
 import React from "react";
-import { ProcessStatus, type SchedulerController } from "../types";
+import { Algorithm, ProcessStatus, type SchedulerController } from "../types";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
@@ -7,17 +7,25 @@ interface Props {
   controller: SchedulerController;
 }
 
+const UNKNOWN_RUNTIME_ALGORITHMS = [
+  Algorithm.CFS,
+  Algorithm.DIY,
+  Algorithm.RR
+]
+
 export const ProcessController: React.FunctionComponent<Props> = ({ controller }) => {
 
-  const addProcess = (seconds: number) => {
+  const addProcess = (seconds?: number) => {
     return () => {
         controller.addProcess({
             pid: controller.processes.length + 1,
-            duration: seconds,
+            duration: seconds ?? Math.floor(((Math.random() + 0.05) * 20)),
             events: [],
             status: ProcessStatus.WAITING,
-            enquedAt: new Date().getTime(),
-            completedAt: undefined
+            enquedAt: controller.clock,
+            completedAt: undefined,
+            unknownRuntime: !seconds,
+            vruntime: 0
         })
     }
   }
@@ -31,6 +39,9 @@ export const ProcessController: React.FunctionComponent<Props> = ({ controller }
         <Button onClick={addProcess(5)} variant={"outline"}>5s</Button>
         <Button onClick={addProcess(10)} variant={"outline"}>10s</Button>
         <Button onClick={addProcess(20)} variant={"outline"}>20s</Button>
+        {UNKNOWN_RUNTIME_ALGORITHMS.includes(controller.algorithm) && (
+          <Button onClick={addProcess(undefined)} variant={"secondary"}>Unknown</Button>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import type { SchedulerController } from "../types";
+import { SchedulerState, type SchedulerController } from "../types";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 
@@ -24,6 +24,7 @@ export const SchedulerSettings: React.FunctionComponent<Props> = ({ controller }
             min={1}
             max={20}
             step={0.1}
+            disabled={controller.state === SchedulerState.RUNNING}
           />
         </div>
         <div className="flex w-full flex-col gap-[16px]">

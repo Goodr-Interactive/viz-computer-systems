@@ -9,14 +9,22 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Play, Columns, Undo } from "@mynaui/icons-react";
-import { IconButton } from "./IconButton";
-
 interface Props {
   controller: SchedulerController;
+  allowedAlgorithms?: Array<Algorithm>;
 }
 
-export const MenuBar: React.FunctionComponent<Props> = ({ controller }) => {
+export const MenuBar: React.FunctionComponent<Props> = ({ controller, allowedAlgorithms }) => {
+
+  const algorithms = allowedAlgorithms ?? [
+    Algorithm.FCFS,
+    Algorithm.SJF,
+    Algorithm.SCTF,
+    Algorithm.RR,
+    Algorithm.CFS,
+    Algorithm.DIY
+  ]
+
   return (
     <div className="flex h-full w-full items-center justify-between px-[12px]">
       <div className="flex items-center gap-[24px]">
@@ -29,35 +37,15 @@ export const MenuBar: React.FunctionComponent<Props> = ({ controller }) => {
             <SelectValue placeholder="Algorithm" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={Algorithm.FCFS}>{Algorithm.FCFS}</SelectItem>
-            <SelectItem value={Algorithm.SJF}>{Algorithm.SJF}</SelectItem>
-            <SelectItem value={Algorithm.SCTF}>{Algorithm.SCTF}</SelectItem>
-            <SelectItem value={Algorithm.RR}>{Algorithm.RR}</SelectItem>
-            <SelectItem value={Algorithm.CFS}>{Algorithm.CFS}</SelectItem>
-            <SelectItem value={Algorithm.DIY}>{Algorithm.DIY}</SelectItem>
+            {algorithms.map(alg => (
+              <SelectItem key={alg} value={alg}>{alg}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <div className="flex items-center gap-[8px]">
           <Switch onCheckedChange={controller.setQuizMode} checked={controller.quizMode} />
           <Label>Quiz Mode</Label>
         </div>
-      </div>
-      <div className="flex gap-[12px]">
-        {controller.state !== SchedulerState.RUNNING && (
-          <IconButton onClick={controller.play}>
-            <Play height={30} width={30} />
-          </IconButton>
-        )}
-
-        {controller.state !== SchedulerState.PAUSED && (
-          <IconButton onClick={controller.pause}>
-            <Columns height={24} width={24} />
-          </IconButton>
-        )}
-
-        <IconButton onClick={controller.reset}>
-          <Undo height={24} width={24} />
-        </IconButton>
       </div>
     </div>
   );

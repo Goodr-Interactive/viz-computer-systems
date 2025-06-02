@@ -1,7 +1,8 @@
 import { EventType, ProcessStatus, type Process } from "./types";
 
 export const getWaitTime = (process: Process, now: number): number => {
-  return 0;
+  
+  return (process.completedAt ?? now) - process.enquedAt - process.vruntime;
 };
 
 export const getTurnaroundTime = (process: Process, now: number): number => {
@@ -13,19 +14,15 @@ export const getResponseTime = (process: Process, now: number): number => {
   return firstRun - process.enquedAt;
 };
 
-export const getVirtualRuntime = (process: Process, now: number): number => {
-  return 0;
-};
-
-export const getCPUActive = (processes: Array<Process>, now: number): number => {
-  return processes.reduce((total, process) => total + getVirtualRuntime(process, now), 0);
+export const getCPUActive = (processes: Array<Process>): number => {
+  return processes.reduce((total, process) => total + process.vruntime, 0);
 };
 
 export const getThroughput = (processes: Array<Process>): number => {
   return processes.reduce(
-    (total, p) => (total + p.status === ProcessStatus.COMPLETE ? p.duration : 0),
+    (total, p) => (total + (p.status === ProcessStatus.COMPLETE ? p.duration : 0)),
     0
-  );
+  ) * 1000;
 };
 
 export const getAverageWait = (processes: Array<Process>, now: number): number => {

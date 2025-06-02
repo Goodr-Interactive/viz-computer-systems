@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ProcessStatus, type Process } from "../types";
+import React, { useEffect, useMemo, useState } from "react";
+import { ProcessStatus, type SchedulerController } from "../types";
 import { Badge } from "@/components/ui/badge";
 import { ProcessCard } from "./ProcessCard";
 import {
@@ -10,9 +10,11 @@ import {
   getCPUActive,
   getThroughput,
 } from "../utils";
+import { QuizDisplay } from "./QuizDisplay";
+import { PerformanceChart } from "./PerformanceChart";
 
 interface Props {
-  processes: Array<Process>;
+  controller: SchedulerController;
 }
 
 interface PerformanceMetrics {
@@ -24,7 +26,7 @@ interface PerformanceMetrics {
   turnaround: number;
 }
 
-export const DirectExecution: React.FunctionComponent<Props> = ({ processes }) => {
+export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) => {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     elapsed: 0,
     cpuActive: 0,
@@ -35,43 +37,22 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ processes }) =
   });
 
   const running = useMemo(
-    () => processes.filter((p) => p.status === ProcessStatus.RUNNING),
-    [processes]
+    () => controller.processes.filter((p) => p.status === ProcessStatus.RUNNING),
+    [controller.processes]
   );
-
-  const startTime = useMemo(() => {
-    if (processes.length > 0) {
-      return Math.min(...processes.map(({ enquedAt }) => enquedAt));
-    }
-    return undefined;
-  }, [processes]);
-
-  const getElapsed = useCallback(
-    (now: number): number => {
-      return startTime ? now - startTime : 0;
-    },
-    [startTime]
-  );
-
-  const updateMetrics = () => {
-    const now = new Date().getTime();
-    setMetrics({
-      elapsed: getElapsed(now),
-      cpuActive: getCPUActive(processes, now),
-      throughput: getThroughput(processes),
-      wait: getAverageWait(processes, now),
-      response: getAverageResponse(processes, now),
-      turnaround: getAverageTurnaround(processes, now),
-    });
-  };
 
   useEffect(() => {
-    const interval = setInterval(updateMetrics, 100);
+    setMetrics({
+      elapsed: controller.clock,
+      cpuActive: getCPUActive(controller.processes),
+      throughput: getThroughput(controller.processes),
+      wait: getAverageWait(controller.processes, controller.clock),
+      response: getAverageResponse(controller.processes, controller.clock),
+      turnaround: getAverageTurnaround(controller.processes, controller.clock),
+    });
+  }, [controller.clock, controller.processes]);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [processes]);
+  const [csStart, csEnd] = controller.contextSwitchTimes;
 
   return (
     <div className="flex h-full w-full flex-col gap-[12px] p-[12px]">
@@ -97,11 +78,35 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ processes }) =
         </div>
       </div>
       <div className="flex h-full w-full items-center justify-center">
-        <div className="w-[400px]">
-          {running.map((process) => (
-            <ProcessCard process={process} />
-          ))}
-        </div>
+
+        {controller.processes.length && controller.processes.every(p => p.completedAt) ? (
+          <PerformanceChart 
+            processes={controller.processes}
+            clock={controller.clock}
+          />
+        ) : controller.quiz.question ? (
+          <QuizDisplay question={controller.quiz.question} controller={controller} />
+        ) : (
+          <div className="w-[400px]">
+            {running.length ? (
+              running.map((process) => (
+                <ProcessCard
+                  key={process.pid}
+                  process={process}
+                  algorithm={controller.algorithm}
+                  clock={controller.clock}
+                />
+              ))
+            ) : csStart < controller.clock ? (
+              <div>
+                <span>
+                  Context Switch...{((csEnd - controller.clock) / 1000).toFixed(1)}s/
+                  {controller.contextSwitchDuration}s
+                </span>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );

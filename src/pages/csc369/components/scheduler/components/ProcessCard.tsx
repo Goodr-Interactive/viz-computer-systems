@@ -20,7 +20,7 @@ interface ProcessMetrics {
   turnaround: number;
 }
 
-export const ProcessCard: React.FunctionComponent<Props> = ({ process, clock }) => {
+export const ProcessCard: React.FunctionComponent<Props> = ({ process, clock, algorithm }) => {
   const now = new Date().getTime();
 
   const [metrics, setMetrics] = useState<ProcessMetrics>({
@@ -57,7 +57,7 @@ export const ProcessCard: React.FunctionComponent<Props> = ({ process, clock }) 
 
         <CardDescription>Created at: {(process.enquedAt / 1000).toFixed(1)}s</CardDescription>
         <div className="mt-[8px] flex w-full justify-between">
-          <Label>vruntime</Label>
+          <Label>{algorithm === Algorithm.CFS ? "vruntime" : "time"}</Label>
           <Label>
             {formatMetric(process.vruntime)} / {process.unknownRuntime ? "?" : process.duration.toFixed(1)}s
           </Label>

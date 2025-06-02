@@ -3,7 +3,6 @@ import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { AnimatedBinaryBlock } from "./components/paging/ui/AnimatedBinaryBlock";
 import { PagingSystem } from "./components/paging/PagingSystem";
 import type { PhysicalMemorySize, PageSize, VirtualAddressBits } from "./components/paging/types";
-import { PageTableLevelColors } from "./components/paging/constants";
 import { instructorConfig } from "./components/paging/config";
 import {
   Select,
@@ -54,11 +53,10 @@ export const SimplePaging: React.FunctionComponent = () => {
         <SectionHeading>Paging System Visualization</SectionHeading>
 
         <p className="text-muted-foreground mb-6">
-          This visualization demonstrates simple paging in a 32-bit byte-addressable system
-          with 32-bit page table entries using a single-level page table structure. 
-          Adjust the three parameters below to observe how changes in
-          physical memory size, page size, and virtual address bits affect the address structure
-          and system calculations.
+          This visualization demonstrates simple paging in a 32-bit byte-addressable system with
+          32-bit page table entries using a single-level page table structure. Adjust the three
+          parameters below to observe how changes in physical memory size, page size, and virtual
+          address bits affect the address structure and system calculations.
         </p>
 
         <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3">
@@ -152,7 +150,8 @@ export const SimplePaging: React.FunctionComponent = () => {
                               Virtual Page Number (VPN) ({summary.vpnBits} bits)
                             </p>
                             <p className="text-xs">
-                              Indexes directly into the page table to find the corresponding page table entry (PTE).
+                              Indexes directly into the page table to find the corresponding page
+                              table entry (PTE).
                             </p>
                           </div>
                         }

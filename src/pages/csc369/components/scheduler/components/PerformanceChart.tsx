@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import type { Process } from "../types";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { getResponseTime, getTurnaroundTime, getWaitTime } from "../utils";
 
@@ -46,8 +46,9 @@ export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, cl
           axisLine={false}
           tickFormatter={(value) => `PID:${value}`}
         />
+        <YAxis axisLine={false} tickLine={false}/>
         <ChartTooltip content={<ChartTooltipContent labelKey={"pid"} />} />
-        <Bar dataKey="wait" fill="var(--chart-2)" radius={4} />
+        <Bar dataKey="wait" fill="var(--chart-2)" radius={4} label="wait"/>
         <Bar dataKey="response" fill="var(--chart-1)" radius={4} />
         <Bar dataKey="turnaround" fill="var(--chart-5)" radius={4} />
       </BarChart>

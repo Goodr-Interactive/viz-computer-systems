@@ -47,15 +47,6 @@ export const SimplePaging: React.FunctionComponent = () => {
   // Calculate unused bits in the physical address (assuming 32-bit physical address)
   const unusedBits = 32 - pfnBlocks - pageOffsetBlocks;
 
-  // Function to get the appropriate label for each level of the page table
-  const getLevelLabel = (index: number, totalLevels: number): string => {
-    if (index === totalLevels - 1) {
-      return "Page Table Index";
-    } else {
-      return `PD Index ${index}`;
-    }
-  };
-
   return (
     <div className="flex w-full flex-col items-center gap-10 p-8 pb-24">
       {/* Configuration Section */}
@@ -63,11 +54,11 @@ export const SimplePaging: React.FunctionComponent = () => {
         <SectionHeading>Paging System Visualization</SectionHeading>
 
         <p className="text-muted-foreground mb-6">
-          This visualization demonstrates hierarchical paging in a 32-bit byte-addressable system
-          with 32-bit page table entries, where each page table is constrained to fit within a
-          single physical frame. Adjust the three parameters below to observe how changes in
-          physical memory size, page size, and virtual address bits affect the address structure,
-          page table hierarchy, and system calculations.
+          This visualization demonstrates simple paging in a 32-bit byte-addressable system
+          with 32-bit page table entries using a single-level page table structure. 
+          Adjust the three parameters below to observe how changes in
+          physical memory size, page size, and virtual address bits affect the address structure
+          and system calculations.
         </p>
 
         <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3">
@@ -149,44 +140,26 @@ export const SimplePaging: React.FunctionComponent = () => {
                     className="flex flex-wrap items-center justify-end gap-2 pr-4"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      {summary.bitsPerLevel.map((bits, index) => {
-                        // Calculate the starting bit number for this level
-                        let startBit = pageOffsetBlocks;
-                        for (let i = summary.bitsPerLevel.length - 1; i > index; i--) {
-                          startBit += summary.bitsPerLevel[i];
+                      <AnimatedBinaryBlock
+                        layoutId="vpn-single-level"
+                        blocks={summary.vpnBits}
+                        color="bg-purple-100"
+                        borderColor="border-purple-300"
+                        hoverColor="group-hover:bg-purple-200"
+                        tooltip={
+                          <div className="max-w-sm space-y-1">
+                            <p className="text-sm font-medium">
+                              Virtual Page Number (VPN) ({summary.vpnBits} bits)
+                            </p>
+                            <p className="text-xs">
+                              Indexes directly into the page table to find the corresponding page table entry (PTE).
+                            </p>
+                          </div>
                         }
-                        return (
-                          <AnimatedBinaryBlock
-                            key={index}
-                            layoutId={`vpn-level-${index}`}
-                            blocks={bits}
-                            color={
-                              PageTableLevelColors[index % PageTableLevelColors.length].background
-                            }
-                            borderColor={
-                              PageTableLevelColors[index % PageTableLevelColors.length].border
-                            }
-                            hoverColor={
-                              PageTableLevelColors[index % PageTableLevelColors.length].hover
-                            }
-                            tooltip={
-                              <div className="max-w-sm space-y-1">
-                                <p className="text-sm font-medium">
-                                  {getLevelLabel(index, summary.pageTableLevels)} ({bits} bits)
-                                </p>
-                                <p className="text-xs">
-                                  {index === summary.pageTableLevels - 1
-                                    ? "Indexes into the final page table to find the physical frame number."
-                                    : `Indexes into page directory level ${index} to find the next page table.`}
-                                </p>
-                              </div>
-                            }
-                            showLeftBorder={true}
-                            label={getLevelLabel(index, summary.pageTableLevels)}
-                            startBitNumber={startBit}
-                          />
-                        );
-                      })}
+                        showLeftBorder={true}
+                        label="Virtual Page Number (VPN)"
+                        startBitNumber={pageOffsetBlocks}
+                      />
                     </div>
                     <AnimatedBinaryBlock
                       layoutId="virtual-page-offset"
@@ -508,28 +481,10 @@ export const SimplePaging: React.FunctionComponent = () => {
 
                 <div>
                   <InfoHeader
-                    children="PTEs Per Page"
-                    value={summary.ptesPerPage.toLocaleString()}
-                    definition="The number of Page Table Entries that can fit in a single page (assuming 4 bytes per PTE)."
-                    calculation={`${PagingSystem.formatBytes(pageSize)} ÷ 4 bytes/PTE = ${summary.ptesPerPage.toLocaleString()} PTEs`}
-                  />
-                </div>
-
-                <div>
-                  <InfoHeader
-                    children="PTE Index Bits"
-                    value={summary.pteIndexBits.toString()}
-                    definition="The number of bits needed to index into a page table (to select one PTE)."
-                    calculation={`log₂(${summary.ptesPerPage.toLocaleString()}) = ${summary.pteIndexBits} bits`}
-                  />
-                </div>
-
-                <div>
-                  <InfoHeader
-                    children="Page Table Levels"
-                    value={summary.pageTableLevels.toString()}
-                    definition="The number of levels in the hierarchical page table structure needed to translate addresses."
-                    calculation={`ceil(${summary.vpnBits} VPN bits ÷ ${summary.pteIndexBits} bits/level) = ${summary.pageTableLevels} levels`}
+                    children="Page Table Size"
+                    value={PagingSystem.formatBytes(summary.totalVirtualPages * 4)}
+                    definition="The total size of the single-level page table (assuming 4 bytes per PTE)."
+                    calculation={`${summary.totalVirtualPages.toLocaleString()} PTEs × 4 bytes/PTE = ${PagingSystem.formatBytes(summary.totalVirtualPages * 4)}`}
                   />
                 </div>
               </div>

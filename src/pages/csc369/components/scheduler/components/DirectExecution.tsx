@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ProcessStatus, type SchedulerController } from "../types";
+import { ProcessStatus, SchedulerState, type SchedulerController } from "../types";
 import { Badge } from "@/components/ui/badge";
 import { ProcessCard } from "./ProcessCard";
 import {
@@ -53,6 +53,8 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
   }, [controller.clock, controller.processes]);
 
   const [csStart, csEnd] = controller.contextSwitchTimes;
+
+  const inKernelMode = controller.state === SchedulerState.PAUSED ? undefined : running.length === 0; 
 
   return (
     <div className="flex h-full w-full flex-col gap-[12px] p-[12px]">
@@ -108,6 +110,12 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
           </div>
         )}
       </div>
+      {inKernelMode !== undefined && (
+        <Badge variant={inKernelMode ? "outline" : "destructive"}>
+        Mode: {inKernelMode ? "Kernel" : "User"}
+      </Badge>
+      )}
+      
     </div>
   );
 };

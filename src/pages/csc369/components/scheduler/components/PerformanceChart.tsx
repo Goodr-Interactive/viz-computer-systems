@@ -48,7 +48,7 @@ export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, cl
         />
         <YAxis axisLine={false} tickLine={false}/>
         <ChartTooltip content={<ChartTooltipContent labelKey={"pid"} />} />
-        <Bar dataKey="wait" fill="var(--chart-2)" radius={4} label="wait"/>
+        <Bar dataKey="wait" fill="var(--chart-2)" radius={4}/>
         <Bar dataKey="response" fill="var(--chart-1)" radius={4} />
         <Bar dataKey="turnaround" fill="var(--chart-5)" radius={4} />
       </BarChart>

@@ -6,17 +6,12 @@ import {
   SchedulerState,
   ProcessStatus,
   EventType,
+  PREEMPTIVE_ALGORITHMS,
 } from "../types";
 import { minBy } from "lodash";
 import { useQuizMode } from "./useQuizMode";
 import { sampleSize, shuffle } from "lodash";
 
-const PREEMPTIVE_ALGORITHMS: Array<Algorithm> = [
-  Algorithm.SCTF,
-  Algorithm.RR,
-  Algorithm.CFS,
-  Algorithm.DIY,
-];
 
 export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerController => {
   const [state, setState] = useState<SchedulerState>(SchedulerState.PAUSED);

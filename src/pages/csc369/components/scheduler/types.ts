@@ -34,6 +34,13 @@ export enum Algorithm {
   DIY = "DIY"
 }
 
+export const PREEMPTIVE_ALGORITHMS: Array<Algorithm> = [
+  Algorithm.SCTF,
+  Algorithm.RR,
+  Algorithm.CFS,
+  Algorithm.DIY,
+];
+
 export enum SchedulerState {
   RUNNING = "RUNNING",
   PAUSED = "PAUSED",

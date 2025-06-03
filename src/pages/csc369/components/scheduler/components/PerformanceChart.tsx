@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import type { Process } from "../types";
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { type ChartConfig, ChartContainer, ChartLegend } from "@/components/ui/chart";
 import { getResponseTime, getTurnaroundTime, getWaitTime } from "../utils";
 
 interface Props {
@@ -39,6 +39,7 @@ export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, cl
     <ChartContainer config={chartConfig} className="h-[200px] w-full">
       <BarChart accessibilityLayer data={chartData}>
         <CartesianGrid vertical={false} />
+        <ChartLegend />
         <XAxis
           dataKey="pid"
           tickLine={false}
@@ -50,7 +51,7 @@ export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, cl
         <ChartTooltip content={<ChartTooltipContent labelKey={"pid"} />} />
         <Bar dataKey="wait" fill="var(--chart-2)" radius={4}/>
         <Bar dataKey="response" fill="var(--chart-1)" radius={4} />
-        <Bar dataKey="turnaround" fill="var(--chart-5)" radius={4} />
+        <Bar dataKey="turnaround" fill="var(--chart-5)" radius={4}/>
       </BarChart>
     </ChartContainer>
   );

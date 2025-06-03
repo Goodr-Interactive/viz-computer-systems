@@ -82,6 +82,8 @@ export interface SchedulerController {
   setPlaybackSpeed: (pbs: number) => void;
   quiz: QuizController;
   contextSwitchTimes: [number, number];
+  lastRun?: Process;
+  nextRun?: Process;
 }
 
 

@@ -27,6 +27,7 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
     contextSwitchDuration * 1000,
   ]);
   const [lastRun, setLastRun] = useState<Process>();
+  const [nextRun, setNextRun] = useState<Process>();
 
   const setContextSwitchDuration = (csd: number) => {
     _setContextSwitchDuration(csd);
@@ -195,6 +196,7 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
       suspend(running.pid, now);
     } 
     const next = nextProcess(algorithm, processes.filter(({ pid }) => pid !== running?.pid)) ?? ((running && !willComplete(running)) ? running : undefined);
+    setNextRun(next);
     const waitingProcesses = processes.filter(
       (process) => process.status === ProcessStatus.WAITING && process.pid !== next?.pid
     );
@@ -236,5 +238,7 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
     setPlaybackSpeed,
     quiz,
     contextSwitchTimes,
+    lastRun,
+    nextRun
   };
 };

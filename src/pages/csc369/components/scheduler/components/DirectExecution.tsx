@@ -12,6 +12,8 @@ import {
 } from "../utils";
 import { QuizDisplay } from "./QuizDisplay";
 import { PerformanceChart } from "./PerformanceChart";
+import { ContextSwitchCard } from "./ContextSwitchCard";
+
 
 interface Props {
   controller: SchedulerController;
@@ -54,7 +56,8 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
 
   const [csStart, csEnd] = controller.contextSwitchTimes;
 
-  const inKernelMode = controller.state === SchedulerState.PAUSED ? undefined : running.length === 0; 
+  const inKernelMode =
+    controller.state === SchedulerState.PAUSED ? undefined : running.length === 0;
 
   return (
     <div className="flex h-full w-full flex-col gap-[12px] p-[12px]">
@@ -80,12 +83,8 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
         </div>
       </div>
       <div className="flex h-full w-full items-center justify-center">
-
-        {controller.processes.length && controller.processes.every(p => p.completedAt) ? (
-          <PerformanceChart 
-            processes={controller.processes}
-            clock={controller.clock}
-          />
+        {controller.processes.length && controller.processes.every((p) => p.completedAt) ? (
+          <PerformanceChart processes={controller.processes} clock={controller.clock} />
         ) : controller.quiz.question ? (
           <QuizDisplay question={controller.quiz.question} controller={controller} />
         ) : (
@@ -100,22 +99,19 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
                 />
               ))
             ) : csStart < controller.clock ? (
-              <div>
-                <span>
-                  Context Switch...{((csEnd - controller.clock) / 1000).toFixed(1)}s/
-                  {controller.contextSwitchDuration}s
-                </span>
-              </div>
+              <ContextSwitchCard 
+                controller={controller}
+                time={(controller.contextSwitchDuration * 1000) - (csEnd - controller.clock)}
+              />
             ) : null}
           </div>
         )}
       </div>
       {inKernelMode !== undefined && (
         <Badge variant={inKernelMode ? "outline" : "destructive"}>
-        Mode: {inKernelMode ? "Kernel" : "User"}
-      </Badge>
+          Mode: {inKernelMode ? "Kernel" : "User"}
+        </Badge>
       )}
-      
     </div>
   );
 };

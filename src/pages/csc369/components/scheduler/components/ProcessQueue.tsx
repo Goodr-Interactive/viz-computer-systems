@@ -31,7 +31,7 @@ export const ProcessQueue: React.FunctionComponent<Props> = ({ controller }) => 
         <TabsContent value={Tab.ACTIVE} className="h-full">
           <ScrollArea className="h-full px-[12px]">
             <div className="flex h-full w-full flex-col gap-[12px]">
-              {active.map((p) => (
+              {active.filter(({ pid }) => pid !== controller.lastRun?.pid).map((p) => (
                 <ProcessCard key={p.pid} process={p} algorithm={controller.algorithm} clock={controller.clock}/>
               ))}
               {!active.length && (

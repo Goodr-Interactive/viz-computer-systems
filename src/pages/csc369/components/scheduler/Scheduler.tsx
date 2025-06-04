@@ -11,14 +11,11 @@ import {
 } from "./components";
 import type { Algorithm } from "./types";
 
-
 interface Props {
-  allowedAlgorithms?: Array<Algorithm>;
+  allowedAlgorithms?: Algorithm[];
 }
 
-export const Scheduler: React.FunctionComponent<Props> = ({
-  allowedAlgorithms
-}) => {
+export const Scheduler: React.FunctionComponent<Props> = ({ allowedAlgorithms }) => {
   const controller = useScheduler(allowedAlgorithms);
 
   return (
@@ -29,12 +26,12 @@ export const Scheduler: React.FunctionComponent<Props> = ({
       </p>
       <ResizablePanelGroup className="rounded-lg border" direction="vertical">
         <ResizablePanel className="min-h-[64px]">
-          <MenuBar controller={controller} allowedAlgorithms={allowedAlgorithms}/>
+          <MenuBar controller={controller} allowedAlgorithms={allowedAlgorithms} />
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel>
-            <DirectExecution controller={controller}/>
+            <DirectExecution controller={controller} />
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel className="max-w-[424px]">

@@ -59,10 +59,11 @@ export const ProcessCard: React.FunctionComponent<Props> = ({ process, clock, al
         <div className="mt-[8px] flex w-full justify-between">
           <Label>{algorithm === Algorithm.CFS ? "vruntime" : "time"}</Label>
           <Label>
-            {formatMetric(process.vruntime)} / {process.unknownRuntime ? "?" : process.duration.toFixed(1)}s
+            {formatMetric(process.vruntime)} /{" "}
+            {process.unknownRuntime ? "?" : process.duration.toFixed(1)}s
           </Label>
         </div>
-        <Progress value={(process.vruntime / (process.duration * 10)) } />
+        <Progress value={process.vruntime / (process.duration * 10)} />
       </CardHeader>
       <CardFooter className="flex flex-wrap gap-[12px]">
         <Badge className="bg-[var(--chart-2)]">Wait: {formatMetric(metrics.wait)}s</Badge>

@@ -19,7 +19,7 @@ const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc369/the-scheduler",
-    element: <Scheduler />
+    element: <Scheduler />,
   },
   {
     path: "/csc368",

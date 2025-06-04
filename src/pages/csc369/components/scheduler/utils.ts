@@ -1,7 +1,6 @@
 import { EventType, ProcessStatus, type Process } from "./types";
 
 export const getWaitTime = (process: Process, now: number): number => {
-  
   return (process.completedAt ?? now) - process.enquedAt - process.vruntime;
 };
 
@@ -14,18 +13,20 @@ export const getResponseTime = (process: Process, now: number): number => {
   return firstRun - process.enquedAt;
 };
 
-export const getCPUActive = (processes: Array<Process>): number => {
+export const getCPUActive = (processes: Process[]): number => {
   return processes.reduce((total, process) => total + process.vruntime, 0);
 };
 
-export const getThroughput = (processes: Array<Process>): number => {
-  return processes.reduce(
-    (total, p) => (total + (p.status === ProcessStatus.COMPLETE ? p.duration : 0)),
-    0
-  ) * 1000;
+export const getThroughput = (processes: Process[]): number => {
+  return (
+    processes.reduce(
+      (total, p) => total + (p.status === ProcessStatus.COMPLETE ? p.duration : 0),
+      0
+    ) * 1000
+  );
 };
 
-export const getAverageWait = (processes: Array<Process>, now: number): number => {
+export const getAverageWait = (processes: Process[], now: number): number => {
   if (processes.length) {
     return (
       processes.reduce((total, process) => total + getWaitTime(process, now), 0) / processes.length
@@ -34,7 +35,7 @@ export const getAverageWait = (processes: Array<Process>, now: number): number =
   return 0;
 };
 
-export const getAverageResponse = (processes: Array<Process>, now: number): number => {
+export const getAverageResponse = (processes: Process[], now: number): number => {
   if (processes.length) {
     return (
       processes.reduce((total, process) => total + getResponseTime(process, now), 0) /
@@ -44,7 +45,7 @@ export const getAverageResponse = (processes: Array<Process>, now: number): numb
   return 0;
 };
 
-export const getAverageTurnaround = (processes: Array<Process>, now: number): number => {
+export const getAverageTurnaround = (processes: Process[], now: number): number => {
   if (processes.length) {
     return (
       processes.reduce((total, process) => total + getTurnaroundTime(process, now), 0) /
@@ -59,9 +60,9 @@ export const formatMetric = (value: number): string => {
 };
 
 export function partition<T>(
-  data: Array<T>,
+  data: T[],
   condition: (item: T) => boolean
-): [Array<T>, Array<T>] {
+): [T[], T[]] {
   return data.reduce(
     ([yes, no], item) => {
       if (condition(item)) {
@@ -69,6 +70,6 @@ export function partition<T>(
       }
       return [yes, [...no, item]];
     },
-    [[], []] as [Array<T>, Array<T>]
+    [[], []] as [T[], T[]]
   );
 }

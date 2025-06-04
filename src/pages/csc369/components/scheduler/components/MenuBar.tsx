@@ -11,18 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 interface Props {
   controller: SchedulerController;
-  allowedAlgorithms?: Array<Algorithm>;
+  allowedAlgorithms?: Algorithm[];
 }
 
 export const MenuBar: React.FunctionComponent<Props> = ({ controller, allowedAlgorithms }) => {
-
   const algorithms = allowedAlgorithms ?? [
     Algorithm.FCFS,
     Algorithm.SJF,
     Algorithm.SCTF,
     Algorithm.RR,
     Algorithm.CFS,
-  ]
+  ];
 
   return (
     <div className="flex h-full w-full items-center justify-between px-[12px]">
@@ -36,8 +35,10 @@ export const MenuBar: React.FunctionComponent<Props> = ({ controller, allowedAlg
             <SelectValue placeholder="Algorithm" />
           </SelectTrigger>
           <SelectContent>
-            {algorithms.map(alg => (
-              <SelectItem key={alg} value={alg}>{alg}</SelectItem>
+            {algorithms.map((alg) => (
+              <SelectItem key={alg} value={alg}>
+                {alg}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>

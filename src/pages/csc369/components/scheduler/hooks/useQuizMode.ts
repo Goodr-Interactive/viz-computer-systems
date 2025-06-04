@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { QuizController, QuizQuestion } from "../types";
 
-
 export const useQuizMode = (): QuizController => {
   const [results, setResults] = useState<Array<[QuizQuestion, number]>>([]);
   const [question, setQuestion] = useState<QuizQuestion | undefined>();
@@ -16,12 +15,11 @@ export const useQuizMode = (): QuizController => {
   const reset = () => {
     setResults([]);
     setQuestion(undefined);
-  }
+  };
 
   const skip = () => {
     setQuestion(undefined);
-  }
-
+  };
 
   return {
     answer,
@@ -29,6 +27,6 @@ export const useQuizMode = (): QuizController => {
     reset,
     setQuestion,
     question,
-    skip
-  }
+    skip,
+  };
 };

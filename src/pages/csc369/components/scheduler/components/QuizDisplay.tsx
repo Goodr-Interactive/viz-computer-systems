@@ -16,19 +16,23 @@ export const QuizDisplay: React.FunctionComponent<Props> = ({ controller, questi
 
   const handleSubmit = () => {
     if (selected) {
-        const selectedPid = parseInt(selected);
-        setMessage(selectedPid === question.correct ? `Correct! PID:${question.correct} will be scheduled next` : `Incorrect, the next proccess is PID:${question.correct}, not PID:${selectedPid}`);
-        setCorrect(selectedPid === question.correct);
+      const selectedPid = parseInt(selected);
+      setMessage(
+        selectedPid === question.correct
+          ? `Correct! PID:${question.correct} will be scheduled next`
+          : `Incorrect, the next proccess is PID:${question.correct}, not PID:${selectedPid}`
+      );
+      setCorrect(selectedPid === question.correct);
     }
   };
 
   const handleContinue = () => {
     if (selected) {
-        const selectedPid = parseInt(selected);
-        controller.quiz.answer(selectedPid);
-        controller.play();
+      const selectedPid = parseInt(selected);
+      controller.quiz.answer(selectedPid);
+      controller.play();
     }
-  }
+  };
 
   const handleSelect = (value: string) => {
     setMessage(undefined);
@@ -38,10 +42,10 @@ export const QuizDisplay: React.FunctionComponent<Props> = ({ controller, questi
   const handleSkip = () => {
     controller.quiz.skip();
     controller.play();
-  }
+  };
 
   return (
-    <div className="flex flex-col gap-[12px] items-center">
+    <div className="flex flex-col items-center gap-[12px]">
       <span>Which Process Comes Next?</span>
       <RadioGroup defaultValue={selected} onValueChange={handleSelect}>
         {question.options.map((option) => (
@@ -53,10 +57,10 @@ export const QuizDisplay: React.FunctionComponent<Props> = ({ controller, questi
       </RadioGroup>
       {message && (
         <span className={`text-[${correct ? "var(--chart-2)" : "var(--destructive)"}]`}>
-            {message}
+          {message}
         </span>
       )}
-      <div className="flex gap-[12px] w-full justify-center">
+      <div className="flex w-full justify-center gap-[12px]">
         {!message && (
           <Button variant="outline" onClick={handleSkip}>
             Skip
@@ -66,7 +70,10 @@ export const QuizDisplay: React.FunctionComponent<Props> = ({ controller, questi
           {message ? "Continue" : "Submit"}
         </Button>
       </div>
-      <span className="text-muted-foreground font-light text-center">In the event of a tie, choose the process<br /> with the lowest PID.</span>
+      <span className="text-muted-foreground text-center font-light">
+        In the event of a tie, choose the process
+        <br /> with the lowest PID.
+      </span>
     </div>
   );
 };

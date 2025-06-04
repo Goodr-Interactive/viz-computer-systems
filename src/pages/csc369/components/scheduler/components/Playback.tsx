@@ -1,7 +1,7 @@
 import React from "react";
 import { ProcessStatus, SchedulerState, type SchedulerController } from "../types";
 import { IconButton } from "./IconButton";
-import { Play, Undo, Columns, SkipBack, SkipForward } from "@mynaui/icons-react";
+import { Play, Undo, Columns } from "@mynaui/icons-react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
@@ -19,7 +19,12 @@ export const Playback: React.FunctionComponent<Props> = ({ controller }) => {
             <SkipBack height={24} width={24} />
           </IconButton> */}
           {controller.state !== SchedulerState.RUNNING && (
-            <IconButton onClick={controller.play} disabled={controller.processes.every(({ status }) => status === ProcessStatus.COMPLETE)}>
+            <IconButton
+              onClick={controller.play}
+              disabled={controller.processes.every(
+                ({ status }) => status === ProcessStatus.COMPLETE
+              )}
+            >
               <Play height={30} width={30} />
             </IconButton>
           )}

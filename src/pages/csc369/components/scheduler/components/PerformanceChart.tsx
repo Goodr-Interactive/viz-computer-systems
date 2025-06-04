@@ -7,18 +7,20 @@ import { getResponseTime, getTurnaroundTime, getWaitTime } from "../utils";
 
 interface Props {
   clock: number;
-  processes: Array<Process>;
+  processes: Process[];
 }
 
 export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, clock }) => {
-
-
-  const chartData = useMemo(() => processes.map(p => ({
-    pid: p.pid,
-    wait: getWaitTime(p, clock) / 1000,
-    response: getResponseTime(p, clock) / 1000,
-    turnaround: getTurnaroundTime(p, clock) / 1000
-  })), [processes, clock]);
+  const chartData = useMemo(
+    () =>
+      processes.map((p) => ({
+        pid: p.pid,
+        wait: getWaitTime(p, clock) / 1000,
+        response: getResponseTime(p, clock) / 1000,
+        turnaround: getTurnaroundTime(p, clock) / 1000,
+      })),
+    [processes, clock]
+  );
 
   const chartConfig = {
     wait: {
@@ -32,7 +34,7 @@ export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, cl
     turnaround: {
       label: "Turnaround Time",
       color: "var(--chart-5)",
-    }
+    },
   } satisfies ChartConfig;
 
   return (
@@ -47,11 +49,11 @@ export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, cl
           axisLine={false}
           tickFormatter={(value) => `PID:${value}`}
         />
-        <YAxis axisLine={false} tickLine={false}/>
+        <YAxis axisLine={false} tickLine={false} />
         <ChartTooltip content={<ChartTooltipContent labelKey={"pid"} />} />
-        <Bar dataKey="wait" fill="var(--chart-2)" radius={4}/>
+        <Bar dataKey="wait" fill="var(--chart-2)" radius={4} />
         <Bar dataKey="response" fill="var(--chart-1)" radius={4} />
-        <Bar dataKey="turnaround" fill="var(--chart-5)" radius={4}/>
+        <Bar dataKey="turnaround" fill="var(--chart-5)" radius={4} />
       </BarChart>
     </ChartContainer>
   );

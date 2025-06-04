@@ -14,7 +14,6 @@ import { QuizDisplay } from "./QuizDisplay";
 import { PerformanceChart } from "./PerformanceChart";
 import { ContextSwitchCard } from "./ContextSwitchCard";
 
-
 interface Props {
   controller: SchedulerController;
 }
@@ -99,9 +98,9 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
                 />
               ))
             ) : csStart < controller.clock ? (
-              <ContextSwitchCard 
+              <ContextSwitchCard
                 controller={controller}
-                time={(controller.contextSwitchDuration * 1000) - (csEnd - controller.clock)}
+                time={controller.contextSwitchDuration * 1000 - (csEnd - controller.clock)}
               />
             ) : null}
           </div>

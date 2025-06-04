@@ -7,11 +7,15 @@ interface Props {
 
 export const IconButton: React.FunctionComponent<PropsWithChildren<Props>> = ({
   onClick,
-  disabled=false,
+  disabled = false,
   children,
 }) => {
   return (
-    <button onClick={onClick} disabled={disabled} className="cursor-pointer bg-transparent outline-none">
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="cursor-pointer bg-transparent outline-none"
+    >
       {children}
     </button>
   );

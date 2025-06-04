@@ -33,7 +33,7 @@ export enum Algorithm {
   RR = "RR",
 }
 
-export const PREEMPTIVE_ALGORITHMS: Array<Algorithm> = [
+export const PREEMPTIVE_ALGORITHMS: Algorithm[] = [
   Algorithm.SCTF,
   Algorithm.RR,
   Algorithm.CFS,
@@ -45,7 +45,7 @@ export enum SchedulerState {
 }
 
 export interface QuizQuestion {
-  options: Array<number>;
+  options: number[];
   correct: number;
 }
 
@@ -83,5 +83,3 @@ export interface SchedulerController {
   lastRun?: Process;
   nextRun?: Process;
 }
-
-

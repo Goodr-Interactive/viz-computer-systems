@@ -8,12 +8,10 @@ import {
   EventType,
   PREEMPTIVE_ALGORITHMS,
 } from "../types";
-import { minBy } from "lodash";
+import { minBy , sampleSize, shuffle } from "lodash";
 import { useQuizMode } from "./useQuizMode";
-import { sampleSize, shuffle } from "lodash";
 
-
-export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerController => {
+export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerController => {
   const [state, setState] = useState<SchedulerState>(SchedulerState.PAUSED);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [contextSwitchFrequency, _setContextSwitchFrequency] = useState<number>(5);
@@ -66,7 +64,6 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
 
   const running = processes.find((p) => p.status === ProcessStatus.RUNNING);
 
-
   const processUpdate = () => {
     setClock((c) => {
       const now = c + 100 * playbackSpeed;
@@ -81,7 +78,7 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
       if (now >= start && running) {
         initiateContextSwitch(now);
       }
-      
+
       setProcesses((p) =>
         p.map((process) => ({
           ...process,
@@ -104,7 +101,7 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
     }
   }, [state, running]);
 
-  const nextProcess = (algorithm: Algorithm, processes: Array<Process>): Process | undefined => {
+  const nextProcess = (algorithm: Algorithm, processes: Process[]): Process | undefined => {
     const waitingProcesses = processes.filter(
       (process) => process.status === ProcessStatus.WAITING
     );
@@ -114,8 +111,8 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
       case Algorithm.FCFS:
         return minBy(waitingProcesses, (p) => p.enquedAt);
       case Algorithm.RR:
-        const greaterPids = waitingProcesses.filter(({ pid }) => pid > (lastRun?.pid ?? 0))
-        return minBy(greaterPids.length ? greaterPids : waitingProcesses, p => p.pid);
+        const greaterPids = waitingProcesses.filter(({ pid }) => pid > (lastRun?.pid ?? 0));
+        return minBy(greaterPids.length ? greaterPids : waitingProcesses, (p) => p.pid);
       case Algorithm.CFS:
         return minBy(waitingProcesses, (p) => p.vruntime);
       case Algorithm.SCTF:
@@ -171,14 +168,21 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
   const willComplete = (process: Process) => {
     const vruntime = (process.vruntime + 100) / 1000;
     return vruntime >= process.duration;
-  }
+  };
 
   const completeContextSwitch = (now: number) => {
-    const next = nextProcess(algorithm, processes.filter(({pid}) => pid !== lastRun?.pid)) ?? ((lastRun && !willComplete(lastRun)) ? lastRun : undefined);
+    const next =
+      nextProcess(
+        algorithm,
+        processes.filter(({ pid }) => pid !== lastRun?.pid)
+      ) ?? (lastRun && !willComplete(lastRun) ? lastRun : undefined);
     if (next) {
       execute(next.pid, now);
       const processEndTime = now + next.duration * 1000 - next.vruntime + 100;
-      if (PREEMPTIVE_ALGORITHMS.includes(algorithm) && processes.filter(({ status }) => status === ProcessStatus.WAITING).length) {
+      if (
+        PREEMPTIVE_ALGORITHMS.includes(algorithm) &&
+        processes.filter(({ status }) => status === ProcessStatus.WAITING).length
+      ) {
         const csAt = now + contextSwitchFrequency * 1000;
         const csStart = Math.min(processEndTime, csAt);
         setContextSwitchTimes([csStart, csStart + contextSwitchDuration * 1000]);
@@ -189,11 +193,15 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
   };
 
   const initiateContextSwitch = (now: number) => {
-    if(running) {
+    if (running) {
       setLastRun(running);
       suspend(running.pid, now);
-    } 
-    const next = nextProcess(algorithm, processes.filter(({ pid }) => pid !== running?.pid)) ?? ((running && !willComplete(running)) ? running : undefined);
+    }
+    const next =
+      nextProcess(
+        algorithm,
+        processes.filter(({ pid }) => pid !== running?.pid)
+      ) ?? (running && !willComplete(running) ? running : undefined);
     setNextRun(next);
     const waitingProcesses = processes.filter(
       (process) => process.status === ProcessStatus.WAITING && process.pid !== next?.pid
@@ -237,6 +245,6 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
     quiz,
     contextSwitchTimes,
     lastRun,
-    nextRun
+    nextRun,
   };
 };

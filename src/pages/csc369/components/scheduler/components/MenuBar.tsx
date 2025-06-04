@@ -22,7 +22,6 @@ export const MenuBar: React.FunctionComponent<Props> = ({ controller, allowedAlg
     Algorithm.SCTF,
     Algorithm.RR,
     Algorithm.CFS,
-    Algorithm.DIY
   ]
 
   return (

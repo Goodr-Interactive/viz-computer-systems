@@ -120,8 +120,6 @@ export const useScheduler = (allowedAlgorithms?: Array<Algorithm>): SchedulerCon
         return minBy(waitingProcesses, (p) => p.vruntime);
       case Algorithm.SCTF:
         return minBy(waitingProcesses, (p) => p.duration - p.vruntime);
-      case Algorithm.DIY:
-        return undefined;
     }
   };
 

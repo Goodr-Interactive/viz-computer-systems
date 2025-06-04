@@ -7,7 +7,7 @@ interface Props {
   controller: SchedulerController;
 }
 
-const UNKNOWN_RUNTIME_ALGORITHMS = [Algorithm.CFS, Algorithm.DIY, Algorithm.RR];
+const UNKNOWN_RUNTIME_ALGORITHMS = [Algorithm.CFS, Algorithm.RR];
 
 export const ProcessController: React.FunctionComponent<Props> = ({ controller }) => {
   const addProcess = (seconds?: number) => {

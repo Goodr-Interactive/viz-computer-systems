@@ -54,3 +54,16 @@ export const virtualBitsOptions = [
   { value: VirtualAddressBits.BITS_28, label: "28 bits" },
   { value: VirtualAddressBits.BITS_30, label: "30 bits" },
 ];
+
+// Colors for PDBR, Physical PFN, and Virtual Offset blocks
+export const physicalPfnColor = "bg-sky-100";
+export const physicalPfnBorder = "border-sky-300";
+export const physicalPfnColorHover = "group-hover:bg-sky-200";
+
+export const pdbrColor = "bg-gray-100";
+export const pdbrBorder = "border-gray-300";
+export const pdbrColorHover = "group-hover:bg-gray-200";
+
+export const virtualOffsetColor = "bg-emerald-100";
+export const virtualOffsetBorder = "border-emerald-300";
+export const virtualOffsetColorHover = "group-hover:bg-emerald-200";

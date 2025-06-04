@@ -4,17 +4,15 @@ import * as d3 from "d3";
 import { BinaryBlock } from "./BinaryBlock";
 import { PageTableDisplay } from "./PageTableDisplay";
 import { SubsectionHeading } from "./SubsectionHeading";
-import type { TranslationValues, PageTableEntry } from "../TranslationSystem"; // Added PageTableEntry import
-
-// Color constants - these could be passed as props or imported from a central place
-// For now, keeping them local to where they are used (PDBR, Final PFN)
-const physicalPfnColor = "bg-sky-100";
-const physicalPfnBorder = "border-sky-300";
-const physicalPfnColorHover = "group-hover:bg-sky-200";
-
-const pdbrColor = "bg-gray-100";
-const pdbrBorder = "border-gray-300";
-const pdbrColorHover = "group-hover:bg-gray-200";
+import type { TranslationValues, PageTableEntry } from "../TranslationSystemNew"; // Added PageTableEntry import
+import {
+  physicalPfnColor,
+  physicalPfnBorder,
+  physicalPfnColorHover,
+  pdbrColor,
+  pdbrBorder,
+  pdbrColorHover,
+} from "../constants";
 
 interface ArrowRenderConfig {
   id: string;
@@ -49,6 +47,8 @@ interface AddressTranslationVisualizerProps {
   // We will also need isAnimating and setIsAnimating for the motion components callbacks
   // but drawArrows will no longer be gated by isAnimating itself.
   setIsAnimating: (isAnimating: boolean) => void;
+  // Add page table capacity
+  pageTableCapacity: number;
 }
 
 export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizerProps> = ({
@@ -61,6 +61,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
   formatNumber,
   handleEntrySelection,
   setIsAnimating, // Received from parent
+  pageTableCapacity,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null); // For arrow coordinate calculations
@@ -292,8 +293,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                         levelIndex={levelIndex}
                         pageTablePfn={pageTable.tablePfn}
                         tableDisplayData={memoizedDisplayData[levelIndex]}
-                        totalEntriesInTable={pageTable.entries.length}
-                        virtualIndexForThisLevel={translationData.virtualIndices[levelIndex]}
+                        totalEntriesInTable={pageTableCapacity}
                         selectedEntriesForTest={selectedEntries}
                         testMode={testMode}
                         showHex={showHex}

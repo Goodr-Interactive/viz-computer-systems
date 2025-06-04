@@ -2,18 +2,16 @@ import React from "react";
 import { BinaryBlock } from "./BinaryBlock";
 import { InputBinaryBlock } from "./InputBinaryBlock";
 import { SubsectionHeading } from "./SubsectionHeading";
-import { TranslationSystem } from "../TranslationSystem"; // For toHex, toBinary
+import { TranslationSystem } from "../TranslationSystemNew"; // For toHex, toBinary
 import { Check, X } from "lucide-react";
-
-// Assuming these color constants are either passed as props or defined/imported here
-// For now, hardcoding for simplicity, mirroring TranslationExample
-const physicalPfnColor = "bg-sky-100";
-const physicalPfnBorder = "border-sky-300";
-const physicalPfnColorHover = "group-hover:bg-sky-200";
-
-const virtualOffsetColor = "bg-emerald-100";
-const virtualOffsetBorder = "border-emerald-300";
-const virtualOffsetColorHover = "group-hover:bg-emerald-200";
+import {
+  physicalPfnColor,
+  physicalPfnBorder,
+  physicalPfnColorHover,
+  virtualOffsetColor,
+  virtualOffsetBorder,
+  virtualOffsetColorHover,
+} from "../constants";
 
 interface PhysicalAddressSystemInfo {
   pfnBits: number;

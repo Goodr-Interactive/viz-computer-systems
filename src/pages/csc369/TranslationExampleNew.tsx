@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   TranslationSystem,
-  type PageTableLevel,
+  // type PageTableLevel, // No longer needed here
   type TranslationValues,
-} from "./components/paging/TranslationSystem";
+} from "./components/paging/TranslationSystemNew";
 import { PhysicalMemorySize, PageSize } from "./components/paging/types";
 import { SectionHeading } from "./components/paging/ui/SectionHeading";
 import { TranslationControls } from "./components/paging/ui/TranslationControls";
@@ -11,7 +11,7 @@ import { VirtualAddressDisplay } from "./components/paging/ui/VirtualAddressDisp
 import { PhysicalAddressDisplay } from "./components/paging/ui/PhysicalAddressDisplay";
 import { AddressTranslationVisualizer } from "./components/paging/ui/AddressTranslationVisualizer";
 
-export const TranslationExample: React.FC = () => {
+export const TranslationExampleNew: React.FC = () => {
   const [translationSystem, setTranslationSystem] = useState<TranslationSystem | null>(null);
   const [translation, setTranslation] = useState<TranslationValues | null>(null);
   const [showHex, setShowHex] = useState<boolean>(false);
@@ -22,26 +22,36 @@ export const TranslationExample: React.FC = () => {
   const [userOffsetBits, setUserOffsetBits] = useState<Array<0 | 1>>([]);
   const [, setIsAnimating] = useState<boolean>(false);
 
-  const pageTableLevels: PageTableLevel[] = [
-    { indexBits: 8, label: "PD Index" },
-    { indexBits: 8, label: "PT Index" },
-  ];
+  // Fixed page table levels for the new system (2 levels hardcoded)
+  // This array is no longer needed as VirtualAddressDisplay now takes a number
+  // and the system inherently has 2 levels.
+  // const pageTableLevels: PageTableLevel[] = [
+  //   { indexBits: 8, label: "PD Index" },
+  //   { indexBits: 8, label: "PT Index" },
+  // ];
 
   useEffect(() => {
-    const system = new TranslationSystem(PhysicalMemorySize.KB_32, PageSize.B_256, pageTableLevels);
+    const system = new TranslationSystem(PhysicalMemorySize.KB_32, PageSize.B_256);
     setTranslationSystem(system);
-    setTranslation(system.generateTranslation());
+    setTranslation(system.getTranslationValues());
   }, []);
 
   const handleEntrySelection = (levelIndex: number, entryIndex: number) => {
     if (!testMode || !translation) return;
-    const correctIndex = translation.virtualIndices[levelIndex];
-    if (entryIndex === correctIndex) {
-      setIsAnimating(true);
-      const newSelectedEntries = [...selectedEntries];
-      newSelectedEntries[levelIndex] = entryIndex;
-      setSelectedEntries(newSelectedEntries);
-    }
+    
+    // Get the display data for this level to find the correct mapping
+    const displayData = memoizedDisplayData[levelIndex];
+    if (!displayData) return;
+    
+    // Find the array index that corresponds to this page table entry index
+    const entryInDisplay = displayData.entries.find(entry => entry.index === entryIndex);
+    if (!entryInDisplay || !entryInDisplay.isCorrect) return;
+    
+    // If we found the correct entry, proceed with selection
+    setIsAnimating(true);
+    const newSelectedEntries = [...selectedEntries];
+    newSelectedEntries[levelIndex] = entryIndex;
+    setSelectedEntries(newSelectedEntries);
   };
 
   const isTestComplete = () => {
@@ -54,7 +64,10 @@ export const TranslationExample: React.FC = () => {
 
   const generateNewTranslation = () => {
     if (translationSystem) {
-      setTranslation(translationSystem.generateTranslation());
+      // Create a new system to get fresh translation values
+      const newSystem = new TranslationSystem(PhysicalMemorySize.KB_32, PageSize.B_256);
+      setTranslationSystem(newSystem);
+      setTranslation(newSystem.getTranslationValues());
       setSelectedEntries([]);
       setUserPhysicalAddress("");
       setUserPfnBits([]);
@@ -114,11 +127,22 @@ export const TranslationExample: React.FC = () => {
 
   const systemInfo = translationSystem.getSystemInfo();
   const breakdown = translationSystem.getVirtualAddressBreakdown(translation);
+  
+  // Map the breakdown indices to show actual page table indices instead of raw bit values
   const vaBitCalculations = breakdown.indices.map((level, i) => {
     let startBit = breakdown.offset.bits.length;
     for (let k = i + 1; k < breakdown.indices.length; k++)
       startBit += breakdown.indices[k].bits.length;
-    return { ...level, startBit };
+    
+    // Get the actual page table index for this level
+    const pageTable = translation.pageTables[i];
+    const actualIndex = pageTable.startIndex + translation.virtualIndices[i];
+    
+    return { 
+      ...level, 
+      value: actualIndex, // Override with actual page table index
+      startBit 
+    };
   });
   const totalVirtualAddressBits =
     breakdown.indices.reduce((sum, item) => sum + item.bits.length, 0) +
@@ -137,10 +161,10 @@ export const TranslationExample: React.FC = () => {
   return (
     <div className="flex w-full flex-col items-center gap-10 p-8 pb-24">
       <section className="w-full max-w-6xl">
-        <SectionHeading>Virtual Address Translation</SectionHeading>
+        <SectionHeading>Virtual Address Translation (New System)</SectionHeading>
         <p className="text-muted-foreground mt-2 mb-6">
           This visualization demonstrates a step-by-step virtual to physical address translation
-          process using hierarchical page tables. Click the button to generate a new random
+          process using hierarchical page tables with the new translation system. Click the button to generate a new random
           translation scenario.
         </p>
         <TranslationControls
@@ -159,7 +183,7 @@ export const TranslationExample: React.FC = () => {
         virtualAddressOffset={breakdown.offset}
         testMode={testMode}
         formatNumber={formatNumber}
-        pageTableLevels={pageTableLevels}
+        pageTableLevels={systemInfo.pageTableLevels}
       />
 
       <AddressTranslationVisualizer
@@ -172,6 +196,7 @@ export const TranslationExample: React.FC = () => {
         formatNumber={formatNumber}
         handleEntrySelection={handleEntrySelection}
         setIsAnimating={setIsAnimating}
+        pageTableCapacity={translationSystem.getSystemInfo().pageSize / 4}
       />
 
       <PhysicalAddressDisplay
@@ -190,4 +215,4 @@ export const TranslationExample: React.FC = () => {
       />
     </div>
   );
-};
+}; 

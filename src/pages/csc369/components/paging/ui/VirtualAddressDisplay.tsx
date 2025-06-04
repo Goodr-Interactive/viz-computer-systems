@@ -2,7 +2,8 @@ import React from "react";
 import { BinaryBlock } from "./BinaryBlock";
 import { SubsectionHeading } from "./SubsectionHeading";
 import { PageTableLevelColors } from "../constants";
-import { TranslationSystem, type PageTableLevel } from "../TranslationSystem"; // Assuming types can be imported
+import { TranslationSystem } from "../TranslationSystemNew"; // Assuming types can be imported
+// import type { PageTableLevel } from "../TranslationSystemNew"; // No longer needed
 
 // We need to replicate or import the structure of breakdown and vaBitCalculations
 // For now, defining simplified interfaces. These should ideally come from a shared types file.
@@ -25,7 +26,7 @@ interface VirtualAddressDisplayProps {
   virtualAddressOffset: VirtualAddressOffset; // Changed from breakdown to be more specific
   testMode: boolean;
   formatNumber: (num: number, padLength?: number) => string;
-  pageTableLevels: PageTableLevel[]; // For tooltip logic
+  pageTableLevels: number; // For tooltip logic - This is now a number
 }
 
 export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
@@ -64,7 +65,7 @@ export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
                       {level.label} ({level.bits.length} bits)
                     </p>
                     <p className="text-xs">
-                      {i === pageTableLevels.length - 1
+                      {i === pageTableLevels - 1
                         ? "Indexes into the final page table to find the physical frame number."
                         : `Indexes into page directory level ${i} to find the next page table.`}
                     </p>

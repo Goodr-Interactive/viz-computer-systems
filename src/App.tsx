@@ -4,7 +4,7 @@ import { Home } from "./pages";
 
 // operating system pages
 import { SimplePaging } from "./pages/csc369/SimplePaging";
-import { TranslationExample } from "./pages/csc369/TranslationExample";
+import { TranslationExampleNew } from "./pages/csc369/TranslationExampleNew";
 
 // computer architecture pages
 import { CSC368 } from "./pages/csc368/CSC368";
@@ -48,8 +48,8 @@ const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc369/paging/translation",
-    element: <TranslationExample />,
-  },
+    element: <TranslationExampleNew />,
+  }
 ];
 
 export default function App() {

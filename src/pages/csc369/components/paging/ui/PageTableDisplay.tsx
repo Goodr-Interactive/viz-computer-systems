@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageTableLevelColors } from "../constants";
-import type { PageTableEntry } from "../TranslationSystem"; // Assuming PageTableEntry type is exportable
+import type { PageTableEntry } from "../TranslationSystemNew"; // Assuming PageTableEntry type is exportable
 
 // This type might need to be refined or imported if it exists elsewhere
 interface DisplayEntry {
@@ -30,7 +30,6 @@ interface PageTableDisplayProps {
   pageTablePfn: number; // PFN of this specific page table, for the heading
   tableDisplayData: DisplayData; // The processed entries to display (subset with ellipsis logic)
   totalEntriesInTable: number; // For ellipsis logic comparison
-  virtualIndexForThisLevel: number; // The correct index for this level
   selectedEntriesForTest: Array<number | null>; // To know if this level's correct entry has been selected
   testMode: boolean;
   showHex: boolean;
@@ -54,7 +53,6 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
   pageTablePfn,
   tableDisplayData,
   totalEntriesInTable,
-  // virtualIndexForThisLevel, // Not directly used if tableDisplayData.isCorrect is reliable
   selectedEntriesForTest,
   testMode,
   showHex,
@@ -114,6 +112,7 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
           {(() => {
             if (!tableDisplayData) return null;
 
+            // Inline ellipses logic - show ellipses if there are entries before/after the displayed range
             const hasMoreAbove = tableDisplayData.startIndex > 0;
             const hasMoreBelow = tableDisplayData.endIndex < totalEntriesInTable - 1;
             const rows = [];

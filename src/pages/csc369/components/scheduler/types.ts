@@ -33,11 +33,7 @@ export enum Algorithm {
   RR = "RR",
 }
 
-export const PREEMPTIVE_ALGORITHMS: Algorithm[] = [
-  Algorithm.SCTF,
-  Algorithm.RR,
-  Algorithm.CFS,
-];
+export const PREEMPTIVE_ALGORITHMS: Algorithm[] = [Algorithm.SCTF, Algorithm.RR, Algorithm.CFS];
 
 export enum SchedulerState {
   RUNNING = "RUNNING",

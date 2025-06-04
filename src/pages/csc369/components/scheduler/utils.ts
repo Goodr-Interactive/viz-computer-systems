@@ -59,10 +59,7 @@ export const formatMetric = (value: number): string => {
   return (value / 1000).toFixed(1);
 };
 
-export function partition<T>(
-  data: T[],
-  condition: (item: T) => boolean
-): [T[], T[]] {
+export function partition<T>(data: T[], condition: (item: T) => boolean): [T[], T[]] {
   return data.reduce(
     ([yes, no], item) => {
       if (condition(item)) {

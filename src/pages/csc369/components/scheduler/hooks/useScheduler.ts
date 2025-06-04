@@ -8,7 +8,7 @@ import {
   EventType,
   PREEMPTIVE_ALGORITHMS,
 } from "../types";
-import { minBy , sampleSize, shuffle } from "lodash";
+import { minBy, sampleSize, shuffle } from "lodash";
 import { useQuizMode } from "./useQuizMode";
 
 export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerController => {

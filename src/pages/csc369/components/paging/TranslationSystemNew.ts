@@ -185,6 +185,10 @@ export class TranslationSystem {
       throw new Error(`Expected page table at PFN ${pfn} but none found in coreMap`);
     }
 
+    if (existingPageTable.entries.some((entry) => entry.rwx !== null)) {
+      throw new Error(`Page table at PFN ${pfn} contains PTEs, not PDEs`);
+    }
+
     // Check if we have enough space for the new entries
     const totalEntriesNeeded = existingPageTable.numEntries + numEntries;
     if (totalEntriesNeeded > this.numEntries) {

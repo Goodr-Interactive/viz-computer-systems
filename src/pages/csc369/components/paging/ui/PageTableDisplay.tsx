@@ -67,6 +67,9 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
   onLayoutAnimationComplete,
 }) => {
   const levelColors = PageTableLevelColors[levelIndex % PageTableLevelColors.length];
+  
+  // Check if this is the final page table (has RWX bits)
+  const isFinalPageTable = tableDisplayData?.entries?.some(({ entry }) => entry.rwx !== null) || false;
 
   return (
     <motion.div
@@ -87,7 +90,7 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <h4 className="mb-1 text-left text-sm font-medium">
+            <h4 className="ml-[64px] mb-1 text-sm font-medium">
               <span className="border-muted-foreground/50 hover:border-muted-foreground cursor-help border-b border-dotted transition-colors">
                 PFN: {formatNumber(pageTablePfn)}
               </span>
@@ -100,12 +103,15 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <Table className="w-auto border" ref={pageTableElementRef}>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16 border-r text-center">Index</TableHead>
-            <TableHead className="w-16 border-r text-center">Valid</TableHead>
-            <TableHead className="w-16 text-center">PFN</TableHead>
+      <Table className="w-auto" ref={pageTableElementRef}>
+        <TableHeader className="[&_tr]:border-b-0">
+          <TableRow className="border-0">
+            <TableHead className="w-16 text-right text-xs text-muted-foreground pr-2 font-mono"></TableHead>
+            <TableHead className="w-16 border text-center font-medium">Valid</TableHead>
+            {isFinalPageTable && (
+              <TableHead className="w-16 border text-center font-medium">RWX</TableHead>
+            )}
+            <TableHead className="w-16 border text-center font-medium">PFN</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -119,10 +125,13 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
 
             if (hasMoreAbove) {
               rows.push(
-                <TableRow key="ellipsis-above">
-                  <TableCell className="border-r text-center text-gray-400">⋮</TableCell>
-                  <TableCell className="border-r text-center text-gray-400">⋮</TableCell>
-                  <TableCell className="text-center text-gray-400">⋮</TableCell>
+                <TableRow key="ellipsis-above" className="border-0">
+                  <TableCell className="text-left text-gray-400"></TableCell>
+                  <TableCell className="border text-center text-gray-400">⋮</TableCell>
+                  {isFinalPageTable && (
+                    <TableCell className="border text-center text-gray-400">⋮</TableCell>
+                  )}
+                  <TableCell className="border text-center text-gray-400">⋮</TableCell>
                 </TableRow>
               );
             }
@@ -133,16 +142,14 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
                 : isCorrect;
               const isClickable = testMode && !selectedEntriesForTest[levelIndex];
 
-              let hoverClass = "hover:bg-gray-200/50";
+              let hoverClass = "group-hover:bg-gray-200/50";
               if (showAsCorrect) {
-                if (levelColors.hover.includes("indigo")) hoverClass = "hover:bg-indigo-200";
-                else if (levelColors.hover.includes("purple")) hoverClass = "hover:bg-purple-200";
-                else if (levelColors.hover.includes("pink")) hoverClass = "hover:bg-pink-200";
+                if (levelColors.hover.includes("indigo")) hoverClass = "group-hover:bg-indigo-200";
+                else if (levelColors.hover.includes("purple")) hoverClass = "group-hover:bg-purple-200";
+                else if (levelColors.hover.includes("pink")) hoverClass = "group-hover:bg-pink-200";
               }
 
-              const rowClasses = showAsCorrect
-                ? `${levelColors.background} ${hoverClass} transition-colors`
-                : `${hoverClass} transition-colors ${isClickable ? "cursor-pointer" : ""}`;
+              const rowClasses = `group transition-colors border-b-0 ${isClickable ? "cursor-pointer" : ""}`;
 
               rows.push(
                 <TableRow
@@ -150,18 +157,19 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
                   className={rowClasses}
                   onClick={isClickable ? () => handleEntrySelection(levelIndex, index) : undefined}
                 >
-                  <TableCell
-                    className={`border-r text-center font-mono ${showAsCorrect ? levelColors.border : "border-border"}`}
-                  >
+                  <TableCell className="border-0 text-xs text-right pr-3 font-mono text-muted-foreground">
                     {formatNumber(index, showHex ? 2 : undefined)}
                   </TableCell>
-                  <TableCell
-                    className={`border-r text-center font-mono ${showAsCorrect ? levelColors.border : "border-border"}`}
-                  >
+                  <TableCell className={`border text-center font-mono border-border ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}>
                     {entry.valid ? "1" : "0"}
                   </TableCell>
+                  {isFinalPageTable && (
+                    <TableCell className={`border text-center font-mono border-border ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}>
+                      {entry.valid && entry.rwx !== null ? (entry.rwx).toString(2).padStart(3, '0') : "---"}
+                    </TableCell>
+                  )}
                   <TableCell
-                    className={`text-center font-mono ${showAsCorrect ? levelColors.border : "border-border"}`}
+                    className={`border text-center font-mono border-border ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}
                     ref={showAsCorrect ? activePfnCellRef : undefined}
                   >
                     {entry.valid ? formatNumber(entry.pfn!) : "-"}
@@ -172,10 +180,13 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
 
             if (hasMoreBelow) {
               rows.push(
-                <TableRow key="ellipsis-below">
-                  <TableCell className="border-r text-center text-gray-400">⋮</TableCell>
-                  <TableCell className="border-r text-center text-gray-400">⋮</TableCell>
-                  <TableCell className="text-center text-gray-400">⋮</TableCell>
+                <TableRow key="ellipsis-below" className="border-0">
+                  <TableCell className="border-0 text-center text-gray-400"></TableCell>
+                  <TableCell className="border text-center text-gray-400">⋮</TableCell>
+                  {isFinalPageTable && (
+                    <TableCell className="border text-center text-gray-400">⋮</TableCell>
+                  )}
+                  <TableCell className="border text-center text-gray-400">⋮</TableCell>
                 </TableRow>
               );
             }

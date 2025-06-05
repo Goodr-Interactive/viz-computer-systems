@@ -123,11 +123,13 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                   )
                 }
               />
-              <InputBinaryBlock
-                key={`pa-offset-input-${virtualAddressForInputKey}`} // Use a key that changes with translation
+              <BinaryBlock
+                key="pa-offset-test"
                 blocks={systemInfo.offsetBits}
-                initialValues={userOffsetBits}
-                onChange={setUserOffsetBits}
+                digits={TranslationSystem.toBinary(
+                  translationData.virtualOffsetValue, // Use the offset value directly
+                  systemInfo.offsetBits
+                ).split("")}
                 color={virtualOffsetColor}
                 borderColor={virtualOffsetBorder}
                 hoverColor={virtualOffsetColorHover}
@@ -135,16 +137,6 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                 showBitNumbers={true}
                 showLeftBorder={true}
                 startBitNumber={0}
-                tooltip={
-                  testMode ? undefined : (
-                    <div className="max-w-sm space-y-1">
-                      <p className="text-sm font-medium">
-                        Page Offset ({systemInfo.offsetBits} bits)
-                      </p>
-                      <p className="text-xs">Copy the offset bits from the virtual address.</p>
-                    </div>
-                  )
-                }
               />
             </>
           ) : (

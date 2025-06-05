@@ -2,9 +2,11 @@ import React, { useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import * as d3 from "d3";
 import { BinaryBlock } from "./BinaryBlock";
+import { StringBlock } from "./StringBlock";
 import { PageTableDisplay } from "./PageTableDisplay";
 import { SubsectionHeading } from "./SubsectionHeading";
-import type { TranslationValues, PageTableEntry } from "../TranslationSystemNew"; // Added PageTableEntry import
+import type { TranslationValues, PageTableEntry } from "../TranslationSystemNew";
+import { TranslationSystem } from "../TranslationSystemNew";
 import {
   physicalPfnColor,
   physicalPfnBorder,
@@ -83,15 +85,19 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
       const firstTableElement = tableElementRefs.current[0];
       if (pdbrBlockElement && firstTableElement) {
         const pdbrRect = pdbrBlockElement.getBoundingClientRect();
-        const firstTableRect = firstTableElement.getBoundingClientRect();
-        arrowConfigs.push({
-          id: "pdbr-to-table0",
-          startX: pdbrRect.right + 10 - containerRect.left,
-          startY: pdbrRect.top + pdbrRect.height / 2 - containerRect.top,
-          endX: firstTableRect.left - containerRect.left - 10,
-          endY: firstTableRect.top - containerRect.top,
-          isOrthogonal: true,
-        });
+        // Target the Valid header cell (second th element)
+        const validHeaderCell = firstTableElement.querySelector("thead th:nth-child(2)");
+        if (validHeaderCell) {
+          const validHeaderRect = validHeaderCell.getBoundingClientRect();
+          arrowConfigs.push({
+            id: "pdbr-to-table0",
+            startX: pdbrRect.right + 10 - containerRect.left,
+            startY: pdbrRect.top + pdbrRect.height / 2 - containerRect.top,
+            endX: validHeaderRect.left - containerRect.left - 10,
+            endY: validHeaderRect.top - containerRect.top,
+            isOrthogonal: true,
+          });
+        }
       }
     }
 
@@ -104,15 +110,19 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
         const nextTableElement = tableElementRefs.current[i + 1];
         if (activePfnCell && nextTableElement) {
           const pfnCellRect = activePfnCell.getBoundingClientRect();
-          const nextTableRect = nextTableElement.getBoundingClientRect();
-          arrowConfigs.push({
-            id: `table${i}-to-table${i + 1}`,
-            startX: pfnCellRect.right + 10 - containerRect.left,
-            startY: pfnCellRect.top + pfnCellRect.height / 2 - containerRect.top,
-            endX: nextTableRect.left - containerRect.left - 10,
-            endY: nextTableRect.top - containerRect.top,
-            isOrthogonal: true,
-          });
+          // Target the Valid header cell (second th element)
+          const validHeaderCell = nextTableElement.querySelector("thead th:nth-child(2)");
+          if (validHeaderCell) {
+            const validHeaderRect = validHeaderCell.getBoundingClientRect();
+            arrowConfigs.push({
+              id: `table${i}-to-table${i + 1}`,
+              startX: pfnCellRect.right + 10 - containerRect.left,
+              startY: pfnCellRect.top + pfnCellRect.height / 2 - containerRect.top,
+              endX: validHeaderRect.left - containerRect.left - 10,
+              endY: validHeaderRect.top - containerRect.top,
+              isOrthogonal: true,
+            });
+          }
         }
       }
     }
@@ -157,8 +167,9 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
       .enter()
       .append("path")
       .attr("class", "arrow")
-      .attr("stroke", "#9ca3af")
+      .attr("stroke", "#b5b9c1")
       .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "3 3")
       .attr("fill", "none")
       .attr("marker-end", "url(#arrowhead)")
       .attr("opacity", 0);
@@ -169,9 +180,10 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
       .transition()
       .duration(400)
       .attr("d", (d) => {
-        const midPointX = d.startX + (d.endX - d.startX) * 0.5;
+        const midPointX = d.startX + (d.endX - d.startX) * 0.4;
+        const cornerRadius = 16; // Radius for the curved corner
         return d.isOrthogonal
-          ? `M ${d.startX} ${d.startY} L ${midPointX} ${d.startY} L ${midPointX} ${d.endY} L ${d.endX} ${d.endY}`
+          ? `M ${d.startX} ${d.startY} L ${midPointX - cornerRadius} ${d.startY} Q ${midPointX} ${d.startY} ${midPointX} ${d.startY + Math.sign(d.endY - d.startY) * cornerRadius} L ${midPointX} ${d.endY - Math.sign(d.endY - d.startY) * cornerRadius} Q ${midPointX} ${d.endY} ${midPointX + cornerRadius} ${d.endY} L ${d.endX} ${d.endY}`
           : `M ${d.startX} ${d.startY} L ${d.endX} ${d.endY}`;
       })
       .attr("opacity", 1);
@@ -189,7 +201,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
         .attr("orient", "auto")
         .append("polygon")
         .attr("points", "0 0, 10 3.5, 0 7")
-        .attr("fill", "#9ca3af");
+        .attr("fill", "#b5b9c1");
     }
   }, [translationData, testMode, selectedEntries, isTestComplete]); // Removed isAnimating dependency
 
@@ -240,7 +252,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
             ref={containerRef}
           >
             <LayoutGroup>
-              <div className="flex h-full w-full items-start justify-center gap-16 overflow-x-auto">
+              <div className="flex h-full w-full items-start justify-center gap-10 overflow-x-auto">
                 {/* PDBR Block */}
                 <motion.div
                   ref={pdbrRef}
@@ -256,20 +268,19 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                   onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
                   onLayoutAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
                 >
-                  <BinaryBlock
-                    blocks={1}
+                  <StringBlock
+                    value={formatNumber(translationData.pdbr)}
                     color={pdbrColor}
                     borderColor={pdbrBorder}
                     hoverColor={pdbrColorHover}
                     label="PDBR"
-                    showBitNumbers={false}
                     showLeftBorder={true}
                     tooltip={
                       testMode ? undefined : (
                         <div className="max-w-xs space-y-1 text-left">
                           <p className="text-sm font-medium">
                             PDBR: {formatNumber(translationData.pdbr)}
-                            {!showHex && ` (Hex: ${d3.format(".0x")(translationData.pdbr)})`}
+                            {!showHex && ` (Hex: ${TranslationSystem.toHex(translationData.pdbr)})`}
                           </p>
                           <p className="text-xs">Points to the first-level page table's PFN.</p>
                         </div>
@@ -319,7 +330,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                 <AnimatePresence>
                   <motion.div
                     ref={finalPfnBlockRef}
-                    className="my-auto flex flex-shrink-0 flex-col items-center"
+                    className="ml-16 my-auto flex flex-shrink-0 flex-col items-center"
                     layout
                     initial={{ opacity: 0 }}
                     animate={{ opacity: !testMode || isTestComplete() ? 1 : 0 }}
@@ -332,20 +343,19 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                     onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
                     onLayoutAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
                   >
-                    <BinaryBlock
-                      blocks={1}
+                    <StringBlock
+                      value={formatNumber(translationData.finalPfn)}
                       color={physicalPfnColor}
                       borderColor={physicalPfnBorder}
                       hoverColor={physicalPfnColorHover}
                       label="PFN"
-                      showBitNumbers={false}
                       showLeftBorder={true}
                       tooltip={
                         testMode ? undefined : (
                           <div className="max-w-xs space-y-1 text-left">
                             <p className="text-sm font-medium">
                               Final PFN: {formatNumber(translationData.finalPfn)}
-                              {!showHex && ` (Hex: ${d3.format(".0x")(translationData.finalPfn)})`}
+                              {!showHex && ` (Hex: ${TranslationSystem.toHex(translationData.finalPfn)})`}
                             </p>
                             <p className="text-xs">
                               This is the Page Frame Number of the physical memory page for the

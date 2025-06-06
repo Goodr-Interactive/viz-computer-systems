@@ -49,7 +49,7 @@ const ROUTES: AppRoute[] = [
   {
     path: "/csc369/paging/translation",
     element: <TranslationExampleNew />,
-  }
+  },
 ];
 
 export default function App() {

@@ -1,77 +1,194 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   TranslationSystem,
-  // type PageTableLevel, // No longer needed here
+  type PageTable,
   type TranslationValues,
 } from "./components/paging/TranslationSystemNew";
-import { PhysicalMemorySize, PageSize } from "./components/paging/types";
+import { formatBytes } from "./components/paging/types";
+import { translationExampleConfig } from "./components/paging/config";
+import { translationExampleConstants, uiConstants } from "./components/paging/constants";
 import { SectionHeading } from "./components/paging/ui/SectionHeading";
 import { TranslationControls } from "./components/paging/ui/TranslationControls";
 import { VirtualAddressDisplay } from "./components/paging/ui/VirtualAddressDisplay";
 import { PhysicalAddressDisplay } from "./components/paging/ui/PhysicalAddressDisplay";
 import { AddressTranslationVisualizer } from "./components/paging/ui/AddressTranslationVisualizer";
 
-export const TranslationExampleNew: React.FC = () => {
+// Simple structure to track active state at each level
+interface LevelState {
+  tablePfn: number;
+  selectedIndex: number | null; // null means not clicked yet
+}
+
+const TranslationExampleNew: React.FC = () => {
   const [translationSystem, setTranslationSystem] = useState<TranslationSystem | null>(null);
   const [translation, setTranslation] = useState<TranslationValues | null>(null);
-  const [showHex, setShowHex] = useState<boolean>(false);
-  const [testMode, setTestMode] = useState<boolean>(false);
-  const [selectedEntries, setSelectedEntries] = useState<Array<number | null>>([]);
+  const [showHex, setShowHex] = useState<boolean>(translationExampleConstants.initialHexDisplay);
+  const [testMode, setTestMode] = useState<boolean>(translationExampleConstants.initialTestMode);
   const [userPhysicalAddress, setUserPhysicalAddress] = useState<string>("");
-  const [userPfnBits, setUserPfnBits] = useState<Array<0 | 1>>([]);
   const [userOffsetBits, setUserOffsetBits] = useState<Array<0 | 1>>([]);
   const [, setIsAnimating] = useState<boolean>(false);
+  const [hexHintMode, setHexHintMode] = useState<boolean>(
+    translationExampleConstants.initialHexHintMode
+  );
 
-  // Fixed page table levels for the new system (2 levels hardcoded)
-  // This array is no longer needed as VirtualAddressDisplay now takes a number
-  // and the system inherently has 2 levels.
-  // const pageTableLevels: PageTableLevel[] = [
-  //   { indexBits: 8, label: "PD Index" },
-  //   { indexBits: 8, label: "PT Index" },
-  // ];
+  // New simplified state: track active tables and indices for each level
+  const [activeLevels, setActiveLevels] = useState<LevelState[]>([]);
+  const [finalPfn, setFinalPfn] = useState<{ pfn: number; physicalAddress: number } | null>(null);
+
+  // State for storing dynamically generated tables
+  const [generatedTables, setGeneratedTables] = useState<Map<string, PageTable>>(new Map());
 
   useEffect(() => {
-    const system = new TranslationSystem(PhysicalMemorySize.KB_32, PageSize.B_256);
+    const system = new TranslationSystem(
+      translationExampleConfig.defaultPhysicalMemorySize,
+      translationExampleConfig.defaultPageSize,
+      translationExampleConfig.defaultPageTableLevels,
+      translationExampleConfig.defaultInvalidEntryProbability
+    );
     setTranslationSystem(system);
     setTranslation(system.getTranslationValues());
   }, []);
 
+  // Initialize state when translation or testMode changes
+  useEffect(() => {
+    if (translation && translationSystem) {
+      // General resets for any mode change
+      setUserPhysicalAddress("");
+      const systemInfoData = translationSystem.getSystemInfo();
+      setUserOffsetBits(Array(systemInfoData.offsetBits).fill(0));
+      setGeneratedTables(new Map());
+
+      // Mode-specific setup
+      if (testMode) {
+        // In test mode: start with only L0 table, no selections
+        setActiveLevels([{ tablePfn: translation.pageTables[0].tablePfn, selectedIndex: null }]);
+        setFinalPfn(null);
+      } else {
+        // In non-test mode: show all correct tables with correct selections
+        const levels = translation.pageTables.map((table, index) => ({
+          tablePfn: table.tablePfn,
+          selectedIndex: translation.virtualIndices[index],
+        }));
+        setActiveLevels(levels);
+        // Set final PFN immediately in non-test mode
+        setFinalPfn({
+          pfn: translation.finalPfn,
+          physicalAddress: translation.physicalAddress,
+        });
+        // Turn off hex hint mode when exiting test mode
+        setHexHintMode(false);
+      }
+    }
+  }, [translation, translationSystem, testMode]);
+
   const handleEntrySelection = (levelIndex: number, entryIndex: number) => {
-    if (!testMode || !translation) return;
-    
-    // Get the display data for this level to find the correct mapping
-    const displayData = memoizedDisplayData[levelIndex];
-    if (!displayData) return;
-    
-    // Find the array index that corresponds to this page table entry index
-    const entryInDisplay = displayData.entries.find(entry => entry.index === entryIndex);
-    if (!entryInDisplay || !entryInDisplay.isCorrect) return;
-    
-    // If we found the correct entry, proceed with selection
-    setIsAnimating(true);
-    const newSelectedEntries = [...selectedEntries];
-    newSelectedEntries[levelIndex] = entryIndex;
-    setSelectedEntries(newSelectedEntries);
+    if (!translation || !translationSystem || !testMode) {
+      return;
+    }
+
+    const currentLevel = activeLevels[levelIndex];
+    if (!currentLevel) {
+      return;
+    }
+
+    const newGeneratedTables = new Map(generatedTables);
+    const tableKey = `${levelIndex}-${currentLevel.tablePfn}`;
+    let clickedTable = generatedTables.get(tableKey);
+
+    if (!clickedTable) {
+      if (levelIndex === 0) {
+        clickedTable = translation.pageTables[0];
+      } else {
+        if (currentLevel.tablePfn === translation.pageTables[levelIndex]?.tablePfn) {
+          clickedTable = translation.pageTables[levelIndex];
+        } else {
+          clickedTable = translationSystem.getPageTableForDisplay(
+            currentLevel.tablePfn,
+            levelIndex
+          );
+        }
+      }
+      newGeneratedTables.set(tableKey, clickedTable);
+    }
+
+    const relativeIndex = entryIndex - clickedTable.startIndex;
+
+    if (relativeIndex < 0 || relativeIndex >= clickedTable.entries.length) {
+      return;
+    }
+
+    const clickedEntry = clickedTable.entries[relativeIndex];
+    if (!clickedEntry || !clickedEntry.valid) {
+      return;
+    }
+
+    const newActiveLevels = [...activeLevels];
+    newActiveLevels[levelIndex] = {
+      ...currentLevel,
+      selectedIndex: entryIndex,
+    };
+
+    newActiveLevels.splice(levelIndex + 1);
+
+    const isLastLevel = levelIndex === translation.pageTables.length - 1;
+    const isPTE = clickedEntry.rwx !== null;
+
+    if (isPTE || isLastLevel) {
+      const physicalAddress =
+        (clickedEntry.pfn << translationSystem.getSystemInfo().offsetBits) | translation.offset;
+
+      setFinalPfn({
+        pfn: clickedEntry.pfn,
+        physicalAddress: physicalAddress,
+      });
+    } else {
+      try {
+        const nextLevelTable = translationSystem.getPageTableForDisplay(
+          clickedEntry.pfn,
+          levelIndex + 1
+        );
+        const nextLevelTableKey = `${levelIndex + 1}-${nextLevelTable.tablePfn}`;
+        newGeneratedTables.set(nextLevelTableKey, nextLevelTable);
+
+        newActiveLevels.push({
+          tablePfn: nextLevelTable.tablePfn,
+          selectedIndex: null,
+        });
+
+        setFinalPfn(null);
+      } catch (error) {
+        console.error("Error generating next level table:", error);
+        return;
+      }
+    }
+
+    setGeneratedTables(newGeneratedTables);
+    setActiveLevels(newActiveLevels);
   };
 
   const isTestComplete = () => {
     if (!testMode || !translation) return false;
-    return (
-      selectedEntries.length === translation.pageTables.length &&
-      selectedEntries.every((entry) => entry !== null && entry !== undefined)
-    );
+    return finalPfn !== null && finalPfn.pfn === translation.finalPfn;
   };
 
   const generateNewTranslation = () => {
     if (translationSystem) {
-      // Create a new system to get fresh translation values
-      const newSystem = new TranslationSystem(PhysicalMemorySize.KB_32, PageSize.B_256);
+      // Use the same parameters as the current system
+      const systemInfo = translationSystem.getSystemInfo();
+      const newSystem = new TranslationSystem(
+        systemInfo.physicalMemorySize,
+        systemInfo.pageSize,
+        systemInfo.pageTableLevels
+      );
       setTranslationSystem(newSystem);
       setTranslation(newSystem.getTranslationValues());
-      setSelectedEntries([]);
       setUserPhysicalAddress("");
-      setUserPfnBits([]);
       setUserOffsetBits([]);
+
+      // Clear exploration state
+      setActiveLevels([]);
+      setFinalPfn(null);
+      setGeneratedTables(new Map());
     }
   };
 
@@ -83,22 +200,9 @@ export const TranslationExampleNew: React.FC = () => {
   useEffect(() => {
     if (translation && translationSystem) {
       const systemInfoData = translationSystem.getSystemInfo();
-      setUserPfnBits(Array(systemInfoData.pfnBits).fill(0));
       setUserOffsetBits(Array(systemInfoData.offsetBits).fill(0));
     }
   }, [translation, translationSystem]);
-
-  useEffect(() => {
-    if (translation && translationSystem) {
-      const systemInfoData = translationSystem.getSystemInfo();
-      setUserPfnBits(Array(systemInfoData.pfnBits).fill(0));
-      setUserOffsetBits(Array(systemInfoData.offsetBits).fill(0));
-      setUserPhysicalAddress("");
-      setSelectedEntries([]);
-      setIsAnimating(false);
-      setTimeout(() => {}, 100);
-    }
-  }, [testMode, translation, translationSystem]);
 
   const validateUserAddress = () => {
     if (!translation || !translationSystem) return false;
@@ -115,35 +219,108 @@ export const TranslationExampleNew: React.FC = () => {
     return userHex === correctHex;
   };
 
+  const displayedPageTables = useMemo(() => {
+    if (!translation) return [];
+
+    if (!testMode) {
+      return translation.pageTables;
+    }
+
+    const tables = activeLevels.map((level, levelIndex) => {
+      const tableKey = `${levelIndex}-${level.tablePfn}`;
+      if (levelIndex === 0) {
+        return generatedTables.get(tableKey) || translation.pageTables[0];
+      }
+      return generatedTables.get(tableKey);
+    });
+
+    const finalTables = [...translation.pageTables];
+    tables.forEach((table, index) => {
+      if (table) {
+        finalTables[index] = table;
+      }
+    });
+
+    return finalTables;
+  }, [translation, testMode, activeLevels, generatedTables]);
+
   const memoizedDisplayData = useMemo(() => {
     if (!translation || !translationSystem) return [];
-    return translation.pageTables.map((pageTable, levelIndex) => {
-      const correctIndex = translation.virtualIndices[levelIndex];
-      return translationSystem.getDisplayEntries(pageTable, correctIndex);
-    });
-  }, [translation, translationSystem]);
 
-  if (!translationSystem || !translation) return <div>Loading...</div>;
+    const originalTables = translation.pageTables.map((pageTable, levelIndex) => {
+      const correctIndex = translation.virtualIndices[levelIndex];
+      const displayEntries = translationSystem.getDisplayEntries(pageTable, correctIndex);
+      return displayEntries;
+    });
+
+    if (activeLevels.length === 0) {
+      return originalTables;
+    }
+
+    const displayData = [...originalTables];
+
+    activeLevels.forEach((level, levelIndex) => {
+      const tableKey = `${levelIndex}-${level.tablePfn}`;
+      let exploredTable = generatedTables.get(tableKey);
+
+      if (!exploredTable) {
+        if (levelIndex === 0) {
+          exploredTable = translation.pageTables[0];
+        } else {
+          return;
+        }
+      }
+
+      if (exploredTable && levelIndex < displayData.length) {
+        const originalCorrectIndex = translation.virtualIndices[levelIndex];
+        const originalCorrectTable = translation.pageTables[levelIndex];
+        const isCorrectTable = exploredTable.tablePfn === originalCorrectTable.tablePfn;
+
+        const exploredDisplayData = translationSystem.getDisplayEntries(
+          exploredTable,
+          isCorrectTable &&
+            originalCorrectIndex >= 0 &&
+            originalCorrectIndex < exploredTable.entries.length
+            ? originalCorrectIndex
+            : -1
+        );
+
+        displayData[levelIndex] = exploredDisplayData;
+      }
+    });
+
+    return displayData;
+  }, [translation, translationSystem, activeLevels, generatedTables]);
+
+  const dynamicTranslationData = useMemo(() => {
+    if (!translation) return null;
+
+    return {
+      ...translation,
+      pageTables: displayedPageTables,
+    };
+  }, [translation, displayedPageTables]);
+
+  if (!translationSystem || !translation || !dynamicTranslationData) return <div>Loading...</div>;
 
   const systemInfo = translationSystem.getSystemInfo();
-  const breakdown = translationSystem.getVirtualAddressBreakdown(translation);
-  
-  // Map the breakdown indices to show actual page table indices instead of raw bit values
+  const breakdown = translationSystem.getVirtualAddressBreakdown(dynamicTranslationData);
+
   const vaBitCalculations = breakdown.indices.map((level, i) => {
     let startBit = breakdown.offset.bits.length;
     for (let k = i + 1; k < breakdown.indices.length; k++)
       startBit += breakdown.indices[k].bits.length;
-    
-    // Get the actual page table index for this level
-    const pageTable = translation.pageTables[i];
-    const actualIndex = pageTable.startIndex + translation.virtualIndices[i];
-    
-    return { 
-      ...level, 
-      value: actualIndex, // Override with actual page table index
-      startBit 
+
+    const pageTable = dynamicTranslationData.pageTables[i];
+    const actualIndex = pageTable.startIndex + dynamicTranslationData.virtualIndices[i];
+
+    return {
+      ...level,
+      value: actualIndex,
+      startBit,
     };
   });
+
   const totalVirtualAddressBits =
     breakdown.indices.reduce((sum, item) => sum + item.bits.length, 0) +
     breakdown.offset.bits.length;
@@ -152,51 +329,70 @@ export const TranslationExampleNew: React.FC = () => {
     pfnBits: systemInfo.pfnBits,
     offsetBits: systemInfo.offsetBits,
   };
+
   const physicalAddressTranslationData = {
-    physicalAddress: translation.physicalAddress,
-    finalPfn: translation.finalPfn,
+    physicalAddress:
+      testMode && finalPfn ? finalPfn.physicalAddress : dynamicTranslationData.physicalAddress,
+    finalPfn: testMode ? (finalPfn ? finalPfn.pfn : undefined) : dynamicTranslationData.finalPfn,
     virtualOffsetValue: breakdown.offset.value,
   };
 
   return (
-    <div className="flex w-full flex-col items-center gap-10 p-8 pb-24">
-      <section className="w-full max-w-6xl">
-        <SectionHeading>Virtual Address Translation (New System)</SectionHeading>
-        <p className="text-muted-foreground mt-2 mb-6">
-          This visualization demonstrates a step-by-step virtual to physical address translation
-          process using hierarchical page tables with the new translation system. Click the button to generate a new random
-          translation scenario.
-        </p>
+    <div
+      className={`${uiConstants.flexColCenter} ${uiConstants.sectionGap} ${uiConstants.containerPadding} ${uiConstants.bottomPadding}`}
+    >
+      <section className={`${uiConstants.fullWidth} ${uiConstants.maxContainerWidth}`}>
+        <SectionHeading>A Detailed Multi-level Page Table Translation Example</SectionHeading>
+        <div className="text-muted-foreground mt-2 mb-6 space-y-3">
+          <p>
+            To build a multi-level page table for this address space, we start with our full linear
+            page table and break it up into page-sized units. This visualization demonstrates an
+            address translation process using hierarchical page tables with{" "}
+            {systemInfo.pageTableLevels} levels. With {formatBytes(systemInfo.physicalMemorySize)}{" "}
+            physical memory and {formatBytes(systemInfo.pageSize)} pages, we get{" "}
+            {((systemInfo.physicalMemorySize / 1024) * 1024) / systemInfo.pageSize} total pages
+            requiring{" "}
+            {Math.log2(((systemInfo.physicalMemorySize / 1024) * 1024) / systemInfo.pageSize)} PFN
+            bits. The {Math.log2(systemInfo.pageSize)} offset bits handle byte positioning within
+            each page. Each page table can hold {systemInfo.pageSize / 4} entries (4 bytes per
+            entry), requiring {Math.log2(systemInfo.pageSize / 4)} bits to index within a table.
+          </p>
+        </div>
         <TranslationControls
           generateNewTranslation={generateNewTranslation}
           showHex={showHex}
           setShowHex={setShowHex}
           testMode={testMode}
           setTestMode={setTestMode}
+          hexHintMode={hexHintMode}
+          setHexHintMode={setHexHintMode}
         />
       </section>
 
       <VirtualAddressDisplay
-        virtualAddress={translation.virtualAddress}
+        virtualAddress={dynamicTranslationData.virtualAddress}
         totalVirtualAddressBits={totalVirtualAddressBits}
         virtualAddressIndices={vaBitCalculations}
         virtualAddressOffset={breakdown.offset}
         testMode={testMode}
         formatNumber={formatNumber}
         pageTableLevels={systemInfo.pageTableLevels}
+        hexHintMode={hexHintMode}
+        setHexHintMode={setHexHintMode}
       />
 
       <AddressTranslationVisualizer
-        translationData={translation}
+        translationData={dynamicTranslationData}
         memoizedDisplayData={memoizedDisplayData}
-        selectedEntries={selectedEntries}
+        activeLevels={activeLevels}
+        finalPfn={finalPfn}
         testMode={testMode}
         showHex={showHex}
         isTestComplete={isTestComplete}
         formatNumber={formatNumber}
         handleEntrySelection={handleEntrySelection}
         setIsAnimating={setIsAnimating}
-        pageTableCapacity={translationSystem.getSystemInfo().pageSize / 4}
+        pageTableCapacity={systemInfo.pageSize / translationExampleConstants.pageTableEntrySize}
       />
 
       <PhysicalAddressDisplay
@@ -206,13 +402,15 @@ export const TranslationExampleNew: React.FC = () => {
         formatNumber={formatNumber}
         userPhysicalAddressHex={userPhysicalAddress}
         setUserPhysicalAddressHex={setUserPhysicalAddress}
-        userPfnBits={userPfnBits}
-        setUserPfnBits={setUserPfnBits}
         userOffsetBits={userOffsetBits}
         setUserOffsetBits={setUserOffsetBits}
         validateUserAddressHex={validateUserAddress}
-        virtualAddressForInputKey={translation.virtualAddress.toString()}
+        virtualAddressForInputKey={dynamicTranslationData.virtualAddress.toString()}
+        hexHintMode={hexHintMode}
+        setHexHintMode={setHexHintMode}
       />
     </div>
   );
-}; 
+};
+
+export { TranslationExampleNew };

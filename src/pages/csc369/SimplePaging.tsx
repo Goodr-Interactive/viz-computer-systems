@@ -49,7 +49,7 @@ export const SimplePaging: React.FunctionComponent = () => {
   return (
     <div className="flex w-full flex-col items-center gap-10 p-8 pb-24">
       {/* Configuration Section */}
-      <section className="w-full max-w-6xl">
+      <section className="w-full max-w-7xl">
         <SectionHeading>Paging System Visualization</SectionHeading>
 
         <p className="text-muted-foreground mb-6">
@@ -126,7 +126,7 @@ export const SimplePaging: React.FunctionComponent = () => {
       </section>
 
       {/* Address Structure Section */}
-      <section className="w-full max-w-6xl">
+      <section className="w-full max-w-7xl">
         <LayoutGroup>
           <div className="flex flex-col gap-8">
             <div className="bg-muted/50 rounded-lg p-6">
@@ -261,7 +261,7 @@ export const SimplePaging: React.FunctionComponent = () => {
       </section>
 
       {/* Page Table Structure Section */}
-      <section className="w-full max-w-6xl">
+      <section className="w-full max-w-7xl">
         <LayoutGroup>
           <div className="flex flex-col gap-4">
             {/* PTE Structure - Non-Collapsible */}
@@ -402,7 +402,7 @@ export const SimplePaging: React.FunctionComponent = () => {
       </section>
 
       {/* Calculation Hints Section */}
-      <section className="bg-muted/50 w-full max-w-6xl rounded-lg p-6">
+      <section className="bg-muted/50 w-full max-w-7xl rounded-lg p-6">
         <CollapsibleHeading
           collapsed={derivedValuesCollapsed}
           onClick={() => setDerivedValuesCollapsed(!derivedValuesCollapsed)}

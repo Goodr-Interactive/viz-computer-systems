@@ -61,15 +61,13 @@ export const StringBlock: React.FC<StringBlockProps> = ({
   const blockContent = (
     <div className={cn("flex flex-col items-center", className)}>
       <div
-        className={cn(
-          "group flex cursor-pointer flex-wrap rounded-md transition-colors",
-        )}
+        className={cn("group flex flex-wrap rounded-md transition-colors")}
         onClick={onClick}
         aria-label={`String block displaying ${value}`}
       >
         <div
           className={cn(
-            "flex h-8 w-16 items-center justify-center border-y border-r px-3 py-1 transition-colors", 
+            "flex h-8 min-w-16 items-center justify-center border-y border-r px-3 py-1 transition-colors",
             showLeftBorder && "border-l",
             color,
             borderColor,
@@ -97,4 +95,4 @@ export const StringBlock: React.FC<StringBlockProps> = ({
   }
 
   return blockContent;
-}; 
+};

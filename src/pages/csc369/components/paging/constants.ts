@@ -67,3 +67,33 @@ export const pdbrColorHover = "group-hover:bg-gray-200";
 export const virtualOffsetColor = "bg-emerald-100";
 export const virtualOffsetBorder = "border-emerald-300";
 export const virtualOffsetColorHover = "group-hover:bg-emerald-200";
+
+/**
+ * Translation Example Constants
+ */
+export const translationExampleConstants = {
+  // Entry size in bytes (32-bit entries)
+  pageTableEntrySize: 4,
+
+  // Display configuration
+  initialHexDisplay: true,
+  initialTestMode: false,
+  initialHexHintMode: false,
+} as const;
+
+/**
+ * UI Layout Constants
+ */
+export const uiConstants = {
+  // Spacing
+  sectionGap: "gap-10",
+  containerPadding: "p-8",
+  bottomPadding: "pb-24",
+
+  // Widths
+  maxContainerWidth: "max-w-7xl",
+  fullWidth: "w-full",
+
+  // Flexbox
+  flexColCenter: "flex w-full flex-col items-center",
+} as const;

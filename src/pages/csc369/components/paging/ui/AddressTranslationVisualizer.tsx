@@ -1,7 +1,6 @@
 import React, { useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import * as d3 from "d3";
-import { BinaryBlock } from "./BinaryBlock";
 import { StringBlock } from "./StringBlock";
 import { PageTableDisplay } from "./PageTableDisplay";
 import { SubsectionHeading } from "./SubsectionHeading";
@@ -37,10 +36,17 @@ interface TableDisplayData {
   endIndex: number;
 }
 
+// Simple structure to track active state at each level
+interface LevelState {
+  tablePfn: number;
+  selectedIndex: number | null; // null means not clicked yet
+}
+
 interface AddressTranslationVisualizerProps {
   translationData: TranslationValues | null; // Contains PDBR, pageTables, finalPfn, virtualIndices
   memoizedDisplayData: TableDisplayData[]; // Pre-calculated display data for each table
-  selectedEntries: Array<number | null>;
+  activeLevels: LevelState[];
+  finalPfn: { pfn: number; physicalAddress: number } | null;
   testMode: boolean;
   showHex: boolean;
   isTestComplete: () => boolean;
@@ -56,13 +62,14 @@ interface AddressTranslationVisualizerProps {
 export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizerProps> = ({
   translationData,
   memoizedDisplayData,
-  selectedEntries,
+  activeLevels,
+  finalPfn,
   testMode,
   showHex,
   isTestComplete,
   formatNumber,
   handleEntrySelection,
-  setIsAnimating, // Received from parent
+  setIsAnimating,
   pageTableCapacity,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -102,9 +109,19 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
     }
 
     // 2. Table to Table Arrows
-    for (let i = 0; i < translationData.pageTables.length - 1; i++) {
-      const shouldDrawArrow =
-        !testMode || (selectedEntries[i] !== undefined && selectedEntries[i] !== null);
+    for (
+      let i = 0;
+      i < Math.min(translationData.pageTables.length - 1, activeLevels.length - 1);
+      i++
+    ) {
+      // Arrow logic:
+      // - Non-test mode: Draw all arrows
+      // - Test mode: Draw arrows if current level has selection and next level exists
+      const currentLevelHasSelection = activeLevels[i] && activeLevels[i].selectedIndex !== null;
+      const nextLevelExists = activeLevels[i + 1] !== undefined;
+
+      const shouldDrawArrow = !testMode || (currentLevelHasSelection && nextLevelExists);
+
       if (shouldDrawArrow) {
         const activePfnCell = activePfnCellRefs.current[i];
         const nextTableElement = tableElementRefs.current[i + 1];
@@ -128,21 +145,22 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
     }
 
     // 3. Last Table to Final PFN
-    const shouldDrawFinalArrow = !testMode || isTestComplete();
+    // Show arrow if finalPfn exists or in non-test mode when complete
+    const shouldDrawFinalArrow = finalPfn !== null || !testMode || isTestComplete();
     if (
       shouldDrawFinalArrow &&
       activePfnCellRefs.current.length > 0 &&
       finalPfnBlockRef.current &&
       tableElementRefs.current.length > 0
     ) {
-      const lastPfnCellIndex = translationData.pageTables.length - 1;
-      const lastActivePfnCell = activePfnCellRefs.current[lastPfnCellIndex];
+      const lastLevelIndex = activeLevels.length - 1;
+      const lastActivePfnCell = activePfnCellRefs.current[lastLevelIndex];
       const finalPfnBlockElement = finalPfnBlockRef.current.querySelector(".group");
       if (lastActivePfnCell && finalPfnBlockElement) {
         const pfnCellRect = lastActivePfnCell.getBoundingClientRect();
         const finalBlockRect = finalPfnBlockElement.getBoundingClientRect();
         arrowConfigs.push({
-          id: `table${lastPfnCellIndex}-to-finalpfn`,
+          id: `table${lastLevelIndex}-to-finalpfn`,
           startX: pfnCellRect.right + 10 - containerRect.left,
           startY: pfnCellRect.top + pfnCellRect.height / 2 - containerRect.top,
           endX: finalBlockRect.left - containerRect.left - 10,
@@ -203,7 +221,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
         .attr("points", "0 0, 10 3.5, 0 7")
         .attr("fill", "#b5b9c1");
     }
-  }, [translationData, testMode, selectedEntries, isTestComplete]); // Removed isAnimating dependency
+  }, [translationData, testMode, activeLevels, finalPfn, isTestComplete]);
 
   useEffect(() => {
     const initialTimer = setTimeout(drawArrows, 100); // Initial draw with slight delay
@@ -224,7 +242,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
     // Redraw arrows when test progress changes (selectedEntries) or testMode itself changes
     const timer = setTimeout(drawArrows, 50); // Short delay
     return () => clearTimeout(timer);
-  }, [selectedEntries, testMode, drawArrows]);
+  }, [activeLevels, testMode, drawArrows]);
 
   useEffect(() => {
     // Redraw arrows when new translation is generated (translationData changes)
@@ -243,8 +261,8 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
     ); // Or some placeholder
 
   return (
-    <section className="w-full max-w-6xl">
-      <div className="bg-muted/50 rounded-lg p-6">
+    <section className="min-h-[492px] w-full max-w-7xl">
+      <div className="bg-muted/50 h-full rounded-lg p-6">
         <SubsectionHeading>Address Translation Process</SubsectionHeading>
         <div className="flex flex-col gap-8">
           <div
@@ -252,7 +270,7 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
             ref={containerRef}
           >
             <LayoutGroup>
-              <div className="flex h-full w-full items-start justify-center gap-10 overflow-x-auto">
+              <div className="flex h-full w-full items-start justify-center gap-10 overflow-x-auto overflow-y-hidden">
                 {/* PDBR Block */}
                 <motion.div
                   ref={pdbrRef}
@@ -292,11 +310,11 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                 {/* Page Tables */}
                 <AnimatePresence mode="popLayout">
                   {translationData.pageTables.map((pageTable, levelIndex) => {
+                    // Visibility logic:
+                    // - Non-test mode: Show all tables
+                    // - Test mode: Show level 0 + any levels that are active
                     const isVisible =
-                      !testMode ||
-                      levelIndex === 0 ||
-                      (selectedEntries[levelIndex - 1] !== undefined &&
-                        selectedEntries[levelIndex - 1] !== null);
+                      !testMode || levelIndex === 0 || levelIndex < activeLevels.length;
 
                     return (
                       <PageTableDisplay
@@ -305,7 +323,8 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                         pageTablePfn={pageTable.tablePfn}
                         tableDisplayData={memoizedDisplayData[levelIndex]}
                         totalEntriesInTable={pageTableCapacity}
-                        selectedEntriesForTest={selectedEntries}
+                        selectedEntriesForTest={activeLevels.map((level) => level.selectedIndex)}
+                        currentExplorationPath={[]} // Empty array since we're not using exploration path anymore
                         testMode={testMode}
                         showHex={showHex}
                         formatNumber={formatNumber}
@@ -326,22 +345,33 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                   })}
                 </AnimatePresence>
 
-                {/* Final PFN Block */}
-                <AnimatePresence>
+                {/* Final PFN Block or Explored PTE Block */}
+                <div className="relative my-auto ml-16 flex-shrink-0" ref={finalPfnBlockRef}>
+                  {/* Sizer block to ensure the container has the correct dimensions and prevent layout shift */}
+                  <div className="invisible">
+                    <StringBlock
+                      value={formatNumber(translationData.finalPfn)}
+                      color="transparent"
+                      borderColor="transparent"
+                      hoverColor="transparent"
+                      label="PFN"
+                      showLeftBorder={true}
+                    />
+                  </div>
+
+                  {/* Correct PFN block (absolutely positioned) */}
                   <motion.div
-                    ref={finalPfnBlockRef}
-                    className="ml-16 my-auto flex flex-shrink-0 flex-col items-center"
-                    layout
+                    className="absolute inset-0 flex items-center justify-center"
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: !testMode || isTestComplete() ? 1 : 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{
-                      opacity: { duration: 0.4, ease: "easeOut" },
-                      layout: { duration: 0.3 },
+                    animate={{
+                      opacity:
+                        !testMode || (finalPfn && finalPfn.pfn === translationData.finalPfn)
+                          ? 1
+                          : 0,
                     }}
+                    transition={{ opacity: { duration: 0.4 } }}
                     onAnimationStart={() => setIsAnimating(true)}
                     onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
-                    onLayoutAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
                   >
                     <StringBlock
                       value={formatNumber(translationData.finalPfn)}
@@ -355,7 +385,8 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                           <div className="max-w-xs space-y-1 text-left">
                             <p className="text-sm font-medium">
                               Final PFN: {formatNumber(translationData.finalPfn)}
-                              {!showHex && ` (Hex: ${TranslationSystem.toHex(translationData.finalPfn)})`}
+                              {!showHex &&
+                                ` (Hex: ${TranslationSystem.toHex(translationData.finalPfn)})`}
                             </p>
                             <p className="text-xs">
                               This is the Page Frame Number of the physical memory page for the
@@ -366,7 +397,35 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
                       }
                     />
                   </motion.div>
-                </AnimatePresence>
+
+                  {/* Explored (incorrect) PFN block */}
+                  <motion.div
+                    className={`absolute inset-0 flex items-center justify-center ${
+                      testMode && finalPfn && finalPfn.pfn !== translationData.finalPfn
+                        ? ""
+                        : "pointer-events-none"
+                    }`}
+                    initial={{ opacity: 0 }}
+                    animate={{
+                      opacity:
+                        testMode && finalPfn && finalPfn.pfn !== translationData.finalPfn ? 1 : 0,
+                    }}
+                    transition={{ opacity: { duration: 0.4 } }}
+                    onAnimationStart={() => setIsAnimating(true)}
+                    onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
+                  >
+                    {finalPfn && (
+                      <StringBlock
+                        value={formatNumber(finalPfn.pfn)}
+                        color="transparent"
+                        borderColor="border-border"
+                        hoverColor="hover:bg-gray-200/50"
+                        label="PFN"
+                        showLeftBorder={true}
+                      />
+                    )}
+                  </motion.div>
+                </div>
               </div>
             </LayoutGroup>
             <svg

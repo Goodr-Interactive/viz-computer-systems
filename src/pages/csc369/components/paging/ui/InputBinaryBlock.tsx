@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -77,11 +77,22 @@ export const InputBinaryBlock: React.FC<InputBinaryBlockProps> = ({
 
   const [values, setValues] = useState<string[]>(() => {
     if (initialValues && initialValues.length === blocks) {
-      // Treat 0 as unset/empty, only 1 as explicitly set
-      return initialValues.map((val) => (val === 1 ? "1" : ""));
+      // Show actual values (both 0 and 1) when provided
+      return initialValues.map((val) => val.toString());
     }
     return Array(blocks).fill("");
   });
+
+  // Sync internal state with initialValues prop changes
+  useEffect(() => {
+    if (initialValues && initialValues.length === blocks) {
+      const newValues = initialValues.map((val) => val.toString());
+      setValues(newValues);
+    } else if (initialValues && initialValues.length === 0) {
+      // Empty array means reset to placeholders
+      setValues(Array(blocks).fill(""));
+    }
+  }, [initialValues, blocks]);
 
   const blockArray = Array.from({ length: blocks }, (_, i) => i);
 

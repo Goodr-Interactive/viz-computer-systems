@@ -31,6 +31,7 @@ interface PageTableDisplayProps {
   tableDisplayData: DisplayData; // The processed entries to display (subset with ellipsis logic)
   totalEntriesInTable: number; // For ellipsis logic comparison
   selectedEntriesForTest: Array<number | null>; // To know if this level's correct entry has been selected
+  currentExplorationPath: Array<{ level: number; pfn: number }>; // For exploration paths
   testMode: boolean;
   showHex: boolean;
   formatNumber: (num: number, padLength?: number) => string;
@@ -54,6 +55,7 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
   tableDisplayData,
   totalEntriesInTable,
   selectedEntriesForTest,
+  currentExplorationPath,
   testMode,
   showHex,
   formatNumber,
@@ -67,9 +69,10 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
   onLayoutAnimationComplete,
 }) => {
   const levelColors = PageTableLevelColors[levelIndex % PageTableLevelColors.length];
-  
+
   // Check if this is the final page table (has RWX bits)
-  const isFinalPageTable = tableDisplayData?.entries?.some(({ entry }) => entry.rwx !== null) || false;
+  const isFinalPageTable =
+    tableDisplayData?.entries?.some(({ entry }) => entry.rwx !== null) || false;
 
   return (
     <motion.div
@@ -90,7 +93,7 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <h4 className="ml-[64px] mb-1 text-sm font-medium">
+            <h4 className="mb-1 ml-[64px] text-sm font-medium">
               <span className="border-muted-foreground/50 hover:border-muted-foreground cursor-help border-b border-dotted transition-colors">
                 PFN: {formatNumber(pageTablePfn)}
               </span>
@@ -106,7 +109,7 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
       <Table className="w-auto" ref={pageTableElementRef}>
         <TableHeader className="[&_tr]:border-b-0">
           <TableRow className="border-0">
-            <TableHead className="w-16 text-right text-xs text-muted-foreground pr-2 font-mono"></TableHead>
+            <TableHead className="text-muted-foreground w-16 pr-2 text-right font-mono text-xs"></TableHead>
             <TableHead className="w-16 border text-center font-medium">Valid</TableHead>
             {isFinalPageTable && (
               <TableHead className="w-16 border text-center font-medium">RWX</TableHead>
@@ -137,15 +140,32 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
             }
 
             tableDisplayData.entries.forEach(({ entry, index, isCorrect }) => {
+              // Highlighting logic:
+              // - Non-test mode: Always highlight correct entries
+              // - Test mode: Only highlight correct entries that have been clicked
               const showAsCorrect = testMode
-                ? selectedEntriesForTest[levelIndex] === index
+                ? isCorrect && selectedEntriesForTest[levelIndex] === index
                 : isCorrect;
-              const isClickable = testMode && !selectedEntriesForTest[levelIndex];
+
+              // Also check if this entry is part of an exploration path
+              const isPartOfExplorationPath = currentExplorationPath.some(
+                (step) => step && step.level === levelIndex && entry.pfn === step.pfn
+              );
+
+              // Check if this entry has been clicked (for arrow drawing)
+              const hasBeenClicked = selectedEntriesForTest[levelIndex] === index;
+
+              // Entry should be active for arrows if it's correct, part of exploration, or has been clicked
+              const shouldBeActiveForArrows =
+                showAsCorrect || isPartOfExplorationPath || hasBeenClicked;
+
+              const isClickable = testMode; // All entries are clickable in exploration mode
 
               let hoverClass = "group-hover:bg-gray-200/50";
               if (showAsCorrect) {
                 if (levelColors.hover.includes("indigo")) hoverClass = "group-hover:bg-indigo-200";
-                else if (levelColors.hover.includes("purple")) hoverClass = "group-hover:bg-purple-200";
+                else if (levelColors.hover.includes("purple"))
+                  hoverClass = "group-hover:bg-purple-200";
                 else if (levelColors.hover.includes("pink")) hoverClass = "group-hover:bg-pink-200";
               }
 
@@ -157,20 +177,26 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
                   className={rowClasses}
                   onClick={isClickable ? () => handleEntrySelection(levelIndex, index) : undefined}
                 >
-                  <TableCell className="border-0 text-xs text-right pr-3 font-mono text-muted-foreground">
+                  <TableCell className="text-muted-foreground border-0 pr-3 text-right font-mono text-xs">
                     {formatNumber(index, showHex ? 2 : undefined)}
                   </TableCell>
-                  <TableCell className={`border text-center font-mono border-border ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}>
+                  <TableCell
+                    className={`border-border border text-center font-mono ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}
+                  >
                     {entry.valid ? "1" : "0"}
                   </TableCell>
                   {isFinalPageTable && (
-                    <TableCell className={`border text-center font-mono border-border ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}>
-                      {entry.valid && entry.rwx !== null ? (entry.rwx).toString(2).padStart(3, '0') : "---"}
+                    <TableCell
+                      className={`border-border border text-center font-mono ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}
+                    >
+                      {entry.valid && entry.rwx !== null
+                        ? entry.rwx.toString(2).padStart(3, "0")
+                        : "---"}
                     </TableCell>
                   )}
                   <TableCell
-                    className={`border text-center font-mono border-border ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}
-                    ref={showAsCorrect ? activePfnCellRef : undefined}
+                    className={`border-border border text-center font-mono ${showAsCorrect ? `${levelColors.background}` : ""} ${hoverClass}`}
+                    ref={shouldBeActiveForArrows ? activePfnCellRef : undefined}
                   >
                     {entry.valid ? formatNumber(entry.pfn!) : "-"}
                   </TableCell>

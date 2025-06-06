@@ -10,6 +10,7 @@ import { CSC368 } from "./pages/csc368/CSC368";
 import { Pipelining } from "./pages/csc368/pipelining/pipelining";
 import { AdvancedLaundryPipelining } from "./pages/csc368/pipelining/laundry";
 import { RegisterPipeline } from "./pages/csc368/pipelining/register-pipeline";
+import { Caches } from "./pages/csc368/cache";
 
 interface AppRoute {
   path: string;
@@ -34,12 +35,20 @@ const ROUTES: AppRoute[] = [
     element: <Pipelining />,
   },
   {
+    path: "/csc368/caches",
+    element: <Caches />,
+  },
+  {
     path: "/csc368/pipelining/registers",
     element: <RegisterPipeline />,
   },
   {
     path: "/csc368/pipelining/laundry",
     element: <AdvancedLaundryPipelining />,
+  },
+  {
+    path: "/csc368/caches",
+    element: <Caches />,
   },
   {
     path: "/csc369/paging",

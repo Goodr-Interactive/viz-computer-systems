@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Home } from "./pages";
+import { Home, CSC369 } from "./pages";
+import { Scheduler } from "./pages/csc369/components";
 
 // operating system pages
 import { SimplePaging } from "./pages/csc369/SimplePaging";
@@ -21,7 +22,11 @@ const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc369",
-    element: <></>,
+    element: <CSC369 />,
+  },
+  {
+    path: "/csc369/the-scheduler",
+    element: <Scheduler />,
   },
   {
     path: "/csc368",

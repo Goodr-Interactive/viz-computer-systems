@@ -1,90 +1,76 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
-// Import SVG assets for pipeline stages
-import shirtSvg from "@/assets/shirt.svg";
-import washingMachineSvg from "@/assets/washing-machine.svg";
-import tumbleDrySvg from "@/assets/tumble-dry.svg";
-import handDrySvg from "@/assets/hand-dry.svg";
-import closetSvg from "@/assets/closet.svg";
+// Import SVG assets for controls
+import resetSvg from "@/assets/reset.svg";
 
-// Define the instruction stages
-const PIPELINE_STAGES = ["Sort", "Wash", "Dry", "Fold", "Put Away"];
+// Import React components
+import { PipelineStage } from "./PipelineStage";
+import { PipelineTooltip } from "./PipelineTooltip";
+import { Axis } from "./Axis";
+import { Grid } from "./Grid";
+import { StagePatterns } from "./StagePatterns";
+import type { Instruction } from "./types";
 
-// Define SVG images for each pipeline stage
-const STAGE_IMAGES = [
-  shirtSvg, // Sort stage
-  washingMachineSvg, // Wash stage
-  tumbleDrySvg, // Dry stage
-  handDrySvg, // Fold stage
-  closetSvg, // Put Away stage
-];
-
-// Define some sample instructions for visualization
-const DEFAULT_INSTRUCTIONS = [
-  { id: 1, name: "Load 1 (shirts)", color: "#4285F4" },
-  { id: 2, name: "Load 2 (pants)", color: "#EA4335" },
-  { id: 3, name: "Load 3 (socks)", color: "#FBBC05" },
-  { id: 4, name: "Load 4 (sheets)", color: "#34A853" },
-  { id: 5, name: "Load 5 (jackets)", color: "#8F44AD" },
-];
-
-interface Instruction {
-  id: number;
-  name: string;
-  color: string;
-  currentStage?: number;
-  startCycle?: number;
-  stalled?: boolean;
-}
+// Import configuration
+import {
+  PIPELINE_STAGES,
+  STAGE_IMAGES,
+  DEFAULT_INSTRUCTIONS,
+  AVAILABLE_COLORS,
+  TIMING_CONFIG,
+  LAYOUT_CONFIG,
+  PERFORMANCE_CONFIG,
+  getStageScalingFactor,
+  getStageTimingInfo,
+  FEATURE_FLAGS,
+} from "./config";
 
 interface PipelineVisualizationProps {
   width?: number;
   height?: number;
   instructions?: Instruction[];
-  isSuperscalar?: boolean; // Add superscalar property
-  superscalarWidth?: number; // How many instructions can be processed in parallel
+  superscalarWidth?: number;
 }
 
 export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   width,
   height,
-  instructions = DEFAULT_INSTRUCTIONS,
-  isSuperscalar = false,
-  superscalarWidth = 2, // Default to 2-way superscalar
+  instructions = DEFAULT_INSTRUCTIONS, // show only a subset of default instructions
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
   const [svgHeight, setSvgHeight] = useState<number>(height || 800);
-  const [cycles, setCycles] = useState<number>(0);
+  const [cycles, setCycles] = useState<number>(-1);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [speed, setSpeed] = useState<number>(1000); // milliseconds between cycles
-  const [isPipelined, setIsPipelined] = useState<boolean>(true); // Toggle between pipelined and non-pipelined
-  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(isSuperscalar); // Use superscalar mode
-  const [superscalarFactor] = useState<number>(superscalarWidth); // How many instructions in parallel
+  const [isPipelined, setIsPipelined] = useState<boolean>(FEATURE_FLAGS.IS_PIPELINED_MODE);
+  const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(
+    FEATURE_FLAGS.IS_SUPERSCALAR_MODE
+  );
+  const [superscalarFactor] = useState<number>(FEATURE_FLAGS.DEFAULT_SUPERSCALAR_WIDTH);
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    instructionName: string;
+    stageName: string;
+    timeLabel: string;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    instructionName: "",
+    stageName: "",
+    timeLabel: "",
+  });
 
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
-  const [availableColors] = useState<string[]>([
-    "#4285F4",
-    "#EA4335",
-    "#FBBC05",
-    "#34A853",
-    "#8F44AD",
-    "#FF5722",
-    "#009688",
-    "#673AB7",
-    "#3F51B5",
-    "#00BCD4",
-    "#607D8B",
-    "#795548",
-    "#9C27B0",
-    "#2196F3",
-    "#FF9800",
-  ]);
+
+  // Get stage timing information for display
+  const stageTimingInfo = getStageTimingInfo();
 
   // Set initial dimensions based on container size
   useEffect(() => {
@@ -97,7 +83,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
   // Add dimension monitoring
   useEffect(() => {
-    // Create a ResizeObserver to watch the container size
     if (!containerRef.current) return;
 
     const resizeObserver = new ResizeObserver((entries) => {
@@ -105,7 +90,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
       const { width, height } = entries[0].contentRect;
       setSvgWidth(width);
-      setSvgHeight(Math.max(height, 400)); // Minimum height of 400px
+      setSvgHeight(Math.max(height, LAYOUT_CONFIG.MIN_HEIGHT)); // Minimum height from config
     });
 
     resizeObserver.observe(containerRef.current);
@@ -122,7 +107,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
         setSvgWidth(width);
-        setSvgHeight(Math.max(height, 400));
+        setSvgHeight(Math.max(height, LAYOUT_CONFIG.MIN_HEIGHT));
       }
     };
 
@@ -142,347 +127,45 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             // For superscalar: Start two instructions per cycle
             return {
               ...instr,
-              currentStage: -1, // Not yet in pipeline
+              currentStage: 0, // Not yet in pipeline (1-based: stages 1-5)
               startCycle: Math.floor(index / superscalarFactor), // Start multiple instructions per cycle
               stalled: false,
+              isCompleted: false, // New completion flag
+              registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
             };
           } else {
             // Standard pipeline: One instruction per cycle
             return {
               ...instr,
-              currentStage: -1, // Not yet in pipeline
+              currentStage: 0, // Not yet in pipeline (1-based: stages 1-5)
               startCycle: index, // Start one cycle after the previous instruction
               stalled: false,
+              isCompleted: false, // New completion flag
+              registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
             };
           }
         } else {
           // Non-pipelined mode
           return {
             ...instr,
-            currentStage: -1, // Not yet in pipeline
+            currentStage: 0, // Not yet in pipeline (1-based: stages 1-5)
             startCycle: undefined, // Will be set when the instruction starts
             stalled: false,
+            isCompleted: false, // New completion flag
+            registers: instr.registers || { src: [], dest: [] }, // Ensure registers property exists
           };
         }
       })
     );
   }, [instructions, isPipelined, isSuperscalarActive, superscalarFactor]);
 
-  // Core visualization logic
-  useEffect(() => {
-    if (!svgRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-
-    const margin = { top: 50, right: 30, bottom: 50, left: 100 };
-
-    // const parentElement = document.getElementById(vis.parentContainer);
-
-    const innerWidth = svgWidth - margin.left - margin.right;
-    const innerHeight = svgHeight - margin.top - margin.bottom;
-
-    // Create the main group element
-    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Define defs for SVG patterns
-    const defs = svg.append("defs");
-
-    // Create patterns for each pipeline stage with the SVG icons
-    STAGE_IMAGES.forEach((image, index) => {
-      defs
-        .append("pattern")
-        .attr("id", `stage-pattern-${index}`)
-        .attr("patternUnits", "objectBoundingBox")
-        .attr("width", 1)
-        .attr("height", 1)
-        .attr("patternContentUnits", "objectBoundingBox")
-        .append("image")
-        .attr("href", image)
-        .attr("width", 1)
-        .attr("height", 1)
-        .attr("preserveAspectRatio", "xMidYMid meet");
-    });
-
-    // X and Y scales
-    // Convert clock cycles to actual times (starting at 9:00 AM)
-    const timeLabels = d3.range(0, cycles + 5).map((cycle) => {
-      const minutes = cycle * 30; // Each cycle is 30 minutes
-      const hours = Math.floor(9 + minutes / 60); // Start at 9 AM
-      const mins = minutes % 60;
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const hour12 = hours > 12 ? hours - 12 : hours;
-      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-    });
-
-    const xScale = d3
-      .scaleBand()
-      .domain(d3.range(0, cycles + 5).map(String))
-      .range([0, innerWidth])
-      .padding(0.1);
-
-    const yScale = d3
-      .scaleBand()
-      .domain(pipelineInstructions.map((instr) => instr.id.toString()))
-      .range([0, innerHeight])
-      .padding(0.1);
-
-    // Add X axis
-    const xAxis = g
-      .append("g")
-      .attr("transform", `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(xScale).tickFormat((_, i) => timeLabels[i]));
-
-    // Rotate the tick labels
-    xAxis
-      .selectAll("text")
-      .attr("transform", "rotate(60)")
-      .attr("text-anchor", "start")
-      .attr("y", 0)
-      .attr("x", 9)
-      .attr("dy", ".35em");
-
-    xAxis
-      .append("text")
-      .attr("x", innerWidth / 2)
-      .attr("y", 40)
-      .attr("fill", "black")
-      .attr("text-anchor", "middle");
-    // .text("Time of Day");
-
-    // Add Y axis
-    g.append("g")
-      .call(
-        d3.axisLeft(yScale).tickFormat((d) => {
-          const instr = pipelineInstructions.find((i) => i.id.toString() === d);
-          return instr ? instr.name : d;
-        })
-      )
-      .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", -80)
-      .attr("x", -innerHeight / 2)
-      .attr("fill", "black")
-      .attr("text-anchor", "middle")
-      .text("Laundry Load");
-
-    // Draw grid lines
-    g.append("g")
-      .attr("class", "grid")
-      .selectAll("line")
-      .data(d3.range(0, cycles + 5))
-      .enter()
-      .append("line")
-      .attr("x1", (d) => xScale(String(d))! + xScale.bandwidth() / 2)
-      .attr("x2", (d) => xScale(String(d))! + xScale.bandwidth() / 2)
-      .attr("y1", 0)
-      .attr("y2", innerHeight)
-      .attr("stroke", "#e0e0e0")
-      .attr("stroke-width", 1);
-
-    g.append("g")
-      .attr("class", "grid")
-      .selectAll("line")
-      .data(pipelineInstructions.map((instr) => instr.id.toString()))
-      .enter()
-      .append("line")
-      .attr("x1", 0)
-      .attr("x2", innerWidth)
-      .attr("y1", (d) => yScale(d)! + yScale.bandwidth())
-      .attr("y2", (d) => yScale(d)! + yScale.bandwidth())
-      .attr("stroke", "#e0e0e0")
-      .attr("stroke-width", 1);
-
-    // Draw pipeline stages for each instruction
-    pipelineInstructions.forEach((instr) => {
-      if (
-        instr.startCycle === undefined ||
-        instr.currentStage === undefined ||
-        instr.currentStage < 0
-      ) {
-        return;
-      }
-
-      // For each cycle this instruction has been in the pipeline
-      for (
-        let stage = 0;
-        stage <= Math.min(instr.currentStage, PIPELINE_STAGES.length - 1);
-        stage++
-      ) {
-        const cycle = instr.startCycle + stage;
-        if (cycle > cycles) continue;
-
-        const stageName = PIPELINE_STAGES[stage];
-
-        // Create a group for the stage
-        const stageGroup = g
-          .append("g")
-          .attr(
-            "transform",
-            `translate(${xScale(String(cycle))!}, ${yScale(instr.id.toString())!})`
-          )
-          .attr("opacity", 0.7)
-          .on("mouseover", function (event) {
-            d3.select(this).attr("opacity", 1);
-
-            const tooltip = svg
-              .append("g")
-              .attr("class", "tooltip")
-              .attr("transform", `translate(${event.offsetX + 10},${event.offsetY - 10})`);
-
-            tooltip
-              .append("rect")
-              .attr("fill", "white")
-              .attr("stroke", "black")
-              .attr("rx", 5)
-              .attr("ry", 5)
-              .attr("width", 220)
-              .attr("height", 60)
-              .attr("opacity", 0.9);
-
-            tooltip.append("text").attr("x", 10).attr("y", 20).text(`Laundry: ${instr.name}`);
-
-            tooltip
-              .append("text")
-              .attr("x", 10)
-              .attr("y", 40)
-              .text(`Stage: ${stageName} (${timeLabels[cycle]})`);
-          })
-          .on("mouseout", function () {
-            d3.select(this).attr("opacity", 0.7);
-            svg.selectAll(".tooltip").remove();
-          });
-
-        // Add colored background rectangle
-        stageGroup
-          .append("rect")
-          .attr("width", xScale.bandwidth())
-          .attr("height", yScale.bandwidth())
-          .attr("fill", instr.stalled && stage === instr.currentStage ? "#f8d7da" : instr.color)
-          .attr("stroke", "black")
-          .attr("rx", 4);
-
-        // Calculate inner rectangle size for the icon (slightly smaller)
-        const innerWidth = xScale.bandwidth() * 0.8;
-        const innerHeight = yScale.bandwidth() * 0.8;
-        const innerX = (xScale.bandwidth() - innerWidth) / 2;
-        const innerY = (yScale.bandwidth() - innerHeight) / 2;
-
-        // Add SVG icon on top
-        stageGroup
-          .append("rect")
-          .attr("width", innerWidth)
-          .attr("height", innerHeight)
-          .attr("x", innerX)
-          .attr("y", innerY)
-          .attr("fill", `url(#stage-pattern-${stage})`)
-          .attr("stroke", "white")
-          .attr("stroke-width", 1)
-          .attr("rx", 4);
-
-        // Add a light overlay to tint the icon with instruction color
-        stageGroup
-          .append("rect")
-          .attr("width", innerWidth)
-          .attr("height", innerHeight)
-          .attr("x", innerX)
-          .attr("y", innerY)
-          .attr("fill", instr.color)
-          .attr("opacity", 0.2)
-          .attr("rx", 4);
-
-        // Add superscalar indicator for instructions that start in the same cycle
-        // Only add this to the first stage (stage 0) when in superscalar mode
-        if (isSuperscalarActive && stage === 0) {
-          // Check if there are multiple instructions starting in this cycle
-          const parallelInstructions = pipelineInstructions.filter(
-            (i) => i.startCycle === instr.startCycle
-          );
-
-          if (parallelInstructions.length > 1) {
-            // Only add the badge to the first instruction in this cycle
-            if (instr.id === parallelInstructions[0].id) {
-              // Add a superscalar badge to indicate parallel execution
-              const badgeGroup = stageGroup
-                .append("g")
-                .attr("transform", `translate(${xScale.bandwidth() - 20}, 5)`);
-
-              badgeGroup
-                .append("circle")
-                .attr("r", 10)
-                .attr("fill", "#9333ea") // Purple for superscalar
-                .attr("stroke", "white")
-                .attr("stroke-width", 1);
-
-              badgeGroup
-                .append("text")
-                .attr("x", 0)
-                .attr("y", 3)
-                .attr("text-anchor", "middle")
-                .attr("dominant-baseline", "middle")
-                .attr("fill", "white")
-                .attr("font-size", "10px")
-                .attr("font-weight", "bold")
-                .text(`${parallelInstructions.length}x`);
-            }
-          }
-        }
-      }
-    });
-
-    // Draw instruction legend
-    // const legend = svg.append("g")
-    //   .attr("transform", `translate(${svgWidth - 150}, 10)`);
-
-    // Legend for laundry loads
-    // legend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Laundry Loads");
-
-    // pipelineInstructions.forEach((instr, i) => {
-    //   const legendItem = legend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
-
-    // legendItem.append("rect")
-    //   .attr("width", 15)
-    //   .attr("height", 15)
-    //   .attr("fill", instr.color);
-
-    // legendItem.append("text")
-    //   .attr("x", 20)
-    //   .attr("y", 12)
-    //   .text(instr.name);
-    // });
-
-    // // Legend for pipeline stages
-    // const stageLegend = svg.append("g")
-    //   .attr("transform", `translate(10, 10)`);
-
-    // stageLegend.append("text")
-    //   .attr("x", 0)
-    //   .attr("y", -5)
-    //   .attr("font-weight", "bold")
-    //   .text("Pipeline Stages");
-
-    // PIPELINE_STAGES.forEach((stage, i) => {
-    //   const legendItem = stageLegend.append("g")
-    //     .attr("transform", `translate(0, ${i * 20 + 15})`);
-
-    //   legendItem.append("text")
-    //     .attr("font-weight", "bold")
-    //     .text(`${stage.charAt(0)} = ${stage}`);
-    // });
-  }, [svgWidth, svgHeight, cycles, pipelineInstructions]);
-
-  // Simulation logic
+  // Simulation logic (autoplay mode on)
   useEffect(() => {
     if (!isRunning) return;
 
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
-      (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
+      (instr) => instr.isCompleted === true
     );
 
     if (allInstructionsCompleted) {
@@ -492,7 +175,8 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
     const timer = setTimeout(() => {
       // Increment cycle
-      setCycles((prev) => prev + 1);
+      const nextCycles = cycles + 1;
+      setCycles(nextCycles);
 
       // Update each instruction's position in the pipeline
       setPipelineInstructions((prevInstructions) => {
@@ -501,44 +185,48 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
             // Superscalar pipelined execution - multiple instructions can start in the same cycle
             return prevInstructions.map((instr) => {
               // If the instruction hasn't started yet
-              if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+              if (instr.startCycle !== undefined && nextCycles < instr.startCycle) {
                 return instr;
               }
 
               // If the instruction has already completed all stages
-              if (
-                instr.currentStage !== undefined &&
-                instr.currentStage >= PIPELINE_STAGES.length
-              ) {
+              if (instr.isCompleted) {
                 return instr;
               }
 
               // Otherwise, advance the instruction to the next stage
+              const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+              const completed = nextStage > PIPELINE_STAGES.length;
+
               return {
                 ...instr,
-                currentStage: instr.currentStage !== undefined ? instr.currentStage + 1 : 0,
+                currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+                isCompleted: completed,
+                registers: instr.registers,
               };
             });
           } else {
             // Standard pipelined execution - only one instruction can start per cycle
             return prevInstructions.map((instr) => {
               // If the instruction hasn't started yet
-              if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+              if (instr.startCycle !== undefined && nextCycles < instr.startCycle) {
                 return instr;
               }
 
               // If the instruction has already completed all stages
-              if (
-                instr.currentStage !== undefined &&
-                instr.currentStage >= PIPELINE_STAGES.length
-              ) {
+              if (instr.isCompleted) {
                 return instr;
               }
 
               // Otherwise, advance the instruction to the next stage
+              const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+              const completed = nextStage > PIPELINE_STAGES.length;
+
               return {
                 ...instr,
-                currentStage: instr.currentStage !== undefined ? instr.currentStage + 1 : 0,
+                currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+                isCompleted: completed,
+                registers: instr.registers,
               };
             });
           }
@@ -547,20 +235,26 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           const activeInstructionIndex = prevInstructions.findIndex(
             (instr) =>
               instr.currentStage !== undefined &&
-              instr.currentStage >= 0 &&
-              instr.currentStage < PIPELINE_STAGES.length
+              instr.currentStage >= 1 &&
+              instr.currentStage <= PIPELINE_STAGES.length &&
+              !instr.isCompleted
           );
 
           if (activeInstructionIndex === -1) {
             // No active instruction, try to start the next one
             const nextInstructionIndex = prevInstructions.findIndex(
-              (instr) => instr.currentStage === -1
+              (instr) => instr.currentStage === 0 && !instr.isCompleted
             );
 
             if (nextInstructionIndex !== -1) {
               return prevInstructions.map((instr, index) => {
                 if (index === nextInstructionIndex) {
-                  return { ...instr, currentStage: 0, startCycle: cycles };
+                  return {
+                    ...instr,
+                    currentStage: 1,
+                    startCycle: nextCycles,
+                    registers: instr.registers,
+                  };
                 }
                 return instr;
               });
@@ -573,30 +267,34 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
           if (
             updatedInstructions[activeInstructionIndex].currentStage !== undefined &&
-            updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length - 1
+            updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length
           ) {
             // Simply advance this instruction to the next stage
             updatedInstructions[activeInstructionIndex] = {
               ...updatedInstructions[activeInstructionIndex],
               currentStage: updatedInstructions[activeInstructionIndex].currentStage! + 1,
+              registers: updatedInstructions[activeInstructionIndex].registers,
             };
           } else {
             // This instruction is done, mark it as completed
             updatedInstructions[activeInstructionIndex] = {
               ...updatedInstructions[activeInstructionIndex],
               currentStage: PIPELINE_STAGES.length,
+              isCompleted: true,
+              registers: updatedInstructions[activeInstructionIndex].registers,
             };
 
             // Immediately start the next instruction if available
             const nextInstructionIndex = updatedInstructions.findIndex(
-              (instr) => instr.currentStage === -1
+              (instr) => instr.currentStage === 0 && !instr.isCompleted
             );
 
             if (nextInstructionIndex !== -1) {
               updatedInstructions[nextInstructionIndex] = {
                 ...updatedInstructions[nextInstructionIndex],
-                currentStage: 0,
-                startCycle: cycles,
+                currentStage: 1,
+                startCycle: nextCycles,
+                registers: updatedInstructions[nextInstructionIndex].registers,
               };
             }
           }
@@ -604,54 +302,189 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           return updatedInstructions;
         }
       });
-    }, speed);
+    }, 1000); // Fixed delay of 1 second for automatic mode
 
     return () => clearTimeout(timer);
-  }, [isRunning, cycles, speed, isPipelined]);
+  }, [isRunning, cycles, isPipelined, isSuperscalarActive]);
 
-  const handleStart = () => {
-    setIsRunning(true);
-  };
+  const handleStepForward = () => {
+    // Check if all instructions are completed
+    const allInstructionsCompleted = pipelineInstructions.every(
+      (instr) => instr.isCompleted === true
+    );
 
-  const handleStop = () => {
-    setIsRunning(false);
+    if (allInstructionsCompleted) {
+      return; // Don't step if all instructions are completed
+    }
+
+    // Manually advance one cycle
+    const newCycles = cycles + 1;
+    setCycles(newCycles);
+
+    // Update each instruction's position in the pipeline (same logic as the useEffect)
+    setPipelineInstructions((prevInstructions) => {
+      if (isPipelined) {
+        if (isSuperscalarActive) {
+          // Superscalar pipelined execution - multiple instructions can start in the same cycle
+          return prevInstructions.map((instr) => {
+            // If the instruction hasn't started yet
+            if (instr.startCycle !== undefined && newCycles < instr.startCycle) {
+              return instr;
+            }
+
+            // If the instruction has already completed all stages
+            if (instr.isCompleted) {
+              return instr;
+            }
+
+            // Otherwise, advance the instruction to the next stage
+            const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+            const completed = nextStage > PIPELINE_STAGES.length;
+
+            return {
+              ...instr,
+              currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+              isCompleted: completed,
+              registers: instr.registers,
+            };
+          });
+        } else {
+          // Standard pipelined execution - only one instruction can start per cycle
+          return prevInstructions.map((instr) => {
+            // If the instruction hasn't started yet
+            if (instr.startCycle !== undefined && cycles < instr.startCycle) {
+              return instr;
+            }
+
+            // If the instruction has already completed all stages
+            if (instr.isCompleted) {
+              return instr;
+            }
+
+            // Otherwise, advance the instruction to the next stage
+            const nextStage = instr.currentStage !== undefined ? instr.currentStage + 1 : 1;
+            const completed = nextStage >= PIPELINE_STAGES.length;
+
+            return {
+              ...instr,
+              currentStage: completed ? PIPELINE_STAGES.length : nextStage,
+              isCompleted: completed,
+              registers: instr.registers,
+            };
+          });
+        }
+      } // if not pipelined
+      else {
+        // Non-pipelined execution - only one instruction can be active at a time
+        const activeInstructionIndex = prevInstructions.findIndex(
+          (instr) =>
+            instr.currentStage !== undefined &&
+            instr.currentStage >= 1 &&
+            instr.currentStage <= PIPELINE_STAGES.length &&
+            !instr.isCompleted
+        );
+
+        if (activeInstructionIndex === -1) {
+          // No active instruction, try to start the next one
+          const nextInstructionIndex = prevInstructions.findIndex(
+            (instr) => instr.currentStage === 0 && !instr.isCompleted
+          );
+
+          if (nextInstructionIndex !== -1) {
+            return prevInstructions.map((instr, index) => {
+              if (index === nextInstructionIndex) {
+                return {
+                  ...instr,
+                  currentStage: 1,
+                  startCycle: newCycles,
+                  registers: instr.registers,
+                };
+              }
+              return instr;
+            });
+          }
+          return prevInstructions; // All done
+        }
+
+        // Advance the active instruction
+        let updatedInstructions = [...prevInstructions];
+
+        if (
+          updatedInstructions[activeInstructionIndex].currentStage !== undefined &&
+          updatedInstructions[activeInstructionIndex].currentStage < PIPELINE_STAGES.length
+        ) {
+          // Simply advance this instruction to the next stage
+          updatedInstructions[activeInstructionIndex] = {
+            ...updatedInstructions[activeInstructionIndex],
+            currentStage: updatedInstructions[activeInstructionIndex].currentStage! + 1,
+            registers: updatedInstructions[activeInstructionIndex].registers,
+          };
+        } else {
+          // This instruction is done, mark it as completed
+          updatedInstructions[activeInstructionIndex] = {
+            ...updatedInstructions[activeInstructionIndex],
+            currentStage: PIPELINE_STAGES.length,
+            isCompleted: true,
+            registers: updatedInstructions[activeInstructionIndex].registers,
+          };
+
+          // Immediately start the next instruction if available
+          const nextInstructionIndex = updatedInstructions.findIndex(
+            (instr) => instr.currentStage === 0 && !instr.isCompleted
+          );
+
+          if (nextInstructionIndex !== -1) {
+            updatedInstructions[nextInstructionIndex] = {
+              ...updatedInstructions[nextInstructionIndex],
+              currentStage: 1,
+              startCycle: newCycles,
+              registers: updatedInstructions[nextInstructionIndex].registers,
+            };
+          }
+        }
+
+        return updatedInstructions;
+      }
+    });
   };
 
   const handleReset = () => {
     setIsRunning(false);
-    setCycles(0);
+    setCycles(-1);
     setPipelineInstructions(
       instructions.map((instr, index) => {
         if (isPipelined) {
           if (isSuperscalarActive) {
             return {
               ...instr,
-              currentStage: -1,
+              currentStage: 0,
               startCycle: Math.floor(index / superscalarFactor),
               stalled: false,
+              isCompleted: false,
+              registers: instr.registers,
             };
           } else {
             return {
               ...instr,
-              currentStage: -1,
+              currentStage: 0,
               startCycle: index,
               stalled: false,
+              isCompleted: false,
+              registers: instr.registers,
             };
           }
         } else {
           return {
             ...instr,
-            currentStage: -1,
+            currentStage: 0,
             startCycle: undefined,
             stalled: false,
+            isCompleted: false,
+            registers: instr.registers,
           };
         }
       })
     );
-  };
-
-  const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSpeed(2000 - parseInt(e.target.value, 10));
   };
 
   const togglePipelineMode = () => {
@@ -689,10 +522,12 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     const newInstruction: Instruction = {
       id: newInstructionId,
       name: newInstructionName.trim(),
-      color: availableColors[pipelineInstructions.length % availableColors.length],
-      currentStage: -1,
+      color: AVAILABLE_COLORS[pipelineInstructions.length % AVAILABLE_COLORS.length],
+      currentStage: 0,
       startCycle: startCycle,
       stalled: false,
+      isCompleted: false,
+      registers: { src: [], dest: [] }, // Add empty registers as this is the laundry simulation
     };
 
     setPipelineInstructions([...pipelineInstructions, newInstruction]);
@@ -726,6 +561,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         ...instr,
         id: newId,
         startCycle: startCycle,
+        registers: instr.registers,
       };
     });
 
@@ -733,178 +569,435 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     setCycles(0);
   };
 
-  // Calculate total cycles to complete all instructions
-  const totalCyclesRequired = isPipelined
-    ? isSuperscalarActive
-      ? Math.ceil(pipelineInstructions.length / superscalarFactor) + PIPELINE_STAGES.length - 1
-      : pipelineInstructions.length + PIPELINE_STAGES.length - 1
-    : pipelineInstructions.length * PIPELINE_STAGES.length;
+  // Calculate the maximum cycle needed to show all instruction stages
+  const getMaxCycleNeeded = () => {
+    if (pipelineInstructions.length === 0) return Math.max(0, cycles);
 
-  // Calculate CPI (Cycles Per Instruction) and IPC (Instructions Per Cycle)
-  const cpi =
-    pipelineInstructions.length > 0 && cycles > 0
-      ? (cycles / Math.min(cycles, pipelineInstructions.length)).toFixed(2)
-      : "0.00";
+    // Check if all instructions are completed
+    const allInstructionsCompleted = pipelineInstructions.every(
+      (instr) => instr.isCompleted === true
+    );
 
-  const ipc =
-    cycles > 0 ? (Math.min(cycles, pipelineInstructions.length) / cycles).toFixed(2) : "0.00";
+    let maxCycle = 0;
 
-  // Calculate theoretical maximum metrics
-  const theoreticalMaxCPI = isPipelined
-    ? isSuperscalarActive
-      ? (1 / superscalarFactor).toFixed(2)
-      : "1.00"
-    : PIPELINE_STAGES.length.toFixed(2);
+    pipelineInstructions.forEach((instr) => {
+      if (instr.startCycle !== undefined) {
+        // Calculate when this instruction will complete all stages
+        const completionCycle = instr.startCycle + PIPELINE_STAGES.length - 1;
+        maxCycle = Math.max(maxCycle, completionCycle);
+      }
+    });
 
-  const theoreticalMaxIPC = isPipelined
-    ? isSuperscalarActive
-      ? superscalarFactor.toString()
-      : "1.00"
-    : (1 / PIPELINE_STAGES.length).toFixed(2);
+    // If all instructions are completed, don't show any extra cycles
+    if (allInstructionsCompleted) {
+      return maxCycle;
+    }
+
+    // If simulation is running, show current cycle + small buffer for next operations
+    if (isRunning) {
+      return Math.max(maxCycle, cycles + 1);
+    }
+
+    // If simulation is paused but not complete, show up to current cycle
+    return Math.max(maxCycle, cycles);
+  };
+
+  // Convert clock cycles to actual times (starting from config)
+  const getTimeLabels = () => {
+    const maxCycle = getMaxCycleNeeded();
+    return d3.range(0, maxCycle + 1).map((cycle) => {
+      const minutes = cycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+      const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
+      const mins = minutes % 60;
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+    });
+  };
+
+  const getCurrentTimeLabel = () => {
+    if (cycles === -1) return `Not Started`;
+
+    // Check if all instructions are completed
+    const allInstructionsCompleted = pipelineInstructions.every(
+      (instr) => instr.isCompleted === true
+    );
+
+    // If all instructions are completed, show time based on actual completion
+    // rather than the current cycle counter which might be higher
+    if (allInstructionsCompleted && pipelineInstructions.length > 0) {
+      let maxCompletionCycle = 0;
+      pipelineInstructions.forEach((instr) => {
+        if (instr.startCycle !== undefined) {
+          const completionCycle = instr.startCycle + PIPELINE_STAGES.length - 1;
+          maxCompletionCycle = Math.max(maxCompletionCycle, completionCycle);
+        }
+      });
+      // Use the actual completion cycle + 1 for final time display
+      const finalCycle = maxCompletionCycle + 1;
+      const minutes = finalCycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+      const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
+      const mins = minutes % 60;
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+    }
+
+    // Otherwise, use current cycle
+    const minutes = cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+    const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
+    const mins = minutes % 60;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+    return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+  };
+
+  // Calculate laundry loads per hour performance metric
+  // This shows how many loads of laundry can be completed per hour
+  const completedInstructions = pipelineInstructions.filter(
+    (instr) => instr.isCompleted === true
+  ).length;
+
+  // Convert cycles to hours and calculate loads per hour
+  const currentTimeInHours = cycles > 0 ? (cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES) / 60 : 0;
+  const loadsPerHour =
+    currentTimeInHours > 0
+      ? (completedInstructions / currentTimeInHours).toFixed(
+          PERFORMANCE_CONFIG.METRIC_DISPLAY_PRECISION
+        )
+      : "0.0";
+
+  // Set up D3 scales for our chart
+  const margin = LAYOUT_CONFIG.MARGINS;
+  const innerWidth = svgWidth - margin.left - margin.right;
+  const innerHeight = svgHeight - margin.top - margin.bottom;
+
+  // X scale for cycles
+  const maxCycle = getMaxCycleNeeded();
+  const xScale = d3
+    .scaleBand()
+    .domain(d3.range(0, maxCycle + 1).map(String))
+    .range([0, innerWidth])
+    .padding(LAYOUT_CONFIG.BAND_PADDING.cycles);
+
+  // Y scale for instructions
+  const yScale = d3
+    .scaleBand()
+    .domain(pipelineInstructions.map((instr) => instr.id.toString()))
+    .range([0, innerHeight])
+    .padding(LAYOUT_CONFIG.BAND_PADDING.instructions);
+
+  const timeLabels = getTimeLabels();
+
+  // Handle tooltip display
+  const handleStageMouseEnter = (
+    event: React.MouseEvent,
+    instruction: Instruction,
+    stageName: string,
+    timeLabel: string
+  ) => {
+    // Get the SVG element to calculate proper coordinates
+    const svgElement = containerRef.current?.querySelector("svg");
+    if (!svgElement) return;
+
+    // Get SVG bounding rect for coordinate conversion
+    const svgRect = svgElement.getBoundingClientRect();
+
+    // Convert mouse position to SVG coordinates
+    const svgX = event.clientX - svgRect.left - margin.left;
+    const svgY = event.clientY - svgRect.top - margin.top;
+
+    setTooltip({
+      visible: true,
+      x: svgX,
+      y: svgY,
+      instructionName: instruction.name,
+      stageName,
+      timeLabel,
+    });
+  };
+
+  const handleStageMouseLeave = () => {
+    setTooltip({ ...tooltip, visible: false });
+  };
 
   return (
-    <div className="flex w-full flex-col items-center space-y-4">
-      <div className="mb-2 flex w-full flex-col gap-4 md:flex-row md:items-center">
-        <div className="flex space-x-4">
-          <button
-            onClick={handleStart}
-            disabled={isRunning}
-            className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
-          >
-            Start
-          </button>
-          <button
-            onClick={handleStop}
-            disabled={!isRunning}
-            className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
-          >
-            Stop
-          </button>
-          <button
-            onClick={handleReset}
-            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-          >
-            {pipelineInstructions.every(
-              (instr) =>
-                instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
-            )
-              ? "Start Over"
-              : "Reset"}
-          </button>
+    <div className="flex w-full flex-col xl:flex-row xl:gap-6">
+      {/* Visualization Container - Left side on desktop */}
+      <div className="flex w-full flex-col items-center xl:w-3/4">
+        <div className="mb-2 flex w-full flex-col justify-between md:flex-row md:items-center">
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium">
+                Current Time: {getCurrentTimeLabel()}
+                <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-2 text-center">
+              <div>
+                <h3 className="text-lg font-medium">
+                  {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour}{" "}
+                  <span className="text-xs text-gray-500"></span>
+                </h3>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <label className="inline-flex cursor-pointer items-center">
-            <input
-              type="checkbox"
-              checked={isPipelined}
-              onChange={togglePipelineMode}
-              className="peer sr-only"
-            />
-            <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-            <span className="ml-3 text-sm font-medium">
-              {isPipelined ? "Pipelined Mode" : "Non-pipelined Mode"}
-            </span>
-          </label>
+        <div
+          ref={containerRef}
+          className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
+          style={{ height: `${LAYOUT_CONFIG.CONTAINER_HEIGHT}px` }}
+        >
+          <svg width={svgWidth} height={svgHeight}>
+            <g transform={`translate(${margin.left},${margin.top})`}>
+              {/* Define patterns for stage icons */}
+              <StagePatterns stageImages={STAGE_IMAGES} />
 
-          {/* Superscalar toggle, only available in pipelined mode */}
-          {isPipelined && (
-            <label className="ml-4 inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={isSuperscalarActive}
-                onChange={() => {
-                  setIsSuperscalarActive(!isSuperscalarActive);
-                  handleReset();
-                }}
-                className="peer sr-only"
+              {/* Draw X and Y axes */}
+              <Axis
+                scale={xScale}
+                orient="bottom"
+                transform={`translate(0,${innerHeight})`}
+                timeLabels={timeLabels}
+                label="Clock Cycle"
+                labelOffset={{ x: innerWidth / 2, y: 65 }}
               />
-              <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-              <span className="ml-3 text-sm font-medium">
-                {isSuperscalarActive ? (
-                  <span className="flex items-center gap-2">
-                    Superscalar Mode ({superscalarFactor}-way)
-                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                      {superscalarFactor}x
-                    </span>
-                  </span>
-                ) : (
-                  "Superscalar Mode"
-                )}
-              </span>
-            </label>
-          )}
+
+              <Axis
+                scale={yScale}
+                orient="left"
+                instructions={pipelineInstructions}
+                label="Laundry Load"
+                labelOffset={{ x: -innerHeight / 2, y: -90 }}
+              />
+
+              {/* Draw grid lines */}
+              <Grid
+                scale={xScale}
+                ticks={d3.range(0, maxCycle + 1)}
+                orientation="vertical"
+                length={innerHeight}
+              />
+
+              <Grid
+                scale={yScale}
+                ticks={pipelineInstructions.map((instr) => instr.id.toString())}
+                orientation="horizontal"
+                length={innerWidth}
+              />
+
+              {/* Current cycle indicator line if feature flag is on */}
+              {FEATURE_FLAGS.SHOW_CYCLES_INDICATOR && cycles >= 0 && (
+                <line
+                  x1={xScale(String(cycles - 1))! + xScale.bandwidth()}
+                  y1={0}
+                  x2={xScale(String(cycles - 1))! + xScale.bandwidth()}
+                  y2={innerHeight}
+                  stroke="#FF6B35"
+                  strokeWidth={3}
+                  strokeDasharray="5,5"
+                  opacity={0.8}
+                  style={{
+                    filter: "drop-shadow(0px 0px 3px rgba(255, 107, 53, 0.3))",
+                  }}
+                />
+              )}
+
+              {/* Draw pipeline stages for each instruction */}
+              {pipelineInstructions.map((instr) => {
+                if (
+                  instr.startCycle === undefined ||
+                  instr.currentStage === undefined ||
+                  instr.currentStage < 0
+                ) {
+                  return null;
+                }
+
+                // Render all stages this instruction has gone through
+                return Array.from({
+                  length: Math.min(instr.currentStage, PIPELINE_STAGES.length - 1) + 1,
+                }).map((_, stageIndex) => {
+                  const cycle = (instr.startCycle || 0) + stageIndex;
+                  if (cycle > cycles) return null;
+
+                  const stageName = PIPELINE_STAGES[stageIndex];
+
+                  // For superscalar badge, check if there are multiple instructions in this cycle
+                  const parallelInstructions =
+                    isSuperscalarActive && stageIndex === 0
+                      ? pipelineInstructions.filter((i) => i.startCycle === instr.startCycle)
+                      : [];
+
+                  const isFirstInGroup =
+                    parallelInstructions.length > 0 && instr.id === parallelInstructions[0].id;
+
+                  return (
+                    <PipelineStage
+                      key={`instr-${instr.id}-stage-${stageIndex}`}
+                      instruction={instr}
+                      stage={stageIndex}
+                      stageName={stageName}
+                      cycle={cycle}
+                      cycleLength={getStageScalingFactor(stageIndex)}
+                      xPos={xScale(String(cycle))!}
+                      yPos={yScale(instr.id.toString())!}
+                      width={xScale.bandwidth()}
+                      height={yScale.bandwidth()}
+                      timeLabel={timeLabels[cycle]}
+                      stageImage={STAGE_IMAGES[stageIndex]}
+                      onMouseEnter={handleStageMouseEnter}
+                      onMouseLeave={handleStageMouseLeave}
+                      isSuperscalarActive={isSuperscalarActive}
+                      parallelInstructions={parallelInstructions}
+                      isFirstInGroup={isFirstInGroup}
+                    />
+                  );
+                });
+              })}
+
+              {/* Tooltip */}
+              {tooltip.visible && (
+                <PipelineTooltip
+                  x={tooltip.x}
+                  y={tooltip.y}
+                  instructionName={tooltip.instructionName}
+                  stageName={tooltip.stageName}
+                  timeLabel={tooltip.timeLabel}
+                  svgWidth={svgWidth}
+                  svgHeight={svgHeight}
+                  margin={margin}
+                />
+              )}
+            </g>
+          </svg>
         </div>
       </div>
 
-      {/* Instruction Management UI */}
-      <div className="my-2 w-full border-t border-b border-gray-200 py-4">
-        <div className="mb-2 flex flex-col items-start justify-between md:flex-row md:items-center">
-          <h3 className="mb-2 text-lg font-medium md:mb-0">Instructions</h3>
-
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center rounded bg-purple-500 px-3 py-1 text-sm text-white hover:bg-purple-600"
-          >
-            {showAddForm ? "Cancel" : "Add Instruction"}
-            {!showAddForm && (
-              <svg
-                className="ml-1 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        {showAddForm && (
-          <div className="mb-4 flex flex-col gap-2 rounded bg-gray-50 p-3 md:flex-row">
-            <input
-              type="text"
-              value={newInstructionName}
-              onChange={(e) => setNewInstructionName(e.target.value)}
-              placeholder="Enter laundry load (e.g., Sweaters Load)"
-              className="flex-grow rounded border border-gray-300 px-3 py-2"
-            />
+      {/* Controls and Instructions Container - Right side on desktop */}
+      <div className="flex w-full flex-col xl:sticky xl:top-4 xl:w-1/4 xl:self-start">
+        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
+          <div className="mb-4 flex flex-wrap gap-3">
             <button
-              onClick={handleAddInstruction}
-              disabled={!newInstructionName.trim()}
-              className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+              onClick={handleStepForward}
+              disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
+              className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+              title="Step Forward One Cycle"
             >
-              Add
+              <span className="text-sm font-medium">Forward →</span>
             </button>
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
+              className={`flex items-center justify-center rounded px-4 py-2 text-white disabled:opacity-50 ${
+                isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-blue-500 hover:bg-blue-600"
+              }`}
+              title={isRunning ? "Pause Auto Run" : "Run Automatically"}
+            >
+              <span className="text-sm font-medium">{isRunning ? "Pause" : "Auto"}</span>
+            </button>
+            <button
+              onClick={handleReset}
+              className="flex items-center justify-center rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+              title="Reset to Beginning"
+            >
+              <img src={resetSvg} alt="Reset" className="h-6 w-6" />
+            </button>
+            <span className="ml-2 self-center text-sm">
+              {pipelineInstructions.every((instr) => instr.isCompleted === true)
+                ? "All Complete"
+                : isRunning
+                  ? "Running..."
+                  : "Ready"}
+            </span>
           </div>
-        )}
 
-        <div className="max-h-40 overflow-y-auto">
-          <ul className="divide-y divide-gray-200">
-            {pipelineInstructions.map((instr) => (
-              <li key={instr.id} className="flex items-center justify-between py-2">
-                <div className="flex items-center">
-                  <div
-                    className="mr-2 h-4 w-4 rounded-full"
-                    style={{ backgroundColor: instr.color }}
-                  ></div>
-                  <span>
-                    <strong>{instr.id}:</strong> {instr.name}
+          {/* Mode Selection */}
+          {FEATURE_FLAGS.SHOW_MODE_SELECTION && (
+            <div className="mb-4">
+              <h3 className="mb-2 font-semibold">Mode Selection</h3>
+              <div className="space-y-3">
+                <label className="inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={isPipelined}
+                    onChange={togglePipelineMode}
+                    className="peer sr-only"
+                  />
+                  <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                  <span className="ml-3 text-sm font-medium">
+                    {isPipelined ? "Pipelined Mode" : "Pipelined Mode"}
                   </span>
+                </label>
+
+                {/* Superscalar toggle, only available in pipelined mode */}
+                {isPipelined && (
+                  <label className="inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={isSuperscalarActive}
+                      onChange={() => {
+                        setIsSuperscalarActive(!isSuperscalarActive);
+                        handleReset();
+                      }}
+                      className="peer sr-only"
+                    />
+                    <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                    <span className="ml-3 text-sm font-medium">
+                      {isSuperscalarActive ? (
+                        <span className="flex items-center gap-2">
+                          Superscalar Mode ({superscalarFactor}-way)
+                          <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                            {superscalarFactor}x
+                          </span>
+                        </span>
+                      ) : (
+                        "Superscalar Mode"
+                      )}
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Visual Symbols Legend */}
+          <div className="mb-4">
+            <h3 className="mb-2 font-semibold">Visual Elements Legend</h3>
+            <div className="space-y-3 text-sm">
+              {/* Stage Icons Section */}
+              <div>
+                <div className="mb-2 font-medium">Pipeline Stages:</div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  {PIPELINE_STAGES.map((stageName, index) => (
+                    <div key={index} className="flex items-center space-x-2 rounded bg-gray-50 p-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white">
+                        <img src={STAGE_IMAGES[index]} alt={stageName} className="h-6 w-6" />
+                      </div>
+                      <span className="text-xs">{stageName}</span>
+                      <span className="text-xs">{stageTimingInfo.stageLengths[index]} mins</span>
+                    </div>
+                  ))}
                 </div>
-                <button
-                  onClick={() => handleRemoveInstruction(instr.id)}
-                  className="text-red-500 hover:text-red-700"
-                  title="Remove instruction"
-                >
+              </div>
+            </div>
+          </div>
+
+          {/* Instruction Management UI */}
+          <div className="mb-4">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-lg font-medium">Instructions</h3>
+
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="flex items-center rounded bg-purple-500 px-3 py-1 text-sm text-white hover:bg-purple-600"
+              >
+                {showAddForm ? "Cancel" : "Add Instruction"}
+                {!showAddForm && (
                   <svg
-                    className="h-5 w-5"
+                    className="ml-1 h-4 w-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -914,188 +1007,71 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="mb-2 flex w-full flex-col justify-between md:flex-row md:items-center">
-        <div className="flex items-center space-x-2">
-          <span>Slow</span>
-          <input
-            type="range"
-            min="100"
-            max="1900"
-            value={2000 - speed}
-            onChange={handleSpeedChange}
-            className="w-40"
-          />
-          <span>Fast</span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-center">
-            <h3 className="text-lg font-medium">
-              Current Time:{" "}
-              {cycles > 0
-                ? (() => {
-                    const minutes = Math.floor(cycles / 2) * 30;
-                    const hours = Math.floor(9 + minutes / 60);
-                    const mins = minutes % 60;
-                    const ampm = hours >= 12 ? "PM" : "AM";
-                    const hour12 = hours > 12 ? hours - 12 : hours;
-                    return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-                  })()
-                : "9:00 AM"}
-              <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
-            </h3>
-          </div>
-
-          <div className="flex items-center gap-2 text-center">
-            <div>
-              <h3 className="text-lg font-medium">
-                CPI: {cpi} <span className="text-xs text-gray-500">(min: {theoreticalMaxCPI})</span>
-              </h3>
+                )}
+              </button>
             </div>
-            <div className="text-xl">|</div>
-            <div>
-              <h3 className="text-lg font-medium">
-                IPC: {ipc} <span className="text-xs text-gray-500">(max: {theoreticalMaxIPC})</span>
-              </h3>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div
-        ref={containerRef}
-        className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
-        style={{ height: "500px" }}
-      >
-        <svg ref={svgRef} width={svgWidth} height={svgHeight}></svg>
-      </div>
-
-      {pipelineInstructions.every(
-        (instr) => instr.currentStage !== undefined && instr.currentStage >= PIPELINE_STAGES.length
-      ) && (
-        <div className="mb-4 w-full border-l-4 border-green-400 bg-green-50 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
+            {showAddForm && (
+              <div className="mb-4 flex flex-col gap-2 rounded bg-gray-50 p-3 md:flex-row">
+                <input
+                  type="text"
+                  value={newInstructionName}
+                  onChange={(e) => setNewInstructionName(e.target.value)}
+                  placeholder="Enter laundry load (e.g., Sweaters Load)"
+                  className="flex-grow rounded border border-gray-300 px-3 py-2"
                 />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-green-700">
-                <strong>All done!</strong> All laundry loads have been completed. Final time:{" "}
-                {(() => {
-                  const minutes = Math.floor(cycles / 2) * 30;
-                  const hours = Math.floor(9 + minutes / 60);
-                  const mins = minutes % 60;
-                  const ampm = hours >= 12 ? "PM" : "AM";
-                  const hour12 = hours > 12 ? hours - 12 : hours;
-                  return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-                })()}
-                . It took {cycles} "cycles" to complete all {pipelineInstructions.length} loads of
-                laundry.
-              </p>
+                <button
+                  onClick={handleAddInstruction}
+                  disabled={!newInstructionName.trim()}
+                  className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            )}
+
+            <div className="max-h-40 overflow-y-auto rounded border border-gray-200">
+              <ul className="divide-y divide-gray-200">
+                {pipelineInstructions.map((instr) => (
+                  <li key={instr.id} className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center">
+                      <div
+                        className="mr-2 h-4 w-4 rounded-full"
+                        style={{ backgroundColor: instr.color }}
+                      ></div>
+                      <span>
+                        <strong>{instr.id}:</strong> {instr.name}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveInstruction(instr.id)}
+                      className="text-red-500 hover:text-red-700"
+                      title="Remove instruction"
+                    >
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
-      )}
-
-      <div className="mb-4 w-full border-l-4 border-yellow-400 bg-yellow-50 p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              <strong>Laundry Efficiency:</strong> In{" "}
-              {isPipelined
-                ? isSuperscalarActive
-                  ? "superscalar pipelined"
-                  : "pipelined"
-                : "non-pipelined"}{" "}
-              mode, all {pipelineInstructions.length} loads of laundry require approximately{" "}
-              <strong>{totalCyclesRequired}</strong> "cycles" to complete (from 9:00 AM to{" "}
-              {(() => {
-                const minutes = totalCyclesRequired * 30;
-                const hours = Math.floor(9 + minutes / 60);
-                const mins = minutes % 60;
-                const ampm = hours >= 12 ? "PM" : "AM";
-                const hour12 = hours > 12 ? hours - 12 : hours;
-                return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
-              })()}
-              ).
-              {isPipelined ? (
-                isSuperscalarActive ? (
-                  <>
-                    {" "}
-                    With superscalar pipelined laundry, you can complete {superscalarFactor} loads
-                    every 30 minutes once the pipeline is full, achieving a CPI of{" "}
-                    {(1 / superscalarFactor).toFixed(2)} and IPC of {superscalarFactor}. Without
-                    pipelining, each load would take all {PIPELINE_STAGES.length} stages to complete
-                    before starting the next.
-                  </>
-                ) : (
-                  <>
-                    {" "}
-                    With pipelined laundry, you can complete a load every 30 minutes once the
-                    pipeline is full, achieving a CPI of 1.0. Without pipelining, each load would
-                    take all {PIPELINE_STAGES.length} stages to complete before starting the next.
-                  </>
-                )
-              ) : (
-                <>
-                  {" "}
-                  With non-pipelined laundry, you must complete all {PIPELINE_STAGES.length} stages
-                  for each load before starting the next one, resulting in a cycles-per-load of{" "}
-                  {PIPELINE_STAGES.length}.
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Next Visualization Button */}
-      <div className="mt-8 mb-4 flex w-full justify-center">
-        <a
-          href="/csc368/pipelining/registers"
-          className="flex items-center rounded-lg bg-purple-600 px-6 py-3 font-bold text-white shadow-lg hover:bg-purple-700"
-        >
-          Next Visualization: Processor Pipeline with RISC-V Instructions
-          <svg
-            className="ml-2 h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 5l7 7-7 7"
-            ></path>
-          </svg>
-        </a>
       </div>
     </div>
   );

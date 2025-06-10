@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { BinaryBlock } from "./BinaryBlock";
+import { BinaryBlock, MultiColorBinaryBlock } from "./BinaryBlock";
 import { SubsectionHeading } from "./SubsectionHeading";
+import { TranslationSystem } from "../TranslationSystemNew"; // For toHex, toBinary
 import { PageTableLevelColors } from "../constants";
-import { TranslationSystem } from "../TranslationSystemNew"; // Assuming types can be imported
+import { Check, X } from "lucide-react";
 // import type { PageTableLevel } from "../TranslationSystemNew"; // No longer needed
 
 // We need to replicate or import the structure of breakdown and vaBitCalculations
@@ -89,14 +90,14 @@ export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
 
   return (
     <section className="w-full max-w-7xl overflow-x-auto">
-      <div className="bg-muted/50 rounded-lg p-6">
+      <div className="bg-muted/50 min-w-fit rounded-lg p-6">
         <SubsectionHeading>
           Virtual Address ({totalVirtualAddressBits} bits):{" "}
           {TranslationSystem.toHex(virtualAddress, 4)}
         </SubsectionHeading>
 
         {!hexHintMode ? (
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex min-w-fit items-center justify-center gap-2 overflow-x-auto">
             {virtualAddressIndices.map((level, i) => (
               <BinaryBlock
                 key={`va-level-${i}`}
@@ -107,7 +108,6 @@ export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
                 hoverColor={PageTableLevelColors[i % PageTableLevelColors.length].hover}
                 label={testMode ? level.label : `${level.label} (${formatNumber(level.value)})`}
                 showBitNumbers={true}
-                showLeftBorder={true}
                 startBitNumber={level.startBit}
                 tooltip={
                   testMode ? undefined : (
@@ -134,7 +134,6 @@ export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
               hoverColor="group-hover:bg-emerald-200"
               label={testMode ? "Offset" : `Offset (${formatNumber(virtualAddressOffset.value)})`}
               showBitNumbers={true}
-              showLeftBorder={true}
               startBitNumber={0}
               tooltip={
                 testMode ? undefined : (
@@ -152,7 +151,7 @@ export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
             />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-x-auto">
             <div className="w-full overflow-x-auto">
               <div
                 className="flex min-w-fit flex-nowrap items-center justify-start gap-2"
@@ -172,39 +171,79 @@ export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
                           const userInput = hexInputs[chunkKey] || "";
                           const isCorrect = isHexInputCorrect(chunkKey, expectedHex);
 
+                          // Calculate padding for this chunk
+                          const originalBitsLength = level.bits.length;
+                          const paddedBitsLength = chunks.length * 4;
+                          const paddingBitsCount = paddedBitsLength - originalBitsLength;
+
+                          // Create colors and padding arrays for this chunk
+                          const colors = [];
+                          const borderColors = [];
+                          const hoverColors = [];
+                          const isPadding = [];
+
+                          for (let j = 0; j < 4; j++) {
+                            const globalBitIndex = chunkIndex * 4 + j;
+                            const isThisBitPadding = globalBitIndex < paddingBitsCount;
+
+                            if (isThisBitPadding) {
+                              // Use table styling for padding bits
+                              colors.push("bg-muted/50");
+                              borderColors.push("border-border");
+                              hoverColors.push("");
+                              isPadding.push(true);
+                            } else {
+                              // Use level-specific colors for data bits
+                              colors.push(
+                                PageTableLevelColors[i % PageTableLevelColors.length].background
+                              );
+                              borderColors.push(
+                                PageTableLevelColors[i % PageTableLevelColors.length].border
+                              );
+                              hoverColors.push(
+                                PageTableLevelColors[i % PageTableLevelColors.length].hover
+                              );
+                              isPadding.push(false);
+                            }
+                          }
+
                           return (
                             <div key={chunkKey} className="flex flex-col items-center gap-1">
-                              {/* Hex input field */}
-                              <input
-                                type="text"
-                                value={userInput}
-                                onChange={(e) => handleHexInputChange(chunkKey, e.target.value)}
-                                className={`h-6 w-8 rounded border text-center font-mono text-xs focus:outline-none ${
-                                  userInput
-                                    ? isCorrect
-                                      ? "border-green-500 focus:border-green-600"
-                                      : "border-red-500 focus:border-red-600"
-                                    : "border-gray-300 focus:border-blue-500"
-                                }`}
-                                placeholder="?"
-                                maxLength={1}
-                              />
-                              {/* 4-bit binary block */}
-                              <BinaryBlock
+                              {/* Hex input field with icon */}
+                              <div className="relative flex justify-center">
+                                <input
+                                  type="text"
+                                  value={userInput}
+                                  onChange={(e) => handleHexInputChange(chunkKey, e.target.value)}
+                                  className={`h-6 w-8 rounded border text-center font-mono text-xs focus:outline-none ${
+                                    userInput
+                                      ? isCorrect
+                                        ? "border-green-500 focus:border-green-600"
+                                        : "border-red-500 focus:border-red-600"
+                                      : "border-gray-300 focus:border-blue-500"
+                                  }`}
+                                  placeholder="?"
+                                  maxLength={1}
+                                />
+                                {userInput && (
+                                  <div className="absolute top-0 left-full ml-1.5 flex h-6 items-center">
+                                    {isCorrect ? (
+                                      <Check className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <X className="h-4 w-4 text-red-600" />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              {/* 4-bit multi-color binary block */}
+                              <MultiColorBinaryBlock
                                 blocks={4}
                                 digits={chunk.split("")}
-                                color={
-                                  PageTableLevelColors[i % PageTableLevelColors.length].background
-                                }
-                                borderColor={
-                                  PageTableLevelColors[i % PageTableLevelColors.length].border
-                                }
-                                hoverColor={
-                                  PageTableLevelColors[i % PageTableLevelColors.length].hover
-                                }
-                                label=""
+                                colors={colors}
+                                borderColors={borderColors}
+                                hoverColors={hoverColors}
+                                isPadding={isPadding}
                                 showBitNumbers={false}
-                                showLeftBorder={true}
                               />
                             </div>
                           );
@@ -225,33 +264,73 @@ export const VirtualAddressDisplay: React.FC<VirtualAddressDisplayProps> = ({
                           const userInput = hexInputs[chunkKey] || "";
                           const isCorrect = isHexInputCorrect(chunkKey, expectedHex);
 
+                          // Calculate padding for offset chunk
+                          const originalBitsLength = virtualAddressOffset.bits.length;
+                          const paddedBitsLength = offsetChunks.length * 4;
+                          const paddingBitsCount = paddedBitsLength - originalBitsLength;
+
+                          // Create colors and padding arrays for this chunk
+                          const colors = [];
+                          const borderColors = [];
+                          const hoverColors = [];
+                          const isPadding = [];
+
+                          for (let j = 0; j < 4; j++) {
+                            const globalBitIndex = chunkIndex * 4 + j;
+                            const isThisBitPadding = globalBitIndex < paddingBitsCount;
+
+                            if (isThisBitPadding) {
+                              // Use table styling for padding bits
+                              colors.push("bg-muted/50");
+                              borderColors.push("border-border");
+                              hoverColors.push("");
+                              isPadding.push(true);
+                            } else {
+                              // Use offset colors for data bits
+                              colors.push("bg-emerald-100");
+                              borderColors.push("border-emerald-300");
+                              hoverColors.push("group-hover:bg-emerald-200");
+                              isPadding.push(false);
+                            }
+                          }
+
                           return (
                             <div key={chunkKey} className="flex flex-col items-center gap-1">
-                              {/* Hex input field */}
-                              <input
-                                type="text"
-                                value={userInput}
-                                onChange={(e) => handleHexInputChange(chunkKey, e.target.value)}
-                                className={`h-6 w-8 rounded border text-center font-mono text-xs focus:outline-none ${
-                                  userInput
-                                    ? isCorrect
-                                      ? "border-green-500 focus:border-green-600"
-                                      : "border-red-500 focus:border-red-600"
-                                    : "border-gray-300 focus:border-blue-500"
-                                }`}
-                                placeholder="?"
-                                maxLength={1}
-                              />
-                              {/* 4-bit binary block */}
-                              <BinaryBlock
+                              {/* Hex input field with icon */}
+                              <div className="relative flex justify-center">
+                                <input
+                                  type="text"
+                                  value={userInput}
+                                  onChange={(e) => handleHexInputChange(chunkKey, e.target.value)}
+                                  className={`h-6 w-8 rounded border text-center font-mono text-xs focus:outline-none ${
+                                    userInput
+                                      ? isCorrect
+                                        ? "border-green-500 focus:border-green-600"
+                                        : "border-red-500 focus:border-red-600"
+                                      : "border-gray-300 focus:border-blue-500"
+                                  }`}
+                                  placeholder="?"
+                                  maxLength={1}
+                                />
+                                {userInput && (
+                                  <div className="absolute top-0 left-full ml-1.5 flex h-6 items-center">
+                                    {isCorrect ? (
+                                      <Check className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <X className="h-4 w-4 text-red-600" />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              {/* 4-bit multi-color binary block */}
+                              <MultiColorBinaryBlock
                                 blocks={4}
                                 digits={chunk.split("")}
-                                color="bg-emerald-100"
-                                borderColor="border-emerald-300"
-                                hoverColor="group-hover:bg-emerald-200"
-                                label=""
+                                colors={colors}
+                                borderColors={borderColors}
+                                hoverColors={hoverColors}
+                                isPadding={isPadding}
                                 showBitNumbers={false}
-                                showLeftBorder={true}
                               />
                             </div>
                           );

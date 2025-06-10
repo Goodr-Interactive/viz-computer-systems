@@ -57,8 +57,8 @@ export const instructorConfig = {
  * Configurable system parameters for the multi-level page table translation example
  */
 export const translationExampleConfig = {
-  defaultPhysicalMemorySize: PhysicalMemorySize.MB_16,
-  defaultPageSize: PageSize.KB_2,
+  defaultPhysicalMemorySize: PhysicalMemorySize.MB_128,
+  defaultPageSize: PageSize.KB_4,
   defaultPageTableLevels: 2,
   defaultInvalidEntryProbability: 0.3,
 } as const;

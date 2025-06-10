@@ -49,7 +49,7 @@ export const SimplePaging: React.FunctionComponent = () => {
   return (
     <div className="flex w-full flex-col items-center gap-10 p-8 pb-24">
       {/* Configuration Section */}
-      <section className="w-full max-w-7xl">
+      <section className="w-full max-w-7xl overflow-x-auto">
         <SectionHeading>Paging System Visualization</SectionHeading>
 
         <p className="text-muted-foreground mb-6">
@@ -59,7 +59,7 @@ export const SimplePaging: React.FunctionComponent = () => {
           address bits affect the address structure and system calculations.
         </p>
 
-        <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="grid w-full grid-cols-1 gap-8 p-1 md:grid-cols-3">
           <div className="flex flex-col gap-2">
             <Label htmlFor="physical-memory" className="font-medium">
               Physical Memory Size
@@ -126,40 +126,38 @@ export const SimplePaging: React.FunctionComponent = () => {
       </section>
 
       {/* Address Structure Section */}
-      <section className="w-full max-w-7xl">
+      <section className="-mt-1 w-full max-w-7xl overflow-x-auto">
         <LayoutGroup>
-          <div className="flex flex-col gap-8">
-            <div className="bg-muted/50 rounded-lg p-6">
+          <div className="flex min-w-fit flex-col gap-8">
+            <div className="bg-muted/50 min-w-fit rounded-lg p-6">
               <SubsectionHeading>Virtual Address ({virtualBits} bits)</SubsectionHeading>
-              <div className="flex flex-col gap-4">
-                <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait">
+                <div className="w-full overflow-x-auto">
                   <motion.div
                     key={`virtual-${virtualBits}-${pageSize}-${physicalMemory}`}
-                    className="flex flex-wrap items-center justify-end gap-2 pr-4"
+                    className="flex min-w-fit flex-nowrap items-center justify-end gap-2 pr-1"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <AnimatedBinaryBlock
-                        layoutId="vpn-single-level"
-                        blocks={summary.vpnBits}
-                        color="bg-purple-100"
-                        borderColor="border-purple-300"
-                        hoverColor="group-hover:bg-purple-200"
-                        tooltip={
-                          <div className="max-w-sm space-y-1">
-                            <p className="text-sm font-medium">
-                              Virtual Page Number (VPN) ({summary.vpnBits} bits)
-                            </p>
-                            <p className="text-xs">
-                              Indexes directly into the page table to find the corresponding page
-                              table entry (PTE).
-                            </p>
-                          </div>
-                        }
-                        showLeftBorder={true}
-                        label="Virtual Page Number (VPN)"
-                        startBitNumber={pageOffsetBlocks}
-                      />
-                    </div>
+                    <AnimatedBinaryBlock
+                      layoutId="vpn-single-level"
+                      blocks={summary.vpnBits}
+                      color="bg-purple-100"
+                      borderColor="border-purple-300"
+                      hoverColor="group-hover:bg-purple-200"
+                      tooltip={
+                        <div className="max-w-sm space-y-1">
+                          <p className="text-sm font-medium">
+                            Virtual Page Number (VPN) ({summary.vpnBits} bits)
+                          </p>
+                          <p className="text-xs">
+                            Indexes directly into the page table to find the corresponding page
+                            table entry (PTE).
+                          </p>
+                        </div>
+                      }
+                      showLeftBorder={true}
+                      label="Virtual Page Number (VPN)"
+                      startBitNumber={pageOffsetBlocks}
+                    />
                     <AnimatedBinaryBlock
                       layoutId="virtual-page-offset"
                       blocks={pageOffsetBlocks}
@@ -182,78 +180,89 @@ export const SimplePaging: React.FunctionComponent = () => {
                       startBitNumber={0}
                     />
                   </motion.div>
-                </AnimatePresence>
-              </div>
+                </div>
+              </AnimatePresence>
             </div>
+          </div>
+        </LayoutGroup>
+      </section>
 
-            <div className="bg-muted/50 rounded-lg p-6">
+      {/* Physical Address Section */}
+      <section className="w-full max-w-7xl overflow-x-auto">
+        <LayoutGroup>
+          <div className="flex min-w-fit flex-col gap-8">
+            <div className="bg-muted/50 min-w-fit rounded-lg p-6">
               <SubsectionHeading>Physical Address (32 bits)</SubsectionHeading>
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={`physical-${virtualBits}-${pageSize}-${physicalMemory}`}
-                  className="flex flex-wrap items-center justify-end gap-2 pr-4"
-                >
-                  {unusedBits > 0 && (
+                <div className="w-full overflow-x-auto">
+                  <motion.div
+                    key={`physical-${virtualBits}-${pageSize}-${physicalMemory}`}
+                    className="flex min-w-fit flex-nowrap items-center justify-end gap-2 pr-1"
+                  >
+                    {unusedBits > 0 && (
+                      <AnimatedBinaryBlock
+                        layoutId="physical-unused"
+                        blocks={unusedBits}
+                        color="bg-gray-100"
+                        borderColor="border-gray-300"
+                        hoverColor="group-hover:bg-gray-200"
+                        tooltip={
+                          <div className="max-w-sm space-y-1">
+                            <p className="text-sm font-medium">Unused Bits ({unusedBits} bits)</p>
+                            <p className="text-xs">
+                              High-order bits not needed for current memory size.
+                            </p>
+                          </div>
+                        }
+                        showLeftBorder={true}
+                        label="Unused"
+                        startBitNumber={pageOffsetBlocks + pfnBlocks}
+                      />
+                    )}
                     <AnimatedBinaryBlock
-                      layoutId="physical-unused"
-                      blocks={unusedBits}
-                      color="bg-gray-100"
-                      borderColor="border-gray-300"
-                      hoverColor="group-hover:bg-gray-200"
+                      layoutId="physical-pfn"
+                      blocks={pfnBlocks}
+                      color="bg-sky-100"
+                      borderColor="border-sky-300"
+                      hoverColor="group-hover:bg-sky-200"
                       tooltip={
                         <div className="max-w-sm space-y-1">
-                          <p className="text-sm font-medium">Unused Bits ({unusedBits} bits)</p>
+                          <p className="text-sm font-medium">
+                            Physical Frame Number ({pfnBlocks} bits)
+                          </p>
                           <p className="text-xs">
-                            High-order bits not needed for current memory size.
+                            Identifies which physical memory frame contains the page data. Comes
+                            from the PTE.
                           </p>
                         </div>
                       }
                       showLeftBorder={true}
-                      label="Unused"
-                      startBitNumber={pageOffsetBlocks + pfnBlocks}
+                      label="Physical Frame Number (PFN)"
+                      startBitNumber={pageOffsetBlocks}
                     />
-                  )}
-                  <AnimatedBinaryBlock
-                    layoutId="physical-pfn"
-                    blocks={pfnBlocks}
-                    color="bg-sky-100"
-                    borderColor="border-sky-300"
-                    hoverColor="group-hover:bg-sky-200"
-                    tooltip={
-                      <div className="max-w-sm space-y-1">
-                        <p className="text-sm font-medium">
-                          Physical Frame Number ({pfnBlocks} bits)
-                        </p>
-                        <p className="text-xs">
-                          Identifies which physical memory frame contains the page data. Comes from
-                          the PTE.
-                        </p>
-                      </div>
-                    }
-                    showLeftBorder={true}
-                    label="Physical Frame Number (PFN)"
-                    startBitNumber={pageOffsetBlocks}
-                  />
-                  <AnimatedBinaryBlock
-                    layoutId="physical-page-offset"
-                    blocks={pageOffsetBlocks}
-                    color="bg-emerald-100"
-                    borderColor="border-emerald-300"
-                    hoverColor="group-hover:bg-emerald-200"
-                    tooltip={
-                      <div className="max-w-sm space-y-1">
-                        <p className="text-sm font-medium">Page Offset ({pageOffsetBlocks} bits)</p>
-                        <p className="text-xs">
-                          Same offset from virtual address. Passes through unchanged during
-                          translation.
-                        </p>
-                      </div>
-                    }
-                    showLeftBorder={true}
-                    label="Page Offset"
-                    startBitNumber={0}
-                  />
-                </motion.div>
+                    <AnimatedBinaryBlock
+                      layoutId="physical-page-offset"
+                      blocks={pageOffsetBlocks}
+                      color="bg-emerald-100"
+                      borderColor="border-emerald-300"
+                      hoverColor="group-hover:bg-emerald-200"
+                      tooltip={
+                        <div className="max-w-sm space-y-1">
+                          <p className="text-sm font-medium">
+                            Page Offset ({pageOffsetBlocks} bits)
+                          </p>
+                          <p className="text-xs">
+                            Same offset from virtual address. Passes through unchanged during
+                            translation.
+                          </p>
+                        </div>
+                      }
+                      showLeftBorder={true}
+                      label="Page Offset"
+                      startBitNumber={0}
+                    />
+                  </motion.div>
+                </div>
               </AnimatePresence>
             </div>
           </div>
@@ -261,140 +270,144 @@ export const SimplePaging: React.FunctionComponent = () => {
       </section>
 
       {/* Page Table Structure Section */}
-      <section className="w-full max-w-7xl">
+      <section className="w-full max-w-7xl overflow-x-auto">
         <LayoutGroup>
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-fit flex-col gap-4">
             {/* PTE Structure - Non-Collapsible */}
-            <div className="bg-muted/50 rounded-lg p-6">
+            <div className="bg-muted/50 min-w-fit rounded-lg p-6">
               <SubsectionHeading>Page Table Entry (PTE) Structure</SubsectionHeading>
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={`pte-${virtualBits}-${pageSize}-${physicalMemory}`}
-                  className="flex flex-wrap items-center justify-end gap-2 pr-4"
-                >
-                  {/* Modified bit */}
-                  <AnimatedBinaryBlock
-                    layoutId="pte-modified"
-                    blocks={1}
-                    color="bg-red-100"
-                    borderColor="border-red-300"
-                    hoverColor="group-hover:bg-red-200"
-                    tooltip={
-                      <div className="max-w-sm space-y-1">
-                        <p className="text-sm font-medium">Modified Bit (M)</p>
-                        <p className="text-xs">
-                          Set when page is written to. Tells OS which pages need saving to storage.
-                        </p>
-                      </div>
-                    }
-                    showLeftBorder={true}
-                    label="M"
-                    startBitNumber={31}
-                  />
-                  {/* Referenced bit */}
-                  <AnimatedBinaryBlock
-                    layoutId="pte-referenced"
-                    blocks={1}
-                    color="bg-orange-100"
-                    borderColor="border-orange-300"
-                    hoverColor="group-hover:bg-orange-200"
-                    tooltip={
-                      <div className="max-w-sm space-y-1">
-                        <p className="text-sm font-medium">Referenced Bit (R)</p>
-                        <p className="text-xs">
-                          Set when page is accessed. Used for page replacement algorithms like LRU.
-                        </p>
-                      </div>
-                    }
-                    showLeftBorder={true}
-                    label="R"
-                    startBitNumber={30}
-                  />
-                  {/* Valid bit */}
-                  <AnimatedBinaryBlock
-                    layoutId="pte-valid"
-                    blocks={1}
-                    color="bg-amber-100"
-                    borderColor="border-amber-300"
-                    hoverColor="group-hover:bg-amber-200"
-                    tooltip={
-                      <div className="max-w-sm space-y-1">
-                        <p className="text-sm font-medium">Valid Bit (V)</p>
-                        <p className="text-xs">
-                          Shows if page is in memory. If 0, accessing it triggers a page fault.
-                        </p>
-                      </div>
-                    }
-                    showLeftBorder={true}
-                    label="V"
-                    startBitNumber={29}
-                  />
-                  {/* Protection bits */}
-                  <AnimatedBinaryBlock
-                    layoutId="pte-protection"
-                    blocks={3}
-                    color="bg-lime-100"
-                    borderColor="border-lime-300"
-                    hoverColor="group-hover:bg-lime-200"
-                    tooltip={
-                      <div className="max-w-sm space-y-1">
-                        <p className="text-sm font-medium">Protection Bits (3 bits)</p>
-                        <p className="text-xs">
-                          Read, Write, Execute permissions. Hardware checks these on every access.
-                        </p>
-                      </div>
-                    }
-                    showLeftBorder={true}
-                    label="Prot"
-                    startBitNumber={26}
-                  />
-                  {/* Calculate unused bits in PTE */}
-                  {26 - pfnBlocks > 0 && (
+                <div className="w-full overflow-x-auto">
+                  <motion.div
+                    key={`pte-${virtualBits}-${pageSize}-${physicalMemory}`}
+                    className="flex min-w-fit flex-nowrap items-center justify-end gap-2 pr-1"
+                  >
+                    {/* Modified bit */}
                     <AnimatedBinaryBlock
-                      layoutId="pte-unused"
-                      blocks={26 - pfnBlocks}
-                      color="bg-gray-100"
-                      borderColor="border-gray-300"
-                      hoverColor="group-hover:bg-gray-200"
+                      layoutId="pte-modified"
+                      blocks={1}
+                      color="bg-red-100"
+                      borderColor="border-red-300"
+                      hoverColor="group-hover:bg-red-200"
                       tooltip={
                         <div className="max-w-sm space-y-1">
-                          <p className="text-sm font-medium">
-                            Unused PTE Bits ({26 - pfnBlocks} bits)
-                          </p>
+                          <p className="text-sm font-medium">Modified Bit (M)</p>
                           <p className="text-xs">
-                            Reserved space in PTE. Could be used for additional flags or larger
-                            addresses.
+                            Set when page is written to. Tells OS which pages need saving to
+                            storage.
                           </p>
                         </div>
                       }
                       showLeftBorder={true}
-                      label="Unused"
-                      startBitNumber={pfnBlocks}
+                      label="M"
+                      startBitNumber={31}
                     />
-                  )}
-                  {/* PFN bits */}
-                  <AnimatedBinaryBlock
-                    layoutId="pte-pfn"
-                    blocks={pfnBlocks}
-                    color="bg-sky-100"
-                    borderColor="border-sky-300"
-                    hoverColor="group-hover:bg-sky-200"
-                    tooltip={
-                      <div className="max-w-sm space-y-1">
-                        <p className="text-sm font-medium">
-                          Physical Frame Number ({pfnBlocks} bits)
-                        </p>
-                        <p className="text-xs">
-                          Physical frame where virtual page is stored. Replaces VPN during
-                          translation.
-                        </p>
-                      </div>
-                    }
-                    showLeftBorder={true}
-                    label="Physical Frame Number (PFN)"
-                    startBitNumber={0}
-                  />
-                </motion.div>
+                    {/* Referenced bit */}
+                    <AnimatedBinaryBlock
+                      layoutId="pte-referenced"
+                      blocks={1}
+                      color="bg-orange-100"
+                      borderColor="border-orange-300"
+                      hoverColor="group-hover:bg-orange-200"
+                      tooltip={
+                        <div className="max-w-sm space-y-1">
+                          <p className="text-sm font-medium">Referenced Bit (R)</p>
+                          <p className="text-xs">
+                            Set when page is accessed. Used for page replacement algorithms like
+                            LRU.
+                          </p>
+                        </div>
+                      }
+                      showLeftBorder={true}
+                      label="R"
+                      startBitNumber={30}
+                    />
+                    {/* Valid bit */}
+                    <AnimatedBinaryBlock
+                      layoutId="pte-valid"
+                      blocks={1}
+                      color="bg-amber-100"
+                      borderColor="border-amber-300"
+                      hoverColor="group-hover:bg-amber-200"
+                      tooltip={
+                        <div className="max-w-sm space-y-1">
+                          <p className="text-sm font-medium">Valid Bit (V)</p>
+                          <p className="text-xs">
+                            Shows if page is in memory. If 0, accessing it triggers a page fault.
+                          </p>
+                        </div>
+                      }
+                      showLeftBorder={true}
+                      label="V"
+                      startBitNumber={29}
+                    />
+                    {/* Protection bits */}
+                    <AnimatedBinaryBlock
+                      layoutId="pte-protection"
+                      blocks={3}
+                      color="bg-lime-100"
+                      borderColor="border-lime-300"
+                      hoverColor="group-hover:bg-lime-200"
+                      tooltip={
+                        <div className="max-w-sm space-y-1">
+                          <p className="text-sm font-medium">Protection Bits (3 bits)</p>
+                          <p className="text-xs">
+                            Read, Write, Execute permissions. Hardware checks these on every access.
+                          </p>
+                        </div>
+                      }
+                      showLeftBorder={true}
+                      label="Prot"
+                      startBitNumber={26}
+                    />
+                    {/* Calculate unused bits in PTE */}
+                    {26 - pfnBlocks > 0 && (
+                      <AnimatedBinaryBlock
+                        layoutId="pte-unused"
+                        blocks={26 - pfnBlocks}
+                        color="bg-gray-100"
+                        borderColor="border-gray-300"
+                        hoverColor="group-hover:bg-gray-200"
+                        tooltip={
+                          <div className="max-w-sm space-y-1">
+                            <p className="text-sm font-medium">
+                              Unused PTE Bits ({26 - pfnBlocks} bits)
+                            </p>
+                            <p className="text-xs">
+                              Reserved space in PTE. Could be used for additional flags or larger
+                              addresses.
+                            </p>
+                          </div>
+                        }
+                        showLeftBorder={true}
+                        label="Unused"
+                        startBitNumber={pfnBlocks}
+                      />
+                    )}
+                    {/* PFN bits */}
+                    <AnimatedBinaryBlock
+                      layoutId="pte-pfn"
+                      blocks={pfnBlocks}
+                      color="bg-sky-100"
+                      borderColor="border-sky-300"
+                      hoverColor="group-hover:bg-sky-200"
+                      tooltip={
+                        <div className="max-w-sm space-y-1">
+                          <p className="text-sm font-medium">
+                            Physical Frame Number ({pfnBlocks} bits)
+                          </p>
+                          <p className="text-xs">
+                            Physical frame where virtual page is stored. Replaces VPN during
+                            translation.
+                          </p>
+                        </div>
+                      }
+                      showLeftBorder={true}
+                      label="Physical Frame Number (PFN)"
+                      startBitNumber={0}
+                    />
+                  </motion.div>
+                </div>
               </AnimatePresence>
             </div>
           </div>
@@ -402,7 +415,7 @@ export const SimplePaging: React.FunctionComponent = () => {
       </section>
 
       {/* Calculation Hints Section */}
-      <section className="bg-muted/50 w-full max-w-7xl rounded-lg p-6">
+      <section className="bg-muted/50 w-full max-w-7xl overflow-x-auto rounded-lg p-6">
         <CollapsibleHeading
           collapsed={derivedValuesCollapsed}
           onClick={() => setDerivedValuesCollapsed(!derivedValuesCollapsed)}

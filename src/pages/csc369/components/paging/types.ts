@@ -20,10 +20,6 @@ export interface BinaryBlockProps {
    */
   tooltip?: React.ReactNode;
   /**
-   * Show left border on the first block
-   */
-  showLeftBorder?: boolean;
-  /**
    * Label to display below the blocks
    */
   label?: React.ReactNode;

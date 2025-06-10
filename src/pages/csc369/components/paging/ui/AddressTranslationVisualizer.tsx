@@ -261,178 +261,184 @@ export const AddressTranslationVisualizer: React.FC<AddressTranslationVisualizer
     ); // Or some placeholder
 
   return (
-    <section className="min-h-[492px] w-full max-w-7xl">
-      <div className="bg-muted/50 h-full rounded-lg p-6">
+    <section className="min-h-[492px] w-full max-w-7xl overflow-x-auto">
+      <div className="bg-muted/50 h-full min-w-fit rounded-lg p-6">
         <SubsectionHeading>Address Translation Process</SubsectionHeading>
         <div className="flex flex-col gap-8">
-          <div
-            className="relative flex min-h-[400px] items-center justify-center"
-            ref={containerRef}
-          >
-            <LayoutGroup>
-              <div className="flex h-full w-full items-start justify-center gap-10 overflow-x-auto overflow-y-hidden">
-                {/* PDBR Block */}
-                <motion.div
-                  ref={pdbrRef}
-                  className={`my-auto flex flex-shrink-0 flex-col items-center`}
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    opacity: { duration: 0.3, ease: "easeOut" },
-                    layout: { duration: 0.3 },
-                  }}
-                  onAnimationStart={() => setIsAnimating(true)}
-                  onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
-                  onLayoutAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
+          <div className="w-full overflow-x-auto">
+            <div
+              className="relative flex min-h-[400px] items-center justify-center"
+              ref={containerRef}
+            >
+              <LayoutGroup>
+                <div
+                  className="flex min-w-fit flex-nowrap items-start justify-start gap-10"
+                  style={{ margin: "0 auto", width: "max-content" }}
                 >
-                  <StringBlock
-                    value={formatNumber(translationData.pdbr)}
-                    color={pdbrColor}
-                    borderColor={pdbrBorder}
-                    hoverColor={pdbrColorHover}
-                    label="PDBR"
-                    showLeftBorder={true}
-                    tooltip={
-                      testMode ? undefined : (
-                        <div className="max-w-xs space-y-1 text-left">
-                          <p className="text-sm font-medium">
-                            PDBR: {formatNumber(translationData.pdbr)}
-                            {!showHex && ` (Hex: ${TranslationSystem.toHex(translationData.pdbr)})`}
-                          </p>
-                          <p className="text-xs">Points to the first-level page table's PFN.</p>
-                        </div>
-                      )
-                    }
-                  />
-                </motion.div>
-
-                {/* Page Tables */}
-                <AnimatePresence mode="popLayout">
-                  {translationData.pageTables.map((pageTable, levelIndex) => {
-                    // Visibility logic:
-                    // - Non-test mode: Show all tables
-                    // - Test mode: Show level 0 + any levels that are active
-                    const isVisible =
-                      !testMode || levelIndex === 0 || levelIndex < activeLevels.length;
-
-                    return (
-                      <PageTableDisplay
-                        key={levelIndex} // Framer motion might prefer unique string keys if order changes, but levelIndex is fine for now
-                        levelIndex={levelIndex}
-                        pageTablePfn={pageTable.tablePfn}
-                        tableDisplayData={memoizedDisplayData[levelIndex]}
-                        totalEntriesInTable={pageTableCapacity}
-                        selectedEntriesForTest={activeLevels.map((level) => level.selectedIndex)}
-                        currentExplorationPath={[]} // Empty array since we're not using exploration path anymore
-                        testMode={testMode}
-                        showHex={showHex}
-                        formatNumber={formatNumber}
-                        handleEntrySelection={handleEntrySelection}
-                        pageTableContainerRef={(el) =>
-                          (pageTableContainerRefs.current[levelIndex] = el)
-                        }
-                        pageTableElementRef={(el) => (tableElementRefs.current[levelIndex] = el)}
-                        activePfnCellRef={(el) => (activePfnCellRefs.current[levelIndex] = el)}
-                        isVisible={isVisible}
-                        onAnimationStart={() => setIsAnimating(true)}
-                        onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
-                        onLayoutAnimationComplete={() =>
-                          setTimeout(() => setIsAnimating(false), 100)
-                        }
-                      />
-                    );
-                  })}
-                </AnimatePresence>
-
-                {/* Final PFN Block or Explored PTE Block */}
-                <div className="relative my-auto ml-16 flex-shrink-0" ref={finalPfnBlockRef}>
-                  {/* Sizer block to ensure the container has the correct dimensions and prevent layout shift */}
-                  <div className="invisible">
-                    <StringBlock
-                      value={formatNumber(translationData.finalPfn)}
-                      color="transparent"
-                      borderColor="transparent"
-                      hoverColor="transparent"
-                      label="PFN"
-                      showLeftBorder={true}
-                    />
-                  </div>
-
-                  {/* Correct PFN block (absolutely positioned) */}
+                  {/* PDBR Block */}
                   <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
+                    ref={pdbrRef}
+                    className={`my-auto flex flex-shrink-0 flex-col items-center`}
+                    layout
                     initial={{ opacity: 0 }}
-                    animate={{
-                      opacity:
-                        !testMode || (finalPfn && finalPfn.pfn === translationData.finalPfn)
-                          ? 1
-                          : 0,
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      opacity: { duration: 0.3, ease: "easeOut" },
+                      layout: { duration: 0.3 },
                     }}
-                    transition={{ opacity: { duration: 0.4 } }}
                     onAnimationStart={() => setIsAnimating(true)}
                     onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
+                    onLayoutAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
                   >
                     <StringBlock
-                      value={formatNumber(translationData.finalPfn)}
-                      color={physicalPfnColor}
-                      borderColor={physicalPfnBorder}
-                      hoverColor={physicalPfnColorHover}
-                      label="PFN"
+                      value={formatNumber(translationData.pdbr)}
+                      color={pdbrColor}
+                      borderColor={pdbrBorder}
+                      hoverColor={pdbrColorHover}
+                      label="PDBR"
                       showLeftBorder={true}
                       tooltip={
                         testMode ? undefined : (
                           <div className="max-w-xs space-y-1 text-left">
                             <p className="text-sm font-medium">
-                              Final PFN: {formatNumber(translationData.finalPfn)}
+                              PDBR: {formatNumber(translationData.pdbr)}
                               {!showHex &&
-                                ` (Hex: ${TranslationSystem.toHex(translationData.finalPfn)})`}
+                                ` (Hex: ${TranslationSystem.toHex(translationData.pdbr)})`}
                             </p>
-                            <p className="text-xs">
-                              This is the Page Frame Number of the physical memory page for the
-                              above virtual address.
-                            </p>
+                            <p className="text-xs">Points to the first-level page table's PFN.</p>
                           </div>
                         )
                       }
                     />
                   </motion.div>
 
-                  {/* Explored (incorrect) PFN block */}
-                  <motion.div
-                    className={`absolute inset-0 flex items-center justify-center ${
-                      testMode && finalPfn && finalPfn.pfn !== translationData.finalPfn
-                        ? ""
-                        : "pointer-events-none"
-                    }`}
-                    initial={{ opacity: 0 }}
-                    animate={{
-                      opacity:
-                        testMode && finalPfn && finalPfn.pfn !== translationData.finalPfn ? 1 : 0,
-                    }}
-                    transition={{ opacity: { duration: 0.4 } }}
-                    onAnimationStart={() => setIsAnimating(true)}
-                    onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
-                  >
-                    {finalPfn && (
+                  {/* Page Tables */}
+                  <AnimatePresence mode="popLayout">
+                    {translationData.pageTables.map((pageTable, levelIndex) => {
+                      // Visibility logic:
+                      // - Non-test mode: Show all tables
+                      // - Test mode: Show level 0 + any levels that are active
+                      const isVisible =
+                        !testMode || levelIndex === 0 || levelIndex < activeLevels.length;
+
+                      return (
+                        <PageTableDisplay
+                          key={levelIndex} // Framer motion might prefer unique string keys if order changes, but levelIndex is fine for now
+                          levelIndex={levelIndex}
+                          pageTablePfn={pageTable.tablePfn}
+                          tableDisplayData={memoizedDisplayData[levelIndex]}
+                          totalEntriesInTable={pageTableCapacity}
+                          selectedEntriesForTest={activeLevels.map((level) => level.selectedIndex)}
+                          currentExplorationPath={[]} // Empty array since we're not using exploration path anymore
+                          testMode={testMode}
+                          showHex={showHex}
+                          formatNumber={formatNumber}
+                          handleEntrySelection={handleEntrySelection}
+                          pageTableContainerRef={(el) =>
+                            (pageTableContainerRefs.current[levelIndex] = el)
+                          }
+                          pageTableElementRef={(el) => (tableElementRefs.current[levelIndex] = el)}
+                          activePfnCellRef={(el) => (activePfnCellRefs.current[levelIndex] = el)}
+                          isVisible={isVisible}
+                          onAnimationStart={() => setIsAnimating(true)}
+                          onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
+                          onLayoutAnimationComplete={() =>
+                            setTimeout(() => setIsAnimating(false), 100)
+                          }
+                        />
+                      );
+                    })}
+                  </AnimatePresence>
+
+                  {/* Final PFN Block or Explored PTE Block */}
+                  <div className="relative my-auto ml-16 flex-shrink-0" ref={finalPfnBlockRef}>
+                    {/* Sizer block to ensure the container has the correct dimensions and prevent layout shift */}
+                    <div className="invisible">
                       <StringBlock
-                        value={formatNumber(finalPfn.pfn)}
+                        value={formatNumber(translationData.finalPfn)}
                         color="transparent"
-                        borderColor="border-border"
-                        hoverColor="hover:bg-gray-200/50"
+                        borderColor="transparent"
+                        hoverColor="transparent"
                         label="PFN"
                         showLeftBorder={true}
                       />
-                    )}
-                  </motion.div>
+                    </div>
+
+                    {/* Correct PFN block (absolutely positioned) */}
+                    <motion.div
+                      className="absolute inset-0 flex items-center justify-center"
+                      initial={{ opacity: 0 }}
+                      animate={{
+                        opacity:
+                          !testMode || (finalPfn && finalPfn.pfn === translationData.finalPfn)
+                            ? 1
+                            : 0,
+                      }}
+                      transition={{ opacity: { duration: 0.4 } }}
+                      onAnimationStart={() => setIsAnimating(true)}
+                      onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
+                    >
+                      <StringBlock
+                        value={formatNumber(translationData.finalPfn)}
+                        color={physicalPfnColor}
+                        borderColor={physicalPfnBorder}
+                        hoverColor={physicalPfnColorHover}
+                        label="PFN"
+                        showLeftBorder={true}
+                        tooltip={
+                          testMode ? undefined : (
+                            <div className="max-w-xs space-y-1 text-left">
+                              <p className="text-sm font-medium">
+                                Final PFN: {formatNumber(translationData.finalPfn)}
+                                {!showHex &&
+                                  ` (Hex: ${TranslationSystem.toHex(translationData.finalPfn)})`}
+                              </p>
+                              <p className="text-xs">
+                                This is the Page Frame Number of the physical memory page for the
+                                above virtual address.
+                              </p>
+                            </div>
+                          )
+                        }
+                      />
+                    </motion.div>
+
+                    {/* Explored (incorrect) PFN block */}
+                    <motion.div
+                      className={`absolute inset-0 flex items-center justify-center ${
+                        testMode && finalPfn && finalPfn.pfn !== translationData.finalPfn
+                          ? ""
+                          : "pointer-events-none"
+                      }`}
+                      initial={{ opacity: 0 }}
+                      animate={{
+                        opacity:
+                          testMode && finalPfn && finalPfn.pfn !== translationData.finalPfn ? 1 : 0,
+                      }}
+                      transition={{ opacity: { duration: 0.4 } }}
+                      onAnimationStart={() => setIsAnimating(true)}
+                      onAnimationComplete={() => setTimeout(() => setIsAnimating(false), 100)}
+                    >
+                      {finalPfn && (
+                        <StringBlock
+                          value={formatNumber(finalPfn.pfn)}
+                          color="transparent"
+                          borderColor="border-border"
+                          hoverColor="hover:bg-gray-200/50"
+                          label="PFN"
+                          showLeftBorder={true}
+                        />
+                      )}
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </LayoutGroup>
-            <svg
-              ref={svgRef}
-              className="pointer-events-none absolute top-0 left-0 h-full w-full"
-              style={{ zIndex: 10 }}
-            />
+              </LayoutGroup>
+              <svg
+                ref={svgRef}
+                className="pointer-events-none absolute top-0 left-0 h-full w-full"
+                style={{ zIndex: 10 }}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -24,7 +24,7 @@ export const TranslationControls: React.FC<TranslationControlsProps> = ({
   setHexHintMode,
 }) => {
   return (
-    <div className="flex justify-start gap-4">
+    <div className="flex flex-wrap justify-start gap-4">
       <Button onClick={generateNewTranslation} className="w-fit">
         Generate New Translation
       </Button>

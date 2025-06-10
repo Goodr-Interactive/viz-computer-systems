@@ -144,8 +144,8 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
   };
 
   return (
-    <section className="w-full max-w-7xl">
-      <div className={`bg-muted/50 rounded-lg p-6`}>
+    <section className="w-full max-w-7xl overflow-x-auto">
+      <div className={`bg-muted/50 min-w-fit rounded-lg p-6`}>
         <SubsectionHeading className={`h-9 ${testMode ? "mb-5" : "mt-1"}`}>
           Physical Address ({totalPhysicalAddressBits} bits):{" "}
           {testMode ? (
@@ -159,18 +159,35 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                     e.target.value.replace(/[^0-9a-fA-F]/g, "").toUpperCase()
                   )
                 }
-                className="mt-1 h-8 max-w-20 px-2 font-mono text-sm"
+                className={`mt-1 h-8 max-w-20 px-2 font-mono text-sm transition-all ${
+                  userPhysicalAddressHex && userPhysicalAddressHex.length === hexInputLength
+                    ? validateUserAddressHex()
+                      ? "border-green-500 bg-green-50 focus:border-green-600"
+                      : "border-red-500 bg-red-50 focus:border-red-600"
+                    : ""
+                }`}
                 placeholder={Array(hexInputLength).fill("0").join("")}
                 maxLength={hexInputLength}
               />
               {userPhysicalAddressHex && userPhysicalAddressHex.length === hexInputLength && (
-                <span className="mt-1 ml-1">
-                  {validateUserAddressHex() ? (
-                    <Check className="text-green-600" size={20} />
-                  ) : (
-                    <X className="text-red-600" size={20} />
-                  )}
-                </span>
+                <>
+                  <span className="mt-1 ml-1.5">
+                    {validateUserAddressHex() ? (
+                      <Check className="text-green-600" size={20} />
+                    ) : (
+                      <X className="text-red-600" size={20} />
+                    )}
+                  </span>
+                  <span className="mt-0.5 ml-1 text-base">
+                    {validateUserAddressHex() ? (
+                      <span className="font-medium text-green-700">
+                        Correct! This matches the expected physical address.
+                      </span>
+                    ) : (
+                      <span className="font-medium text-red-700">Incorrect. Try again.</span>
+                    )}
+                  </span>
+                </>
               )}
             </span>
           ) : (
@@ -182,7 +199,7 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
         </SubsectionHeading>
 
         {!hexHintMode ? (
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex min-w-fit items-center justify-center gap-2 overflow-x-auto">
             {testMode ? (
               <>
                 <BinaryBlock
@@ -201,7 +218,6 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                   hoverColor={physicalPfnColorHover}
                   label="PFN"
                   showBitNumbers={true}
-                  showLeftBorder={true}
                   startBitNumber={systemInfo.offsetBits}
                 />
                 <BinaryBlock
@@ -216,7 +232,6 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                   hoverColor={virtualOffsetColorHover}
                   label="Offset"
                   showBitNumbers={true}
-                  showLeftBorder={true}
                   startBitNumber={0}
                 />
               </>
@@ -238,7 +253,6 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                   hoverColor={physicalPfnColorHover}
                   label={`PFN${translationData.finalPfn !== undefined ? ` (${formatNumber(translationData.finalPfn)})` : ""}`}
                   showBitNumbers={true}
-                  showLeftBorder={true}
                   startBitNumber={systemInfo.offsetBits}
                   tooltip={
                     testMode ? undefined : (
@@ -266,7 +280,6 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                   hoverColor={virtualOffsetColorHover}
                   label={`Offset (${formatNumber(translationData.virtualOffsetValue)})`}
                   showBitNumbers={true}
-                  showLeftBorder={true}
                   startBitNumber={0}
                   tooltip={
                     testMode ? undefined : (
@@ -286,65 +299,109 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
             )}
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              {(() => {
-                const fullBits = getFullPhysicalAddressBits();
-                const chunks = splitIntoHexChunks(fullBits);
+          <div className="space-y-2 overflow-x-auto">
+            <div className="w-full overflow-x-auto">
+              <div
+                className="flex min-w-fit flex-nowrap items-center justify-start gap-2"
+                style={{ margin: "0 auto", width: "max-content" }}
+              >
+                <div className="flex flex-shrink-0 flex-col items-center gap-2">
+                  <div className="flex gap-1">
+                    {(() => {
+                      const fullBits = getFullPhysicalAddressBits();
+                      const chunks = splitIntoHexChunks(fullBits);
 
-                return chunks.map((chunk, chunkIndex) => {
-                  const chunkKey = `pa-chunk-${chunkIndex}`;
-                  const expectedHex = binaryToHex(chunk);
-                  const userInput = hexInputs[chunkKey] || "";
-                  const isCorrect = isHexInputCorrect(chunkKey, expectedHex);
+                      return chunks.map((chunk, chunkIndex) => {
+                        const chunkKey = `pa-chunk-${chunkIndex}`;
+                        const expectedHex = binaryToHex(chunk);
+                        const userInput = hexInputs[chunkKey] || "";
+                        const isCorrect = isHexInputCorrect(chunkKey, expectedHex);
 
-                  // Calculate bit positions for this chunk (from right to left, 0-indexed)
-                  const chunkStartBit = (chunks.length - 1 - chunkIndex) * 4;
+                        // Calculate bit positions for this chunk (from right to left, 0-indexed)
+                        const chunkStartBit = (chunks.length - 1 - chunkIndex) * 4;
 
-                  // Get colors for each bit in this 4-bit chunk
-                  const colors = [];
-                  const borderColors = [];
-                  const hoverColors = [];
+                        // Get colors for each bit in this 4-bit chunk
+                        const colors = [];
+                        const borderColors = [];
+                        const hoverColors = [];
+                        const isPadding = [];
 
-                  for (let i = 0; i < 4; i++) {
-                    const bitPosition = chunkStartBit + (3 - i); // 3-i because we want left-to-right ordering
-                    const colorInfo = getColorsForBitPosition(bitPosition);
-                    colors.push(colorInfo.color);
-                    borderColors.push(colorInfo.borderColor);
-                    hoverColors.push(colorInfo.hoverColor);
-                  }
+                        // Calculate how many bits are padding in the original address
+                        const originalBitsLength = totalPhysicalAddressBits;
+                        const paddedBitsLength = chunks.length * 4;
+                        const paddingBitsCount = paddedBitsLength - originalBitsLength;
 
-                  return (
-                    <div key={chunkKey} className="flex flex-col items-center gap-1">
-                      {/* Hex input field */}
-                      <input
-                        type="text"
-                        value={userInput}
-                        onChange={(e) => handleHexInputChange(chunkKey, e.target.value)}
-                        className={`h-6 w-8 rounded border text-center font-mono text-xs focus:outline-none ${
-                          userInput
-                            ? isCorrect
-                              ? "border-green-500 focus:border-green-600"
-                              : "border-red-500 focus:border-red-600"
-                            : "border-gray-300 focus:border-blue-500"
-                        }`}
-                        placeholder="?"
-                        maxLength={1}
-                      />
-                      {/* 4-bit multi-color binary block */}
-                      <MultiColorBinaryBlock
-                        blocks={4}
-                        digits={chunk.split("")}
-                        colors={colors}
-                        borderColors={borderColors}
-                        hoverColors={hoverColors}
-                        showBitNumbers={false}
-                        showLeftBorder={true}
-                      />
-                    </div>
-                  );
-                });
-              })()}
+                        for (let i = 0; i < 4; i++) {
+                          const bitPosition = chunkStartBit + (3 - i); // 3-i because we want left-to-right ordering
+
+                          // Check if this bit is a padding bit (added by padStart)
+                          // Padding bits are at the leftmost positions
+                          const globalBitIndex = chunkIndex * 4 + i;
+                          const isThisBitPadding = globalBitIndex < paddingBitsCount;
+
+                          if (isThisBitPadding) {
+                            // Use table styling for padding bits
+                            colors.push("bg-muted/50");
+                            borderColors.push("border-border");
+                            hoverColors.push(""); // No hover for padding
+                            isPadding.push(true);
+                          } else {
+                            // Use normal colors for data bits
+                            const colorInfo = getColorsForBitPosition(
+                              bitPosition - paddingBitsCount
+                            );
+                            colors.push(colorInfo.color);
+                            borderColors.push(colorInfo.borderColor);
+                            hoverColors.push(colorInfo.hoverColor);
+                            isPadding.push(false);
+                          }
+                        }
+
+                        return (
+                          <div key={chunkKey} className="flex flex-col items-center gap-1">
+                            {/* Hex input field with icon */}
+                            <div className="relative flex justify-center">
+                              <input
+                                type="text"
+                                value={userInput}
+                                onChange={(e) => handleHexInputChange(chunkKey, e.target.value)}
+                                className={`h-6 w-8 rounded border text-center font-mono text-xs focus:outline-none ${
+                                  userInput
+                                    ? isCorrect
+                                      ? "border-green-500 focus:border-green-600"
+                                      : "border-red-500 focus:border-red-600"
+                                    : "border-gray-300 focus:border-blue-500"
+                                }`}
+                                placeholder="?"
+                                maxLength={1}
+                              />
+                              {userInput && (
+                                <div className="absolute top-0 left-full ml-1.5 flex h-6 items-center">
+                                  {isCorrect ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <X className="h-4 w-4 text-red-600" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {/* 4-bit multi-color binary block */}
+                            <MultiColorBinaryBlock
+                              blocks={4}
+                              digits={chunk.split("")}
+                              colors={colors}
+                              borderColors={borderColors}
+                              hoverColors={hoverColors}
+                              isPadding={isPadding}
+                              showBitNumbers={false}
+                            />
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="text-muted-foreground flex justify-center gap-8 text-sm">
               <div className="flex items-center gap-2">

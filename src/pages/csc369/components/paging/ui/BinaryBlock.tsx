@@ -9,7 +9,6 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
   borderColor = "border-border",
   hoverColor = "group-hover:bg-primary",
   tooltip,
-  showLeftBorder = false,
   label,
   startBitNumber = 0,
   showBitNumbers = true,
@@ -44,8 +43,9 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
           <div key={index}>
             <div
               className={cn(
-                "flex h-8 w-8 items-center justify-center border-y border-r transition-colors",
-                index === 0 && showLeftBorder && "border-l",
+                "flex h-8 w-8 items-center justify-center border-y border-l transition-colors",
+                // Add right border for the last element
+                index === blocks - 1 && "border-r",
                 color,
                 borderColor,
                 hoverColor
@@ -84,9 +84,9 @@ interface MultiColorBinaryBlockProps {
   colors: string[]; // Array of colors, one for each block
   borderColors: string[]; // Array of border colors, one for each block
   hoverColors: string[]; // Array of hover colors, one for each block
+  isPadding?: boolean[]; // Array indicating which bits are padding 0s
   showBitNumbers?: boolean;
   startBitNumber?: number;
-  showLeftBorder?: boolean;
   label?: string;
   className?: string;
 }
@@ -97,9 +97,9 @@ export const MultiColorBinaryBlock: React.FC<MultiColorBinaryBlockProps> = ({
   colors,
   borderColors,
   hoverColors,
+  isPadding = [],
   showBitNumbers = false,
   startBitNumber = 0,
-  showLeftBorder = false,
   label,
   className,
 }) => {
@@ -125,24 +125,41 @@ export const MultiColorBinaryBlock: React.FC<MultiColorBinaryBlockProps> = ({
         )}
         aria-label={`Multi-color binary block group with ${blocks} blocks`}
       >
-        {blockArray.map((index) => (
-          <div key={index}>
-            <div
-              className={cn(
-                "flex h-8 w-8 items-center justify-center border-y border-r transition-colors",
-                index === 0 && showLeftBorder && "border-l",
-                colors[index] || "bg-gray-100",
-                borderColors[index] || "border-gray-300",
-                hoverColors[index] || "group-hover:bg-gray-200"
-              )}
-              aria-label={`Block ${index}`}
-            >
-              {digits && digits[index] !== undefined && (
-                <span className="font-mono text-sm font-medium text-gray-800">{digits[index]}</span>
-              )}
+        {blockArray.map((index) => {
+          const isBlockPadding = isPadding[index] || false;
+
+          return (
+            <div key={index}>
+              <div
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center border-y border-l",
+                  // Always show left border, and add right border for the last element
+                  index === blocks - 1 && "border-r",
+                  // Use table styling for padding bits, normal colors for data bits
+                  isBlockPadding ? "bg-muted/50" : colors[index] || "bg-gray-100",
+                  // Each box controls its own left border color
+                  isBlockPadding ? "border-border" : borderColors[index] || "border-gray-300",
+                  // Add hover effect and transition for non-padding bits
+                  !isBlockPadding && "transition-colors",
+                  !isBlockPadding && (hoverColors[index] || "group-hover:bg-gray-200")
+                )}
+                aria-label={`Block ${index}`}
+              >
+                {digits && digits[index] !== undefined && (
+                  <span
+                    className={cn(
+                      "font-mono text-sm font-medium",
+                      // Muted text color for padding 0s, normal color for data bits
+                      isBlockPadding ? "text-muted-foreground" : "text-gray-800"
+                    )}
+                  >
+                    {digits[index]}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {label && <div className="text-muted-foreground mt-2 text-center text-sm">{label}</div>}
     </div>

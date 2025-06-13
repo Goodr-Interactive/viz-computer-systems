@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { BarChart, XAxis, YAxis, Bar, ResponsiveContainer } from "recharts";
-import { stageSizesConfig, latencyConfigUIEnabled } from "./Config";
+import { stageSizesConfig, latencyConfigUIEnabled, accessCountsUIEnabled } from "./Config";
 
 const ACCESS_PATTERNS = {
   temporal: "temporal",
@@ -23,12 +23,17 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const [amat, setAmat] = useState<number | null>(null);
   const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, l3: 0, ram: 0, hardDisk: 0 }); // Added hard disk to access counts
   const [isSimulating, setIsSimulating] = useState(false);
+  const [cacheStats, setCacheStats] = useState({
+    firstAccessLatency: latencyConfig.hardDisk, // Initial latency for first access
+    subsequentAccessLatency: latencyConfig.l1, // Reduced latency for subsequent accesses
+    cacheMisses: 0, // Tracks the number of cache misses
+  });
 
   const simulateAccessPattern = () => {
     const patternToLevelMap: Record<keyof typeof ACCESS_PATTERNS, keyof typeof latencyConfig> = {
       temporal: "l1",
       spatial: "l2",
-      random: "hardDisk", // Updated to include hard disk
+      random: "hardDisk",
     };
 
     const level = patternToLevelMap[selectedPattern];
@@ -53,6 +58,11 @@ export const CacheHierarchyVisualization: React.FC = () => {
       }
       return updatedCounts;
     });
+
+    setCacheStats((prev) => ({
+      ...prev,
+      cacheMisses: prev.cacheMisses + (level === "hardDisk" ? 1 : 0),
+    }));
   };
 
   const startSimulation = () => {
@@ -160,12 +170,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
           </div>
         )}
       </div>
-      {amat !== null && (
-        <div className="mt-4 text-center">
-          <h4 className="text-lg font-semibold">Average Memory Access Time (AMAT)</h4>
-          <p className="text-sm text-muted-foreground">{amat.toFixed(2)} cycles</p>
-        </div>
-      )}
     </div>
   );
 
@@ -215,6 +219,29 @@ export const CacheHierarchyVisualization: React.FC = () => {
     </ResponsiveContainer>
   );
 
+  const renderCacheStats = () => (
+    <div className="mt-4 text-center">
+      <h4 className="text-lg font-semibold">Statistics</h4>
+      <p className="text-sm text-muted-foreground">
+        First Access Latency: {cacheStats.firstAccessLatency} cycles
+      </p>
+      <p className="text-sm text-muted-foreground">
+        Subsequent Access Latency: {cacheStats.subsequentAccessLatency} cycles
+      </p>
+      <p className="text-sm text-muted-foreground">
+        Cache Misses: {cacheStats.cacheMisses}
+      </p>
+        <div className="mt-4 text-center">
+          <h4 className="text-lg font-semibold">Memory Statistics</h4>
+          <p className="text-sm text-muted-foreground">Average Memory Access Time (AMAT): {amat?.toFixed(2)} cycles</p>
+          <p className="text-sm text-muted-foreground">Miss Rate: {(1 - cacheStats.subsequentAccessLatency / cacheStats.firstAccessLatency).toFixed(2)}</p>
+          <p className="text-sm text-muted-foreground">Hit Rate: {(cacheStats.subsequentAccessLatency / cacheStats.firstAccessLatency).toFixed(2)}</p>
+          <p className="text-sm text-muted-foreground">Cache Misses: {cacheStats.cacheMisses}</p>
+        </div>
+    </div>
+    
+  );
+
   return (
     <div className="space-y-6">
       <Card>
@@ -250,11 +277,20 @@ export const CacheHierarchyVisualization: React.FC = () => {
         </CardContent>
       </Card>
 
+      {accessCountsUIEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Counts</CardTitle>
+          </CardHeader>
+          <CardContent>{renderBarGraph()}</CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Access Counts</CardTitle>
+          <CardTitle>Cache Statistics</CardTitle>
         </CardHeader>
-        <CardContent>{renderBarGraph()}</CardContent>
+        <CardContent>{renderCacheStats()}</CardContent>
       </Card>
     </div>
   );

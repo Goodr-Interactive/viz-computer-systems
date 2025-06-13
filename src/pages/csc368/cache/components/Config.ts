@@ -53,3 +53,4 @@ export const latencyConfigDefaults = {
 };
 
 export const latencyConfigUIEnabled = false; // Added flag to enable/disable latency config UI
+export const accessCountsUIEnabled = true; // Added flag to enable/disable access counts visualization

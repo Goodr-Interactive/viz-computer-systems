@@ -1,498 +1,261 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { AddressBitVisualization } from "./AddressBitVisualization";
-import { WorkloadTester } from "./WorkloadTester";
+import { BarChart, XAxis, YAxis, Bar, ResponsiveContainer } from "recharts";
+import { stageSizesConfig, latencyConfigUIEnabled } from "./Config";
 
-// Cache configuration types
-interface CacheConfig {
-  enabled: boolean;
-  size: number; // in KB
-  blockSize: number; // in bytes
-  associativity: number; // 1 = direct mapped, > 1 = set associative
-  accessTime: number; // in cycles
-}
-
-interface CacheHierarchyConfig {
-  l1: CacheConfig;
-  l2: CacheConfig;
-  l3: CacheConfig;
-  ramAccessTime: number;
-}
-
-// Default cache configurations
-const DEFAULT_CACHE_CONFIG: CacheHierarchyConfig = {
-  l1: {
-    enabled: true,
-    size: 32, // 32KB
-    blockSize: 64, // 64 bytes
-    associativity: 2, // 2-way set associative
-    accessTime: 1, // 1 cycle
-  },
-  l2: {
-    enabled: true,
-    size: 256, // 256KB
-    blockSize: 64, // 64 bytes
-    associativity: 8, // 8-way set associative
-    accessTime: 10, // 10 cycles
-  },
-  l3: {
-    enabled: true,
-    size: 8192, // 8MB
-    blockSize: 64, // 64 bytes
-    associativity: 16, // 16-way set associative
-    accessTime: 30, // 30 cycles
-  },
-  ramAccessTime: 300, // 300 cycles
+const ACCESS_PATTERNS = {
+  temporal: "temporal",
+  spatial: "spatial",
+  random: "random",
 };
 
 export const CacheHierarchyVisualization: React.FC = () => {
-  const [config, setConfig] = useState<CacheHierarchyConfig>(DEFAULT_CACHE_CONFIG);
-  const [activeTab, setActiveTab] = useState("hierarchy");
+  const [selectedPattern, setSelectedPattern] = useState<keyof typeof ACCESS_PATTERNS>("temporal");
+  const [latencyConfig, setLatencyConfig] = useState({
+    l1: 1,
+    l2: 10,
+    l3: 30,
+    ram: 300,
+    hardDisk: 5000, // Added hard disk latency
+  });
+  const [amat, setAmat] = useState<number | null>(null);
+  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, l3: 0, ram: 0, hardDisk: 0 }); // Added hard disk to access counts
+  const [isSimulating, setIsSimulating] = useState(false);
 
-  const updateCacheConfig = (level: 'l1' | 'l2' | 'l3', field: keyof CacheConfig, value: number | boolean) => {
-    setConfig(prev => ({
-      ...prev,
-      [level]: {
-        ...prev[level],
-        [field]: value
+  const simulateAccessPattern = () => {
+    const patternToLevelMap: Record<keyof typeof ACCESS_PATTERNS, keyof typeof latencyConfig> = {
+      temporal: "l1",
+      spatial: "l2",
+      random: "hardDisk", // Updated to include hard disk
+    };
+
+    const level = patternToLevelMap[selectedPattern];
+    const latency = latencyConfig[level];
+
+    // Simulate hit/miss rates
+    const hitRate = level === "hardDisk" ? 0 : 0.7; // Example: 70% hit rate for caches
+    const missRate = 1 - hitRate;
+    const missPenalty = latencyConfig.hardDisk; // Hard disk latency as miss penalty
+
+    // Calculate AMAT
+    const calculatedAmat = latency + missRate * missPenalty;
+    setAmat(calculatedAmat);
+
+    // Update access counts for all levels up to the hit level
+    setAccessCounts((prev) => {
+      const updatedCounts = { ...prev };
+      const levels: Array<keyof typeof latencyConfig> = ["l1", "l2", "l3", "ram", "hardDisk"];
+      for (const cacheLevel of levels) {
+        updatedCounts[cacheLevel] += 1;
+        if (cacheLevel === level) break; // Stop incrementing once the hit level is reached
       }
-    }));
+      return updatedCounts;
+    });
   };
 
-  const calculateSets = (cacheConfig: CacheConfig) => {
-    const totalBlocks = (cacheConfig.size * 1024) / cacheConfig.blockSize;
-    return totalBlocks / cacheConfig.associativity;
+  const startSimulation = () => {
+    setIsSimulating(true);
+    const interval = setInterval(() => {
+      simulateAccessPattern();
+    }, 1000);
+
+    return () => clearInterval(interval);
   };
 
-  const calculateIndexBits = (cacheConfig: CacheConfig) => {
-    const sets = calculateSets(cacheConfig);
-    return Math.log2(sets);
+  const stopSimulation = () => {
+    setIsSimulating(false);
   };
 
-  const calculateOffsetBits = (cacheConfig: CacheConfig) => {
-    return Math.log2(cacheConfig.blockSize);
-  };
-
-  const calculateTagBits = (cacheConfig: CacheConfig, addressBits = 32) => {
-    const indexBits = calculateIndexBits(cacheConfig);
-    const offsetBits = calculateOffsetBits(cacheConfig);
-    return addressBits - indexBits - offsetBits;
-  };
-
-  const renderCacheLevel = (level: 'l1' | 'l2' | 'l3', levelName: string, color: string) => {
-    const cache = config[level];
-    
-    return (
-      <Card className={`w-full ${!cache.enabled ? 'opacity-50' : ''}`}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded ${color}`} />
-              {levelName} Cache
-            </CardTitle>
-            <Switch
-              checked={cache.enabled}
-              onCheckedChange={(checked) => updateCacheConfig(level, 'enabled', checked)}
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Size (KB)</Label>
-              <Select 
-                value={cache.size.toString()} 
-                onValueChange={(value) => updateCacheConfig(level, 'size', parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {level === 'l1' && (
-                    <>
-                      <SelectItem value="16">16 KB</SelectItem>
-                      <SelectItem value="32">32 KB</SelectItem>
-                      <SelectItem value="64">64 KB</SelectItem>
-                    </>
-                  )}
-                  {level === 'l2' && (
-                    <>
-                      <SelectItem value="128">128 KB</SelectItem>
-                      <SelectItem value="256">256 KB</SelectItem>
-                      <SelectItem value="512">512 KB</SelectItem>
-                      <SelectItem value="1024">1 MB</SelectItem>
-                    </>
-                  )}
-                  {level === 'l3' && (
-                    <>
-                      <SelectItem value="2048">2 MB</SelectItem>
-                      <SelectItem value="4096">4 MB</SelectItem>
-                      <SelectItem value="8192">8 MB</SelectItem>
-                      <SelectItem value="16384">16 MB</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label>Block Size (bytes)</Label>
-              <Select 
-                value={cache.blockSize.toString()} 
-                onValueChange={(value) => updateCacheConfig(level, 'blockSize', parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="32">32 bytes</SelectItem>
-                  <SelectItem value="64">64 bytes</SelectItem>
-                  <SelectItem value="128">128 bytes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label>Associativity</Label>
-              <Select 
-                value={cache.associativity.toString()} 
-                onValueChange={(value) => updateCacheConfig(level, 'associativity', parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Direct Mapped</SelectItem>
-                  <SelectItem value="2">2-way</SelectItem>
-                  <SelectItem value="4">4-way</SelectItem>
-                  <SelectItem value="8">8-way</SelectItem>
-                  <SelectItem value="16">16-way</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label>Access Time (cycles)</Label>
-              <div className="px-3 py-2 border rounded-md bg-muted">
-                {cache.accessTime}
-              </div>
-            </div>
-          </div>
-          
-          {cache.enabled && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold mb-2">Calculated Properties:</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>Sets: {calculateSets(cache).toLocaleString()}</div>
-                <div>Blocks: {((cache.size * 1024) / cache.blockSize).toLocaleString()}</div>
-                <div>Index bits: {calculateIndexBits(cache)}</div>
-                <div>Offset bits: {calculateOffsetBits(cache)}</div>
-                <div>Tag bits: {calculateTagBits(cache)}</div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderHierarchyDiagram = () => {
-    return (
-      <div className="w-full">
-        <div className="text-center mb-6">
-          <h3 className="text-xl font-semibold mb-2">Memory Hierarchy</h3>
-          <p className="text-muted-foreground">Data flows between CPU and RAM through cache levels</p>
-        </div>
-        
-        {/* Mobile: Vertical layout */}
-        <div className="md:hidden flex flex-col items-center space-y-6 p-6">
-          {/* CPU */}
-          <div className="flex items-center justify-center w-24 h-16 bg-blue-600 text-white rounded-lg font-semibold">
-            CPU
-          </div>
-          
-          <div className="w-1 h-6 bg-gray-400"></div>
-          
-          {/* L1 Cache */}
-          {config.l1.enabled && (
-            <>
-              <Card className="w-48 border-blue-400 border-2">
-                <CardContent className="p-4 text-center">
-                  <div className="w-4 h-4 rounded bg-blue-400 mx-auto mb-2"></div>
-                  <div className="font-semibold">L1 Cache</div>
-                  <div className="text-sm text-muted-foreground">
-                    {config.l1.size} KB • {config.l1.accessTime} cycle
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {calculateSets(config.l1)} sets × {config.l1.associativity} ways
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="w-1 h-6 bg-gray-400"></div>
-            </>
-          )}
-          
-          {/* L2 Cache */}
-          {config.l2.enabled && (
-            <>
-              <Card className="w-56 border-green-500 border-2">
-                <CardContent className="p-4 text-center">
-                  <div className="w-4 h-4 rounded bg-green-500 mx-auto mb-2"></div>
-                  <div className="font-semibold">L2 Cache</div>
-                  <div className="text-sm text-muted-foreground">
-                    {config.l2.size} KB • {config.l2.accessTime} cycles
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {calculateSets(config.l2)} sets × {config.l2.associativity} ways
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="w-1 h-6 bg-gray-400"></div>
-            </>
-          )}
-          
-          {/* L3 Cache */}
-          {config.l3.enabled && (
-            <>
-              <Card className="w-64 border-yellow-500 border-2">
-                <CardContent className="p-4 text-center">
-                  <div className="w-4 h-4 rounded bg-yellow-500 mx-auto mb-2"></div>
-                  <div className="font-semibold">L3 Cache</div>
-                  <div className="text-sm text-muted-foreground">
-                    {config.l3.size >= 1024 ? `${config.l3.size / 1024} MB` : `${config.l3.size} KB`} • {config.l3.accessTime} cycles
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {calculateSets(config.l3)} sets × {config.l3.associativity} ways
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="w-1 h-6 bg-gray-400"></div>
-            </>
-          )}
-          
-          {/* RAM */}
-          <Card className="w-72 border-red-500 border-2">
-            <CardContent className="p-4 text-center">
-              <div className="w-4 h-4 rounded bg-red-500 mx-auto mb-2"></div>
-              <div className="font-semibold">Main Memory (RAM)</div>
-              <div className="text-sm text-muted-foreground">
-                {config.ramAccessTime} cycles
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Desktop/Tablet: Horizontal layout */}
-        <div className="hidden md:flex items-center justify-between p-2 max-w-full">
-          {/* CPU */}
-          <div className="flex items-center justify-center w-12 h-8 bg-blue-600 text-white rounded font-semibold text-xs flex-shrink-0">
-            CPU
-          </div>
-          
-          {/* Arrow from CPU */}
-          <div className="flex items-center mx-0.5">
-            <div className="h-0.5 w-2 bg-gray-400"></div>
-            <div className="w-0 h-0 border-l-2 border-l-gray-400 border-t-1 border-b-1 border-t-transparent border-b-transparent"></div>
-          </div>
-          
-          {/* L1 Cache */}
-          {config.l1.enabled && (
-            <>
-              <Card className="w-24 border-blue-400 border-2 flex-shrink-0">
-                <CardContent className="p-1 text-center">
-                  <div className="w-2 h-2 rounded bg-blue-400 mx-auto mb-0.5"></div>
-                  <div className="font-semibold text-xs">L1</div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {config.l1.size}KB
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {config.l1.accessTime}cy
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Arrow to next level */}
-              {(config.l2.enabled || config.l3.enabled || (!config.l2.enabled && !config.l3.enabled)) && (
-                <div className="flex items-center mx-0.5">
-                  <div className="h-0.5 w-2 bg-gray-400"></div>
-                  <div className="w-0 h-0 border-l-2 border-l-gray-400 border-t-1 border-b-1 border-t-transparent border-b-transparent"></div>
-                </div>
-              )}
-            </>
-          )}
-          
-          {/* L2 Cache */}
-          {config.l2.enabled && (
-            <>
-              <Card className="w-24 border-green-500 border-2 flex-shrink-0">
-                <CardContent className="p-1 text-center">
-                  <div className="w-2 h-2 rounded bg-green-500 mx-auto mb-0.5"></div>
-                  <div className="font-semibold text-xs">L2</div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {config.l2.size}KB
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {config.l2.accessTime}cy
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Arrow to next level */}
-              {(config.l3.enabled || !config.l3.enabled) && (
-                <div className="flex items-center mx-0.5">
-                  <div className="h-0.5 w-2 bg-gray-400"></div>
-                  <div className="w-0 h-0 border-l-2 border-l-gray-400 border-t-1 border-b-1 border-t-transparent border-b-transparent"></div>
-                </div>
-              )}
-            </>
-          )}
-          
-          {/* L3 Cache */}
-          {config.l3.enabled && (
-            <>
-              <Card className="w-24 border-yellow-500 border-2 flex-shrink-0">
-                <CardContent className="p-1 text-center">
-                  <div className="w-2 h-2 rounded bg-yellow-500 mx-auto mb-0.5"></div>
-                  <div className="font-semibold text-xs">L3</div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {config.l3.size >= 1024 ? `${config.l3.size / 1024}MB` : `${config.l3.size}KB`}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {config.l3.accessTime}cy
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Arrow to RAM */}
-              <div className="flex items-center mx-0.5">
-                <div className="h-0.5 w-2 bg-gray-400"></div>
-                <div className="w-0 h-0 border-l-2 border-l-gray-400 border-t-1 border-b-1 border-t-transparent border-b-transparent"></div>
-              </div>
-            </>
-          )}
-          
-          {/* Arrow to RAM (if no enabled caches after current) */}
-          {!config.l1.enabled && !config.l2.enabled && !config.l3.enabled && (
-            <div className="flex items-center mx-0.5">
-              <div className="h-0.5 w-2 bg-gray-400"></div>
-              <div className="w-0 h-0 border-l-2 border-l-gray-400 border-t-1 border-b-1 border-t-transparent border-b-transparent"></div>
-            </div>
-          )}
-          
-          {/* RAM */}
-          <Card className="w-24 border-red-500 border-2 flex-shrink-0">
-            <CardContent className="p-1 text-center">
-              <div className="w-2 h-2 rounded bg-red-500 mx-auto mb-0.5"></div>
-              <div className="font-semibold text-xs">RAM</div>
-              <div className="text-[10px] text-muted-foreground">
-                Memory
-              </div>
-              <div className="text-[10px] text-muted-foreground">
-                {config.ramAccessTime}cy
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Performance Summary */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Access Latency Summary</CardTitle>
-          </CardHeader>
+  const renderHierarchy = () => (
+    <div className="flex flex-col items-center space-y-4">
+      <div className="flex items-center space-x-4">
+        <Card
+          className={`text-center border-${stageSizesConfig.processorChip.borderStyle} border-${stageSizesConfig.processorChip.borderColor}`}
+          style={{ width: `${stageSizesConfig.processorChip.width}px` }}
+        >
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {config.l1.enabled && (
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="font-semibold text-blue-600">L1 Hit</div>
-                  <div className="text-2xl font-bold">{config.l1.accessTime}</div>
-                  <div className="text-sm text-muted-foreground">cycles</div>
-                </div>
-              )}
-              {config.l2.enabled && (
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="font-semibold text-green-600">L2 Hit</div>
-                  <div className="text-2xl font-bold">{config.l2.accessTime}</div>
-                  <div className="text-sm text-muted-foreground">cycles</div>
-                </div>
-              )}
-              {config.l3.enabled && (
-                <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                  <div className="font-semibold text-yellow-600">L3 Hit</div>
-                  <div className="text-2xl font-bold">{config.l3.accessTime}</div>
-                  <div className="text-sm text-muted-foreground">cycles</div>
-                </div>
-              )}
-              <div className="text-center p-3 bg-red-50 rounded-lg">
-                <div className="font-semibold text-red-600">RAM Access</div>
-                <div className="text-2xl font-bold">{config.ramAccessTime}</div>
-                <div className="text-sm text-muted-foreground">cycles</div>
-              </div>
+            <div className="font-semibold">Processor Chip</div>
+            <div className="flex items-center  justify-center space-x-4 mt-2">
+              <Card
+                className={`text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor}`}
+                style={{ width: `${stageSizesConfig.cpu.width}px` }}
+              >
+                <CardContent>
+                  <div className="font-semibold">CPU</div>
+                </CardContent>
+              </Card>
+              <Card
+                className={`text-center border-${stageSizesConfig.cache.borderStyle} border-${stageSizesConfig.cache.borderColor}`}
+                style={{ width: `${stageSizesConfig.cache.width}px` }}
+              >
+                <CardContent>
+                  <div className="font-semibold">Cache</div>
+                  <div className="flex flex-col space-y-2 mt-2">
+                    <Card
+                      className={`text-center border-${stageSizesConfig.l1Cache.borderStyle} border-${stageSizesConfig.l1Cache.borderColor}`}
+                    >
+                      <CardContent>
+                        <div className="font-semibold">L1</div>
+                      </CardContent>
+                    </Card>
+                    <Card
+                      className={`text-center border-${stageSizesConfig.l2Cache.borderStyle} border-${stageSizesConfig.l2Cache.borderColor}`}
+                    >
+                      <CardContent>
+                        <div className="font-semibold">L2</div>
+                      </CardContent>
+                    </Card>
+                    <Card
+                      className={`text-center border-${stageSizesConfig.l3Cache.borderStyle} border-${stageSizesConfig.l3Cache.borderColor}`}
+                    >
+                      <CardContent>
+                        <div className="font-semibold">L3</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </CardContent>
         </Card>
+        <div className="w-12 h-0.5 bg-blue-500"></div>
+        <Card
+          className={`flex items-center justify-center text-center border-${stageSizesConfig.mainMemory.borderStyle} border-${stageSizesConfig.mainMemory.borderColor}`}
+          style={{ width: `${stageSizesConfig.mainMemory.width}px`, height: `${stageSizesConfig.mainMemory.height}px` }}
+        >
+          <CardContent>
+            <div className="font-semibold">Main Memory</div>
+          </CardContent>
+        </Card>
+        <div className="w-12 h-0.5 bg-blue-500"></div>
+        {stageSizesConfig.hardDisk && (
+          <div
+            style={{
+              width: stageSizesConfig.hardDisk.width,
+              height: stageSizesConfig.hardDisk.height,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "relative",
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+              <path
+                d="M2,50 A50,10 0 0,0 98,50 A50,10 0 0,0 2,50 L2,75 A50,10,0 0,0 98,75 L98,50"
+                style={{ stroke: "#000000", fill: "none" }}
+              />
+            </svg>
+            <div
+              style={{
+                position: "absolute",
+                color: "#000000",
+                fontWeight: "bold",
+                textAlign: "center",
+              }}
+            >
+              Hard Drive
+            </div>
+          </div>
+        )}
       </div>
-    );
-  };
+      {amat !== null && (
+        <div className="mt-4 text-center">
+          <h4 className="text-lg font-semibold">Average Memory Access Time (AMAT)</h4>
+          <p className="text-sm text-muted-foreground">{amat.toFixed(2)} cycles</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderConfiguration = () => (
+    <div className="space-y-4">
+      {Object.entries(latencyConfig).map(([level, latency]) => (
+        <div key={level} className="flex items-center space-x-4">
+          <div className="w-24 text-right font-semibold capitalize">{level}</div>
+          <Slider
+            value={[latency]}
+            onValueChange={(value) =>
+              setLatencyConfig((prev) => ({ ...prev, [level]: value[0] }))
+            }
+            max={500}
+            min={1}
+            step={1}
+            className="flex-1"
+          />
+          <div className="w-12 text-center">{latency} cycles</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderAccessPattern = () => (
+    <div className="flex space-x-4">
+      {Object.keys(ACCESS_PATTERNS).map((pattern) => (
+        <Button
+          key={pattern}
+          variant={selectedPattern === pattern ? "default" : "outline"}
+          onClick={() => setSelectedPattern(pattern as keyof typeof ACCESS_PATTERNS)}
+          className="flex-1"
+        >
+          {pattern}
+        </Button>
+      ))}
+    </div>
+  );
+
+  const renderBarGraph = () => (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={Object.entries(accessCounts).map(([level, count]) => ({ level, count }))}>
+        <XAxis dataKey="level" />
+        <YAxis />
+        <Bar dataKey="count" fill="#8884d8" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
 
   return (
-    <div className="w-full space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="hierarchy">Hierarchy</TabsTrigger>
-          <TabsTrigger value="configuration">Configuration</TabsTrigger>
-          <TabsTrigger value="address">Address Bits</TabsTrigger>
-          <TabsTrigger value="workloads">Workloads</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="hierarchy" className="space-y-4">
-          {renderHierarchyDiagram()}
-        </TabsContent>
-        
-        <TabsContent value="configuration" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {renderCacheLevel('l1', 'L1', 'bg-blue-400')}
-            {renderCacheLevel('l2', 'L2', 'bg-green-500')}
-            {renderCacheLevel('l3', 'L3', 'bg-yellow-500')}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Cache Hierarchy Visualization</CardTitle>
+        </CardHeader>
+        <CardContent>{renderHierarchy()}</CardContent>
+      </Card>
+
+      {latencyConfigUIEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Latency Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>{renderConfiguration()}</CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Access Pattern Simulation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {renderAccessPattern()}
+          <div className="flex space-x-4 mt-4">
+            <Button onClick={startSimulation} disabled={isSimulating}>
+              Start Simulation
+            </Button>
+            <Button onClick={stopSimulation} disabled={!isSimulating}>
+              Stop Simulation
+            </Button>
           </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>RAM Configuration</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label>Access Time (cycles)</Label>
-                  <Slider
-                    value={[config.ramAccessTime]}
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, ramAccessTime: value[0] }))}
-                    max={500}
-                    min={100}
-                    step={10}
-                    className="mt-2"
-                  />
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Current: {config.ramAccessTime} cycles
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="address" className="space-y-4">
-          <AddressBitVisualization config={config} />
-        </TabsContent>
-        
-        <TabsContent value="workloads" className="space-y-4">
-          <WorkloadTester config={config} />
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Access Counts</CardTitle>
+        </CardHeader>
+        <CardContent>{renderBarGraph()}</CardContent>
+      </Card>
     </div>
   );
 };

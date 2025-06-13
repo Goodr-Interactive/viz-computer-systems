@@ -6,14 +6,9 @@ export const Caches: React.FunctionComponent = () => {
   return (
     <div className="flex min-h-screen flex-col items-center gap-6 p-8">
       <h1 className="mb-2 scroll-m-20 text-3xl font-bold tracking-tight">
-        Cache Hierarchy and Access Latency
+        Cache Hierarchy and Access Latencies
       </h1>
       
-      <p className="text-center text-lg text-muted-foreground max-w-2xl">
-        Explore how cache levels (L1, L2, L3) impact memory access performance and 
-        understand the relationship between RAM and different cache configurations.
-      </p>
-
       <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
         <CacheHierarchyVisualization />
       </div>

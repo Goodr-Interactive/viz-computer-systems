@@ -13,7 +13,7 @@ export const Controls: React.FunctionComponent<Props> = ({ controller }) => {
     <div className="h-full w-full p-[12px]">
       <h1 className="text-xl font-medium tracking-tight">Playback</h1>
       <div className="mt-[12px] flex w-full gap-[24px]">
-        <Button>{controller.running ? "Pause" : "Play"}</Button>
+        <Button onClick={controller.reset}>Reset</Button>
         <div className="flex w-full flex-col gap-[16px]">
           <div className="flex w-full justify-between">
             <Label>Playback Speed</Label>

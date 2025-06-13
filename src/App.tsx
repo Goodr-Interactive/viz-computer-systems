@@ -9,6 +9,7 @@ import { SimplePaging } from "./pages/csc369/SimplePaging";
 // computer architecture pages
 import { CSC368 } from "./pages/csc368/CSC368";
 import { Pipelining } from "./pages/csc368/pipelining";
+import { DEADLOCK, SIMPLE_MUTEX, Threads } from "./pages/csc369/components/threads";
 
 interface AppRoute {
   path: string;
@@ -27,6 +28,14 @@ const ROUTES: AppRoute[] = [
   {
     path: "/csc369/the-scheduler",
     element: <Scheduler />,
+  },
+  {
+    path: "/csc369/threads-mutex",
+    element: <Threads {...SIMPLE_MUTEX} />,
+  },
+  {
+    path: "/csc369/threads-deadlock",
+    element: <Threads {...DEADLOCK} />,
   },
   {
     path: "/csc368",

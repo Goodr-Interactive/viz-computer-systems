@@ -9,16 +9,22 @@ interface Props {
 
 export const EventsList: React.FunctionComponent<Props> = ({ controller }) => {
   return (
-    <div className="flex h-full w-full flex-col gap-[12px] py-[12px]">
+    <div className="flex h-full w-full flex-col gap-[12px] p-[12px]">
       <h1 className="px-[12px] text-xl font-medium tracking-tight">Events</h1>
-      <ScrollArea className="h-full px-[12px]">
-        <div className="flex h-full w-full flex-col gap-[12px]">
+      <ScrollArea className="h-full rounded-md bg-neutral-50 p-[12px]">
+        <div className="flex h-full w-full flex-col gap-[4px]">
           {controller.events.length ? (
             controller.events.map((event) => (
-              <EventDisplay key={`${event.action}:${event.timeStep}`} event={event} />
+              <EventDisplay
+                key={`${event.action}:${event.timeStep}`}
+                event={event}
+                controller={controller}
+              />
             ))
           ) : (
-            <div className="bg-grey flex h-full w-full items-center justify-center">No Events</div>
+            <div className="bg-grey text-muted-foreground flex h-full w-full items-center justify-center">
+              No Events
+            </div>
           )}
         </div>
       </ScrollArea>

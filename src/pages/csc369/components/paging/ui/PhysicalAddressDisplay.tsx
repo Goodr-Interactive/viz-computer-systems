@@ -347,9 +347,7 @@ export const PhysicalAddressDisplay: React.FC<PhysicalAddressDisplayProps> = ({
                             isPadding.push(true);
                           } else {
                             // Use normal colors for data bits
-                            const colorInfo = getColorsForBitPosition(
-                              bitPosition - paddingBitsCount
-                            );
+                            const colorInfo = getColorsForBitPosition(bitPosition);
                             colors.push(colorInfo.color);
                             borderColors.push(colorInfo.borderColor);
                             hoverColors.push(colorInfo.hoverColor);

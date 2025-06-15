@@ -11,21 +11,32 @@ export const FileSystemExample: React.FC = () => {
     // So 5 blocks = 160 inodes total
     const fs = new FileSystem(64, 160);
 
-    // Create a test file
-    fs.createFile("one/test1.txt", 1);
-    fs.createFile("four/test2.txt", 1);
-    fs.createFile("nine/test3.txt", 1);
-    fs.createFile("seven/test4.txt", 1);
-    fs.createFile("five/test5.txt", 1);
-    fs.createFile("six/test6.txt", 1);
-    fs.createFile("eight/test2.txt", 1);
-    fs.createFile("one/four/test2.txt", 1);
-    fs.createFile("one/test5.txt", 1);
-    fs.createFile("one/test6.txt", 1);
-    fs.createFile("one/test7.txt", 1);
-    fs.createFile("one/five/test8.txt", 1);
-    fs.createFile("one/test9.txt", 1);
-    fs.createFile("one/two/three/test.txt", 1); // 1 block file
+    fs.createFile("docs/readme.txt", 1);
+    fs.createFile("docs/index.txt", 2);
+    fs.createFile("docs/reports/quarterly.txt", 3);
+    fs.createFile("docs/reports/annual.txt", 2);
+    fs.createFile("docs/notes/meeting.txt", 1);
+    fs.createFile("docs/notes/ideas.txt", 1);
+    fs.createFile("docs/archive/old_data.txt", 4);
+
+    fs.createFile("docs/notes/a4_solutions.txt", "text", "Hehe :D");
+
+    fs.createFile("projects/todo.txt", 1);
+    fs.createFile("projects/roadmap.txt", 2);
+    fs.createFile("projects/timeline.txt", 1);
+    fs.createFile("projects/web/frontend.txt", 3);
+    fs.createFile("projects/web/backend.txt", 2);
+    fs.createFile("projects/mobile/android.txt", 2);
+    fs.createFile("projects/mobile/ios.txt", 1);
+
+    fs.createFile("media/metadata.txt", 1);
+    fs.createFile("media/catalog.txt", 2);
+    fs.createFile("media/backup.txt", 1);
+    fs.createFile("media/settings.txt", 1);
+    fs.createFile("media/images/thumbnails.txt", 3);
+    fs.createFile("media/images/originals.txt", 4);
+    fs.createFile("media/videos/clips.txt", 2);
+    fs.createFile("media/audio/tracks.txt", 1);
 
     setFileSystem(fs);
   }, []);

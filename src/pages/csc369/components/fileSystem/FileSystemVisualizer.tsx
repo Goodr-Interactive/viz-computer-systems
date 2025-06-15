@@ -6,6 +6,14 @@ import { SubsectionHeading } from "../paging/ui/SubsectionHeading";
 import { Button } from "@/components/ui/button";
 import { Trash2, X, Folder, File } from "lucide-react";
 import { FileSystemIntro } from "./FileSystemIntro";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableCell,
+  TableRow,
+  TableHead,
+} from "@/components/ui/table";
 
 interface FileSystemVisualizerProps {
   fileSystem: FileSystem;
@@ -52,7 +60,7 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
   const [selectedInode, setSelectedInode] = useState<number | null>(null);
   const [previousInode, setPreviousInode] = useState<number | null>(null);
   const [, setIsFirstSelection] = useState<boolean>(false);
-  const [revealedInodeEntry, setRevealedInodeEntry] = useState<string | null>(null);
+  const [, setRevealedInodeEntry] = useState<string | null>(null);
 
   const handleBlockClick = (blockIndex: number) => {
     setSelectedBlock(blockIndex);
@@ -73,6 +81,19 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
       setSelectedInode(inodeNumber);
       setIsFirstSelection(wasNothingSelected);
     }
+  };
+
+  const handleDirectoryRowClick = (inodeNumber: number) => {
+    const sb = fileSystem.getSuperBlock();
+    const blockSize = Math.pow(2, sb.s_log_block_size);
+    const inodesPerBlock = blockSize / sb.s_inode_size;
+    const inodeBlockIndex = 3 + Math.floor(inodeNumber / inodesPerBlock);
+
+    handleBlockClick(inodeBlockIndex);
+    // Use a timeout to ensure the inode click is processed after the block has been re-rendered
+    setTimeout(() => {
+      handleInodeClick(inodeNumber, true);
+    }, 50);
   };
 
   const renderDiskLayout = () => {
@@ -122,11 +143,29 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
   const renderMemorySection = () => {
     return (
       <div className="w-full">
-        <div className="flex min-h-[60px] flex-wrap items-start justify-center gap-4 overflow-hidden p-1">
+        <div className="flex flex-wrap items-start justify-center gap-4 overflow-hidden p-1 pt-2">
           {memoryBlocks.length === 0 ? (
-            <div className="text-muted-foreground flex items-center justify-center">
-              Click on blocks in the disk layout to load them into memory
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key="empty-state"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{
+                  duration: 0.2,
+                  ease: "easeInOut",
+                  layout: {
+                    duration: 0.2,
+                    ease: "easeInOut",
+                  },
+                  delay: 0.2,
+                }}
+                layout
+                className="text-muted-foreground flex origin-top items-center justify-center text-center"
+              >
+                Click on blocks in the disk layout to load them into memory
+              </motion.div>
+            </AnimatePresence>
           ) : (
             <AnimatePresence mode="popLayout">
               {memoryBlocks.map((blockIndex) => {
@@ -211,10 +250,10 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
     }
 
     return (
-      <div className="flex w-full justify-center overflow-hidden">
+      <div className="flex w-full justify-center">
         <motion.div
           layout
-          className="flex max-w-full items-start gap-8"
+          className="flex items-start gap-8 overflow-hidden"
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
           {/* Main Grid */}
@@ -223,7 +262,7 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
             className="flex flex-shrink-0 flex-col gap-3 p-1"
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <h4 className="text-start font-medium">
+            <h4 className="pt-1 text-start font-medium">
               Inode Block {blockIndex} (Inodes {inodeData.inodes[0]?.number} -{" "}
               {inodeData.inodes[inodeData.inodes.length - 1]?.number})
             </h4>
@@ -253,7 +292,7 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
                   ease: "easeOut",
                   delay: previousInode === null ? 0.2 : 0,
                 }}
-                className="border-border w-48 flex-shrink-0 rounded-lg border p-4"
+                className="border-border w-48 flex-shrink-0 rounded-md border p-4"
               >
                 <div className="mb-3 flex items-start justify-between">
                   <h5 className="font-medium">Inode {selectedInode}</h5>
@@ -285,12 +324,24 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
                         <span className="font-mono">{inode.data.mode}</span>
                       </div>
                       <div>
-                        <div className="mb-1 font-medium">Block Pointers:</div>
-                        <div className="rounded border bg-gray-50 p-2 font-mono text-xs">
-                          {inode.data.blockPointers.length > 0
-                            ? inode.data.blockPointers.join(", ")
-                            : "None"}
-                        </div>
+                        <div className="mb-2 font-medium">Block Pointers:</div>
+                        {inode.data.blockPointers.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {inode.data.blockPointers.map((pointer) => (
+                              <Button
+                                key={pointer}
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-9 cursor-pointer rounded bg-transparent font-mono"
+                                onClick={() => handleBlockClick(pointer)}
+                              >
+                                {pointer}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-muted-foreground">No blocks allocated</div>
+                        )}
                       </div>
                     </div>
                   );
@@ -348,9 +399,9 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
     }
 
     return (
-      <div className="flex w-full justify-center overflow-hidden">
+      <div className="flex w-full justify-center">
         <div className="flex flex-col gap-3">
-          <h4 className="text-start font-medium">
+          <h4 className="pt-2 text-start font-medium">
             {bitmapType === "inode" ? "Inode" : "Data"} Bitmap
           </h4>
           <div className="flex flex-col gap-2">{rows}</div>
@@ -371,14 +422,12 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
 
   const renderSuperblockContent = (_blockIndex: number) => {
     return (
-      <div className="flex w-full justify-center overflow-hidden">
-        <div className="flex max-w-full items-start gap-8">
+      <div className="flex w-full justify-center">
+        <div className="flex flex-col gap-3 pt-2">
+          <h4 className="text-start font-medium">Superblock</h4>
           {/* Info Card */}
-          <div className="border-border w-48 flex-shrink-0 rounded-lg border p-4">
-            <div className="mb-3 flex items-start justify-between">
-              <h5 className="font-medium">Superblock</h5>
-            </div>
-            <div className="space-y-2 text-sm">
+          <div className="border-border w-96 flex-shrink-0 rounded-md border p-4">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="font-medium">Total Inodes:</span>
                 <span>{fileSystem.getSuperBlock().s_inodes_count}</span>
@@ -393,11 +442,11 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Block Size:</span>
-                <span>{Math.pow(2, fileSystem.getSuperBlock().s_log_block_size)} bytes</span>
+                <span>{Math.pow(2, fileSystem.getSuperBlock().s_log_block_size)} B</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Inode Size:</span>
-                <span>{fileSystem.getSuperBlock().s_inode_size} bytes</span>
+                <span>{fileSystem.getSuperBlock().s_inode_size} B</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Root Inode:</span>
@@ -413,58 +462,79 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
   const renderDirectoryDataBlockContent = (blockIndex: number) => {
     const entries = fileSystem.getDirectoryEntriesFromBlock(blockIndex);
 
-    const directoryColors = {
-      color: "bg-blue-100",
-      borderColor: "border-blue-300",
-    };
-    const fileColors = {
-      color: "bg-muted/50",
-      borderColor: "border-gray-300",
-    };
-
     return (
-      <div className="flex w-full justify-center overflow-hidden">
-        <div className="flex w-[35rem] flex-col gap-3 p-1 pt-2">
-          <h4 className="text-start font-medium">Directory Entries (Block {blockIndex})</h4>
-          <div className="flex flex-wrap justify-start gap-2">
-            {entries.length > 0 ? (
-              entries.map((entry) => {
-                const isDirectory = fileSystem.isDirectory(entry.inode);
-                const colors = isDirectory ? directoryColors : fileColors;
-                const icon = isDirectory ? (
-                  <Folder size={16} className="text-blue-600" />
-                ) : (
-                  <File size={16} className="text-stone-600" />
-                );
+      <div className="flex w-full justify-center">
+        <div className="flex flex-col p-1">
+          <div className="flex gap-8 pt-1">
+            {/* Left half - Tree view */}
+            <div className="flex flex-col gap-2">
+              <h4 className="hidden pb-1 text-start font-medium lg:block">
+                Directory Entries (Block {blockIndex})
+              </h4>
+              <h4 className="block pb-1 text-start font-medium lg:hidden">Entries</h4>
+              {entries.length > 0 ? (
+                entries.map((entry) => {
+                  const isDirectory = fileSystem.isDirectory(entry.inode);
+                  const icon = isDirectory ? (
+                    <Folder size={16} className="text-blue-400" />
+                  ) : (
+                    <File size={16} className="text-orange-400" />
+                  );
 
-                return (
-                  <div
-                    key={entry.name}
-                    className={`flex h-8 w-32 cursor-pointer items-center border font-mono text-xs select-none ${colors.color} ${colors.borderColor}`}
-                    onClick={() =>
-                      setRevealedInodeEntry(revealedInodeEntry === entry.name ? null : entry.name)
-                    }
-                  >
+                  return (
                     <div
-                      className={`flex h-full w-8 shrink-0 items-center justify-center border-r ${colors.borderColor}`}
+                      key={entry.name}
+                      className={`flex h-8 items-center gap-2.5 border px-2 py-1 text-sm transition-colors ${
+                        isDirectory
+                          ? "border-blue-200 bg-blue-50 hover:bg-blue-100"
+                          : "border-orange-200 bg-orange-50 hover:bg-orange-100"
+                      }`}
                     >
-                      {revealedInodeEntry === entry.name ? (
-                        <span className="text-sm font-semibold">{entry.inode}</span>
-                      ) : (
-                        icon
-                      )}
-                    </div>
-                    <div className="flex w-24 items-center justify-center truncate px-1 text-sm">
-                      <span className="truncate" title={entry.name}>
+                      {icon}
+                      <span className="truncate font-mono font-medium" title={entry.name}>
                         {entry.name}
                       </span>
                     </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-muted-foreground">Directory is empty.</div>
-            )}
+                  );
+                })
+              ) : (
+                <div className="text-muted-foreground">Directory is empty.</div>
+              )}
+            </div>
+
+            {/* Right half - Table */}
+            <div className="-mt-2.5 border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="h-[41px]">
+                    <TableHead className="h-8 w-32 pl-3 text-base">Name</TableHead>
+                    <TableHead className="h-8 w-[72px] border-l pl-3 text-base">Inode</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {entries.length > 0 ? (
+                    entries.map((entry) => (
+                      <TableRow
+                        key={entry.name}
+                        className="h-10 cursor-pointer"
+                        onClick={() => handleDirectoryRowClick(entry.inode)}
+                      >
+                        <TableCell className="h-8 w-32 py-1 pl-3.5">{entry.name}</TableCell>
+                        <TableCell className="h-8 w-[72px] border-l py-1 pl-3.5 font-mono">
+                          {entry.inode}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow className="h-8">
+                      <TableCell colSpan={2} className="text-muted-foreground h-8 py-1 text-center">
+                        No entries
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </div>
@@ -474,7 +544,7 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
   const renderBlockContent = () => {
     if (selectedBlock === null) {
       return (
-        <div className="text-muted-foreground flex min-h-[60px] justify-center">
+        <div className="text-muted-foreground flex min-h-[60px] justify-center pt-2">
           Click on a block in the disk layout to view its contents
         </div>
       );
@@ -504,12 +574,19 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
 
     // Regular block content display (for file data blocks)
     return (
-      <div className="bg-muted rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">{content}</div>
+      <div className="flex w-full justify-center">
+        <div className="flex w-96 flex-col gap-3">
+          <h4 className="pt-2 text-start font-medium">Block Content (Block {selectedBlock})</h4>
+          <div className="border-border rounded-md border p-4 font-mono text-sm whitespace-pre-wrap">
+            {content}
+          </div>
+        </div>
+      </div>
     );
   };
 
   return (
-    <div className="flex flex-col items-center space-y-8">
+    <>
       <FileSystemIntro fileSystem={fileSystem} />
       <section className="w-full max-w-7xl overflow-x-auto">
         <div className="bg-muted/50 min-w-fit rounded-lg p-6">
@@ -520,49 +597,64 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
         </div>
       </section>
 
-      <section className="w-full max-w-7xl overflow-x-auto">
-        <div className="bg-muted/50 min-w-fit rounded-lg p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <SubsectionHeading className="mb-0">Memory</SubsectionHeading>
-            <Button
-              onClick={() => {
-                setMemoryBlocks([]);
-                setPreviousInode(selectedInode);
-                setSelectedBlock(null);
-              }}
-              variant="outline"
-              size="sm"
-              disabled={memoryBlocks.length === 0}
-              className="flex items-center gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Clear
-            </Button>
+      <div className="flex w-full max-w-7xl flex-grow flex-col gap-10 lg:h-[480px] lg:flex-row">
+        <section className="flex w-full flex-col lg:w-1/3">
+          <div className="bg-muted/50 flex h-full flex-col rounded-lg p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <SubsectionHeading className="mb-0">Memory</SubsectionHeading>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => {
+                    setMemoryBlocks([]);
+                    setPreviousInode(selectedInode);
+                    setSelectedBlock(null);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  disabled={memoryBlocks.length === 0}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear
+                </Button>
+              </div>
+            </div>
+            <div className="h-full overflow-hidden">
+              <div className="flex h-full justify-center gap-2 overflow-y-auto p-1">
+                {renderMemorySection()}
+              </div>
+            </div>
           </div>
-          <div className="flex min-w-fit items-center justify-center gap-2 overflow-x-auto p-1">
-            {renderMemorySection()}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="w-full max-w-7xl overflow-x-auto overflow-y-hidden">
-        <div className="bg-muted/50 min-w-fit rounded-lg p-6">
-          <SubsectionHeading>Block Content</SubsectionHeading>
-          <div className="p-1 pt-2">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedBlock ?? "initial-state"}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.1, ease: "easeInOut" }}
-              >
-                {renderBlockContent()}
-              </motion.div>
-            </AnimatePresence>
+        <section className="flex h-full w-full flex-col overflow-x-auto lg:w-2/3">
+          <div className="bg-muted/50 flex h-full min-w-fit flex-col rounded-lg p-6">
+            <SubsectionHeading>Block Content</SubsectionHeading>
+            <div className="flex-grow overflow-y-auto p-1">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={selectedBlock ?? "initial-state"}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1, height: "auto" }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{
+                    duration: 0.2,
+                    ease: "easeInOut",
+                    layout: {
+                      duration: 0.2,
+                      ease: "easeInOut",
+                    },
+                  }}
+                  layout
+                  className="origin-top"
+                >
+                  {renderBlockContent()}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </>
   );
 };

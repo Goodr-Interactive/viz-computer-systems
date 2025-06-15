@@ -25,7 +25,7 @@ export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({ fileSystem }) 
           <span className="font-semibold">Memory</span> and view their contents below. Try to
           determine the data block of the file{" "}
           <span className="bg-muted rounded border px-1 font-mono font-medium">
-            one/two/three/test.txt
+            docs/notes/a4_solutions.txt
           </span>
         </p>
       </div>

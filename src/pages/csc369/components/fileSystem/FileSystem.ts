@@ -1,3 +1,5 @@
+import { faker } from "@faker-js/faker";
+
 // Constants
 const DEFAULT_BLOCK_SIZE = 4096; // 4KB
 const DEFAULT_INODE_SIZE = 128; // 128 bytes
@@ -85,13 +87,16 @@ export class FileSystem {
     this.inodeSize = inodeSize;
 
     // Calculate number of blocks needed for inodes
-    const inodeBlocks = Math.ceil((numInodes * inodeSize) / blockSize);
+    const inodesPerBlock = blockSize / inodeSize;
+    const inodeBlocks = Math.ceil(numInodes / inodesPerBlock);
+    const firstDataBlock = 1 + 1 + 1 + inodeBlocks; // Superblock, Inode bitmap, Data bitmap, Inode blocks
+    const totalBlocks = numDataBlocks;
 
     // Initialize superblock
     this.superBlock = {
       s_inodes_count: numInodes,
-      s_blocks_count: numDataBlocks, // +3 for superblock and bitmaps
-      s_first_data_block: 3 + inodeBlocks, // After superblock and bitmaps
+      s_blocks_count: totalBlocks,
+      s_first_data_block: firstDataBlock,
       s_log_block_size: Math.log2(blockSize),
       s_magic: MAGIC_SIGNATURE,
       s_inode_size: inodeSize,
@@ -100,7 +105,12 @@ export class FileSystem {
 
     // Initialize bitmaps
     this.inodeBitmap = new Array(numInodes).fill(false);
-    this.dataBitmap = new Array(numDataBlocks).fill(false);
+    this.dataBitmap = new Array(totalBlocks).fill(false);
+
+    // Mark metadata blocks as used
+    for (let i = 0; i < firstDataBlock; i++) {
+      this.dataBitmap[i] = true;
+    }
 
     // Initialize inodes array
     this.inodes = new Array(numInodes).fill(null).map(() => ({
@@ -132,13 +142,24 @@ export class FileSystem {
     this.inodes[0].i_uid = 0;
     this.inodes[0].i_size = 0;
     this.inodes[0].i_block_pointers[0] = rootBlock;
+
+    // Add . and .. entries for root directory (both point to inode 0)
+    this.addDefaultDirectoryEntries(0, 0);
+  }
+
+  private addDefaultDirectoryEntries(dirInode: number, parentInode: number): void {
+    // Add . entry (points to current directory)
+    this.addDirectoryEntry(dirInode, ".", dirInode);
+
+    // Add .. entry (points to parent directory)
+    this.addDirectoryEntry(dirInode, "..", parentInode);
   }
 
   private allocateDataBlock(): number {
-    for (let i = 0; i < this.dataBitmap.length; i++) {
+    for (let i = this.superBlock.s_first_data_block; i < this.superBlock.s_blocks_count; i++) {
       if (!this.dataBitmap[i]) {
         this.dataBitmap[i] = true;
-        return i + this.superBlock.s_first_data_block;
+        return i;
       }
     }
     return -1; // No free blocks
@@ -193,12 +214,14 @@ export class FileSystem {
     for (let i = 0; i < maxEntries; i++) {
       const offset = i * entrySize;
       const inode = new DataView(block.buffer).getUint32(offset, true);
-      if (inode === 0) continue; // Empty entry
 
       const nameBytes = block.slice(offset + 4, offset + 256);
       const name = new TextDecoder().decode(nameBytes).replace(/\0/g, "");
 
-      entries.push({ inode, name });
+      // Only add entries that have a non-empty name
+      if (name) {
+        entries.push({ inode, name });
+      }
     }
     return entries;
   }
@@ -213,7 +236,30 @@ export class FileSystem {
     // First try to find a block with space
     for (let i = 0; i < DIRECT_POINTERS; i++) {
       const blockNum = inodeObj.i_block_pointers[i];
-      if (blockNum === -1) continue;
+      if (blockNum === -1) {
+        // No block allocated yet, allocate a new one
+        const newBlock = this.allocateDataBlock();
+        if (newBlock === -1) return false;
+
+        inodeObj.i_block_pointers[i] = newBlock;
+        const relativeNewBlockNum = newBlock - this.superBlock.s_first_data_block;
+        const block = this.dataBlocks[relativeNewBlockNum];
+
+        // Write the entry at the start of the new block
+        new DataView(block.buffer).setUint32(0, targetInode, true);
+        const nameBytes = new TextEncoder().encode(name.padEnd(252, "\0"));
+        block.set(nameBytes, 4);
+
+        // Update directory size
+        let allocatedBlocks = 0;
+        for (let j = 0; j < DIRECT_POINTERS; j++) {
+          if (inodeObj.i_block_pointers[j] !== -1) {
+            allocatedBlocks++;
+          }
+        }
+        inodeObj.i_size = allocatedBlocks * this.blockSize;
+        return true;
+      }
 
       const relativeBlockNum = blockNum - this.superBlock.s_first_data_block;
       const block = this.dataBlocks[relativeBlockNum];
@@ -227,7 +273,6 @@ export class FileSystem {
         block.set(nameBytes, offset + 4);
 
         // Directory size should be based on allocated blocks, not entries
-        // Count the number of allocated blocks
         let allocatedBlocks = 0;
         for (let j = 0; j < DIRECT_POINTERS; j++) {
           if (inodeObj.i_block_pointers[j] !== -1) {
@@ -239,36 +284,31 @@ export class FileSystem {
       }
     }
 
-    // No space in existing blocks, allocate new block
-    const newBlock = this.allocateDataBlock();
-    if (newBlock === -1) return false;
+    return false; // No space in any block
+  }
 
-    // Find first empty block pointer
-    for (let i = 0; i < DIRECT_POINTERS; i++) {
-      if (inodeObj.i_block_pointers[i] === -1) {
-        inodeObj.i_block_pointers[i] = newBlock;
-        const relativeNewBlockNum = newBlock - this.superBlock.s_first_data_block;
-        const block = this.dataBlocks[relativeNewBlockNum];
-        new DataView(block.buffer).setUint32(0, targetInode, true);
-        const nameBytes = new TextEncoder().encode(name.padEnd(252, "\0"));
-        block.set(nameBytes, 4);
+  // Method overloads
+  public createFile(path: string, size: number): boolean;
+  public createFile(path: string, contentType: "text" | "base64", content: string): boolean;
+  public createFile(
+    path: string,
+    sizeOrContentType: number | "text" | "base64",
+    content?: string
+  ): boolean {
+    // Handle the content overload
+    if (typeof sizeOrContentType === "string" && content !== undefined) {
+      return this.createFileWithContent(path, sizeOrContentType, content);
+    }
 
-        // Update directory size based on allocated blocks
-        let allocatedBlocks = 0;
-        for (let j = 0; j < DIRECT_POINTERS; j++) {
-          if (inodeObj.i_block_pointers[j] !== -1) {
-            allocatedBlocks++;
-          }
-        }
-        inodeObj.i_size = allocatedBlocks * this.blockSize;
-        return true;
-      }
+    // Handle the original size-based overload
+    if (typeof sizeOrContentType === "number") {
+      return this.createFileWithSize(path, sizeOrContentType);
     }
 
     return false;
   }
 
-  public createFile(path: string, size: number): boolean {
+  private createFileWithSize(path: string, size: number): boolean {
     const components = path.split("/").filter((c) => c !== "");
     if (components.length === 0) return false;
 
@@ -293,6 +333,9 @@ export class FileSystem {
           this.inodeBitmap[newInode] = false; // Free the inode
           return false;
         }
+
+        // Add . and .. entries for the new directory
+        this.addDefaultDirectoryEntries(newInode, currentInode);
 
         currentInode = newInode;
       } else {
@@ -329,6 +372,105 @@ export class FileSystem {
     this.inodes[fileInode].i_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Regular file with rw-r--r--
     this.inodes[fileInode].i_uid = 0;
     this.inodes[fileInode].i_size = blocksNeeded * this.blockSize; // Convert blocks to bytes
+
+    // Add directory entry
+    return this.addDirectoryEntry(currentInode, fileName, fileInode);
+  }
+
+  // Private method for creating files with content (limited to 1 block = 4KB max)
+  private createFileWithContent(
+    path: string,
+    contentType: "text" | "base64",
+    content: string
+  ): boolean {
+    // Validate content size - must fit in 1 block (4KB)
+    let contentBytes: Uint8Array;
+    let metadataBytes: Uint8Array;
+
+    try {
+      if (contentType === "text") {
+        contentBytes = new TextEncoder().encode(content);
+        // Store metadata: 1 byte for type (0 = text), then content
+        metadataBytes = new Uint8Array(1 + contentBytes.length);
+        metadataBytes[0] = 0; // 0 = text
+        metadataBytes.set(contentBytes, 1);
+      } else if (contentType === "base64") {
+        // For base64, store the original base64 string as text with metadata
+        const base64Bytes = new TextEncoder().encode(content);
+        // Store metadata: 1 byte for type (1 = base64), then base64 string
+        metadataBytes = new Uint8Array(1 + base64Bytes.length);
+        metadataBytes[0] = 1; // 1 = base64
+        metadataBytes.set(base64Bytes, 1);
+      } else {
+        return false; // Invalid content type
+      }
+    } catch {
+      return false; // Invalid base64 or encoding error
+    }
+
+    if (metadataBytes.length > this.blockSize) {
+      return false; // Content too large for 1 block
+    }
+
+    const components = path.split("/").filter((c) => c !== "");
+    if (components.length === 0) return false;
+
+    let currentInode = this.superBlock.s_root_inode;
+
+    // Navigate through directories (same as original method)
+    for (let i = 0; i < components.length - 1; i++) {
+      const dirName = components[i];
+      const entry = this.findDirectoryEntry(currentInode, dirName);
+
+      if (!entry) {
+        // Directory doesn't exist, create it
+        const newInode = this.allocateInode();
+        if (newInode === -1) return false;
+
+        // Set up directory inode
+        this.inodes[newInode].i_mode = S_IFDIR | S_IRWXU | S_IRWXG | S_IRWXO;
+        this.inodes[newInode].i_uid = 0;
+        this.inodes[newInode].i_size = 0;
+
+        if (!this.addDirectoryEntry(currentInode, dirName, newInode)) {
+          this.inodeBitmap[newInode] = false;
+          return false;
+        }
+
+        this.addDefaultDirectoryEntries(newInode, currentInode);
+        currentInode = newInode;
+      } else {
+        currentInode = entry.inode;
+      }
+    }
+
+    // Create the file
+    const fileName = components[components.length - 1];
+    const fileInode = this.allocateInode();
+    if (fileInode === -1) return false;
+
+    // Allocate exactly 1 data block
+    const dataBlock = this.allocateDataBlock();
+    if (dataBlock === -1) {
+      this.inodeBitmap[fileInode] = false;
+      return false;
+    }
+
+    // Write content to the data block
+    const relativeBlockNum = dataBlock - this.superBlock.s_first_data_block;
+    const block = this.dataBlocks[relativeBlockNum];
+
+    // Clear the block first
+    block.fill(0);
+
+    // Copy content with metadata to the block
+    block.set(metadataBytes, 0);
+
+    // Set up file inode
+    this.inodes[fileInode].i_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    this.inodes[fileInode].i_uid = 0;
+    this.inodes[fileInode].i_size = metadataBytes.length; // Actual content size in bytes
+    this.inodes[fileInode].i_block_pointers[0] = dataBlock;
 
     // Add directory entry
     return this.addDirectoryEntry(currentInode, fileName, fileInode);
@@ -441,8 +583,14 @@ export class FileSystem {
           }
         }
 
+        // Check if this is a file data block and get its content
+        const fileContent = this.getFileContentFromBlock(blockIndex);
+        if (fileContent !== null) {
+          return fileContent;
+        }
+
         // Regular data block (assumed to be file content)
-        return `File Data Block (Block ${blockIndex})\n\nContent display to be implemented for now.`;
+        return "null";
     }
   }
 
@@ -451,31 +599,34 @@ export class FileSystem {
     inodes: Array<{ number: number; used: boolean; data?: InodeData }>;
   } {
     const inodesPerBlock = this.blockSize / this.inodeSize;
-    const startInode = (blockIndex - 3) * inodesPerBlock; // 3 blocks for SB, IB, DB
+    const firstInode = (blockIndex - 3) * inodesPerBlock;
 
-    const inodes = [];
-    for (let inodeNum = startInode; inodeNum < startInode + inodesPerBlock; inodeNum++) {
-      const inode = this.inodes[inodeNum];
-      const isUsed = this.inodeBitmap[inodeNum];
+    const inodeInfo = [];
+    for (let i = 0; i < inodesPerBlock; i++) {
+      const inodeNumber = firstInode + i;
+      if (inodeNumber < this.superBlock.s_inodes_count) {
+        const isUsed = this.inodeBitmap[inodeNumber];
+        let inodeData: InodeData | undefined;
 
-      let data: InodeData | undefined;
-      if (isUsed && inode) {
-        data = {
-          type: this.isDirectory(inodeNum) ? "Directory" : "File",
-          size: inode.i_size,
-          mode: `0o${inode.i_mode.toString(8)}`,
-          blockPointers: inode.i_block_pointers.filter((p) => p !== -1),
-        };
+        if (isUsed) {
+          const inode = this.inodes[inodeNumber];
+          inodeData = {
+            type: this.isDirectory(inodeNumber) ? "Directory" : "File",
+            size: inode.i_size,
+            mode: inode.i_mode.toString(8),
+            blockPointers: inode.i_block_pointers.filter((p) => p !== -1),
+          };
+        }
+
+        inodeInfo.push({
+          number: inodeNumber,
+          used: isUsed,
+          data: inodeData,
+        });
       }
-
-      inodes.push({
-        number: inodeNum,
-        used: isUsed,
-        data: data,
-      });
     }
 
-    return { inodes };
+    return { inodes: inodeInfo };
   }
 
   public getTotalBlocks(): number {
@@ -499,5 +650,77 @@ export class FileSystem {
 
   public getSuperBlock() {
     return this.superBlock;
+  }
+
+  private getFileContentFromBlock(blockIndex: number): string | null {
+    // Find which file uses this block
+    for (let i = 0; i < this.superBlock.s_inodes_count; i++) {
+      if (!this.inodeBitmap[i] || this.isDirectory(i)) continue;
+
+      const inode = this.inodes[i];
+      for (let j = 0; j < DIRECT_POINTERS; j++) {
+        if (inode.i_block_pointers[j] === blockIndex) {
+          // Found the file that uses this block
+          const relativeBlockNum = blockIndex - this.superBlock.s_first_data_block;
+          const block = this.dataBlocks[relativeBlockNum];
+
+          // Get the actual file size (not the full block size)
+          const fileSize = inode.i_size;
+          const contentBytes = block.slice(0, fileSize);
+
+          const isEmptyOrZeros =
+            contentBytes.length === 0 || contentBytes.every((byte) => byte === 0);
+
+          if (isEmptyOrZeros) {
+            const loremText = faker.lorem.words(50);
+            return loremText;
+          }
+
+          // Check if this file has metadata (files created with content)
+          if (contentBytes.length > 0) {
+            const contentType = contentBytes[0];
+            const actualContent = contentBytes.slice(1);
+
+            if (contentType === 0) {
+              // Text file - return as plain text
+              try {
+                return new TextDecoder("utf-8", { fatal: true }).decode(actualContent);
+              } catch {
+                // Fallback to regular text decoding
+                return new TextDecoder().decode(actualContent);
+              }
+            } else if (contentType === 1) {
+              // Base64 file - return the base64 string
+              try {
+                return new TextDecoder("utf-8", { fatal: true }).decode(actualContent);
+              } catch {
+                return new TextDecoder().decode(actualContent);
+              }
+            }
+          }
+
+          // Try to decode as text first
+          try {
+            const textContent = new TextDecoder("utf-8", { fatal: true }).decode(contentBytes);
+            // Check if it's printable text (no control characters except common ones)
+            const isPrintableText = /^[\x20-\x7E\x09\x0A\x0D]*$/.test(textContent);
+
+            if (isPrintableText) {
+              return textContent;
+            }
+          } catch {
+            // Not valid UTF-8 text
+          }
+
+          // If not text, generate lorem ipsum content
+          // Generate lorem ipsum based on file size to make it realistic
+          const wordsNeeded = Math.max(10, Math.floor(fileSize / 6)); // Approximate words based on file size
+          const loremText = faker.lorem.words(wordsNeeded);
+          return loremText;
+        }
+      }
+    }
+
+    return null; // Block is not used by any file
   }
 }

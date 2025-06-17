@@ -1,4 +1,4 @@
-import React, { useState, type ReactElement } from "react";
+import React, { useState, type ReactElement, useReducer } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { type FileSystem, BlockType } from "./FileSystem";
 import { MultiColorBinaryBlock } from "../paging/ui/BinaryBlock";
@@ -61,6 +61,7 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
   const [previousInode, setPreviousInode] = useState<number | null>(null);
   const [, setIsFirstSelection] = useState<boolean>(false);
   const [, setRevealedInodeEntry] = useState<string | null>(null);
+  const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
   const handleBlockClick = (blockIndex: number) => {
     setSelectedBlock(blockIndex);
@@ -587,7 +588,7 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
 
   return (
     <>
-      <FileSystemIntro fileSystem={fileSystem} />
+      <FileSystemIntro fileSystem={fileSystem} onUpload={forceUpdate} />
       <section className="w-full max-w-7xl overflow-x-auto">
         <div className="bg-muted/50 min-w-fit rounded-lg p-6">
           <SubsectionHeading>Disk Layout</SubsectionHeading>

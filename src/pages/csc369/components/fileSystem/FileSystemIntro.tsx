@@ -147,7 +147,7 @@ export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({ fileSystem, on
                   <Input
                     id="file"
                     type="file"
-                    className="col-span-2 h-9 file:mr-5"
+                    className="col-span-2 h-9 file:mr-5 file:cursor-pointer"
                     accept=".txt"
                     onChange={handleFileChange}
                     disabled={isLoading}

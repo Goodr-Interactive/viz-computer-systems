@@ -210,7 +210,7 @@ export const InputBinaryBlock: React.FC<InputBinaryBlockProps> = ({
   if (tooltip) {
     return (
       <TooltipProvider>
-        <Tooltip>
+        <Tooltip delayDuration={350}>
           <TooltipTrigger asChild>{blockContent}</TooltipTrigger>
           <TooltipContent>{tooltip}</TooltipContent>
         </Tooltip>

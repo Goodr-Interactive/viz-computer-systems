@@ -642,10 +642,24 @@ export class FileSystem {
   }
 
   public getDirectoryEntriesFromBlock(blockIndex: number): DirectoryEntry[] {
-    const relativeBlockIndex = blockIndex - this.superBlock.s_first_data_block;
-    const block = this.dataBlocks[relativeBlockIndex];
-    if (!block) return [];
+    const relativeBlockNum = blockIndex - this.superBlock.s_first_data_block;
+    const block = this.dataBlocks[relativeBlockNum];
     return this.readDirectoryEntries(block);
+  }
+
+  public getOwnerInode(blockIndex: number): number | null {
+    if (blockIndex < this.superBlock.s_first_data_block) {
+      return null; // Not a data block
+    }
+    for (let i = 0; i < this.inodes.length; i++) {
+      if (this.inodeBitmap[i]) {
+        const inode = this.inodes[i];
+        if (inode.i_block_pointers.includes(blockIndex)) {
+          return i;
+        }
+      }
+    }
+    return null;
   }
 
   public getSuperBlock() {

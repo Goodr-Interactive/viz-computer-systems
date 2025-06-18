@@ -19,7 +19,7 @@ export const FileSystemExample: React.FC = () => {
     fs.createFile("docs/notes/ideas.txt", 1);
     fs.createFile("docs/archive/old_data.txt", 3);
 
-    fs.createFile("docs/notes/a4_solutions.txt", "text", "Hehe :D");
+    fs.createFile("docs/notes/a4_solutions.txt", "text", "You found me!");
 
     fs.createFile("projects/todo.txt", 1);
     fs.createFile("projects/roadmap.txt", 1);

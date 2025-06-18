@@ -91,7 +91,7 @@ export const PageTableDisplay: React.FC<PageTableDisplayProps> = ({
       onLayoutAnimationComplete={onLayoutAnimationComplete}
     >
       <TooltipProvider>
-        <Tooltip>
+        <Tooltip delayDuration={350}>
           <TooltipTrigger asChild>
             <h4 className="mb-1 ml-[64px] text-sm font-medium">
               <span className="border-muted-foreground/50 hover:border-muted-foreground cursor-help border-b border-dotted transition-colors">

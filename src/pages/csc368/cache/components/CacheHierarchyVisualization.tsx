@@ -175,15 +175,15 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
   const renderHierarchy = () => (
     <TooltipProvider>
-      <div className="flex flex-col items-center space-y-4">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col items-center space-y-2">
+        <div className="flex items-center space-x-2">
           <Card
             className={`text-center border-${stageSizesConfig.processorChip.borderStyle} border-${stageSizesConfig.processorChip.borderColor}`}
             style={{ width: `${stageSizesConfig.processorChip.width}px` }}
           >
-            <CardContent>
-              <div className="font-semibold">Processor Chip</div>
-              <div className="mt-2 flex items-center justify-center space-x-2">
+            <CardContent className="py-2">
+              <div className="font-semibold text-sm">Processor Chip</div>
+              <div className="mt-1 flex items-center justify-center space-x-1">
                 <Dialog>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -192,8 +192,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
                           className={`flex items-center justify-center text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
                           style={{ width: `${stageSizesConfig.cpu.width}px`, height: `${stageSizesConfig.cpu.height}px` }}
                         >
-                          <CardContent className="flex items-center justify-center">
-                            <div className="font-semibold">CPU</div>
+                          <CardContent className="flex items-center justify-center p-1">
+                            <div className="font-semibold text-xs">CPU</div>
                           </CardContent>
                         </Card>
                       </DialogTrigger>
@@ -209,7 +209,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                     <p>{STAGE_EXPLANATIONS.cpu.description}</p>
                   </DialogContent>
                 </Dialog>
-                <div className="h-0.5 w-2 bg-blue-500"></div>
+                <div className="h-0.5 w-1 bg-blue-500"></div>
                 <Dialog>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -221,8 +221,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
                             height: `${stageSizesConfig.l1Cache.height}px`,
                           }}
                         >
-                          <CardContent className="flex items-center justify-center">
-                            <div className="font-semibold">L1</div>
+                          <CardContent className="flex items-center justify-center p-1">
+                            <div className="font-semibold text-xs">L1</div>
                           </CardContent>
                         </Card>
                       </DialogTrigger>
@@ -238,7 +238,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                     <p>{STAGE_EXPLANATIONS.l1.description}</p>
                   </DialogContent>
                 </Dialog>
-                <div className="h-0.5 w-4 bg-blue-500"></div>
+                <div className="h-0.5 w-2 bg-blue-500"></div>
                 <Dialog>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -250,8 +250,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
                           height: `${stageSizesConfig.l2Cache.height}px`,
                         }}
                     >
-                          <CardContent className="flex items-center justify-center">
-                            <div className="font-semibold">L2</div>
+                          <CardContent className="flex items-center justify-center p-1">
+                            <div className="font-semibold text-xs">L2</div>
                           </CardContent>
                         </Card>
                       </DialogTrigger>
@@ -270,7 +270,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          <div className="h-0.5 w-12 bg-blue-500"></div>
+          <div className="h-0.5 w-6 bg-blue-500"></div>
           <Dialog>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -282,8 +282,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
                       height: `${stageSizesConfig.mainMemory.height}px`,
                     }}
                   >
-                    <CardContent>
-                      <div className="font-semibold">Main Memory</div>
+                    <CardContent className="flex items-center justify-center p-2">
+                      <div className="font-semibold text-sm">Main Memory</div>
                     </CardContent>
                   </Card>
                 </DialogTrigger>
@@ -340,7 +340,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   );
 
   const renderBarGraph = () => (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={200}>
       <BarChart data={Object.entries(accessCounts).map(([level, count]) => ({ level, count }))}>
         <XAxis dataKey="level" />
         <YAxis />
@@ -388,12 +388,34 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Cache Hierarchy Visualization</CardTitle>
-        </CardHeader>
-        <CardContent>{renderHierarchy()}</CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Cache Hierarchy Visualization</CardTitle>
+          </CardHeader>
+          <CardContent>{renderHierarchy()}</CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Pattern Examples</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {renderAccessPattern()}
+            <div className="mt-4 flex space-x-4">
+              <Button onClick={startSimulation} disabled={isSimulating}>
+                Start Example
+              </Button>
+              <Button onClick={stopSimulation} disabled={!isSimulating}>
+                Stop Example
+              </Button>
+              <Button onClick={resetSimulation} variant="outline">
+                Reset
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {latencyConfigUIEnabled && (
         <Card>
@@ -404,41 +426,32 @@ export const CacheHierarchyVisualization: React.FC = () => {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Access Pattern Examples</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {renderAccessPattern()}
-          <div className="mt-4 flex space-x-4">
-            <Button onClick={startSimulation} disabled={isSimulating}>
-              Start Example
-            </Button>
-            <Button onClick={stopSimulation} disabled={!isSimulating}>
-              Stop Example
-            </Button>
-            <Button onClick={resetSimulation} variant="outline">
-              Reset
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {accessCountsUIEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Counts</CardTitle>
-          </CardHeader>
-          <CardContent>{renderBarGraph()}</CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Access Counts</CardTitle>
+            </CardHeader>
+            <CardContent>{renderBarGraph()}</CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cache Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>{renderCacheStats()}</CardContent>
+          </Card>
+        </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Cache Statistics</CardTitle>
-        </CardHeader>
-        <CardContent>{renderCacheStats()}</CardContent>
-      </Card>
+      {!accessCountsUIEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cache Statistics</CardTitle>
+          </CardHeader>
+          <CardContent>{renderCacheStats()}</CardContent>
+        </Card>
+      )}
 
       {amat !== null && (
         <div className="mt-4 text-center">

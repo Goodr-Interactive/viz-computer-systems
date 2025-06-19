@@ -3,12 +3,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { BarChart, XAxis, YAxis, Bar, ResponsiveContainer } from "recharts";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { stageSizesConfig, latencyConfigUIEnabled, accessCountsUIEnabled } from "./Config";
 
 const ACCESS_PATTERNS = {
   temporal: "temporal",
   spatial: "spatial",
-  random: "random",
+  noLocality: "noLocality",
+};
+
+const STAGE_EXPLANATIONS = {
+  cpu: {
+    title: "Central Processing Unit (CPU)",
+    description: "The CPU is the brain of the computer that executes instructions. When the CPU needs data, it first checks the cache hierarchy. The CPU operates at very high speeds and expects data to be available quickly. Any delay in data access directly impacts performance."
+  },
+  l1: {
+    title: "L1 Cache",
+    description: "L1 (Level 1) cache is the fastest and smallest cache, located directly on the CPU chip. It's split into instruction cache (I-cache) and data cache (D-cache). L1 cache has the lowest latency (typically 1-4 cycles) but limited capacity (usually 16-64 KB per core)."
+  },
+  l2: {
+    title: "L2 Cache (Shared)", 
+    description: "L2 (Level 2) cache is larger than L1 but slower. It's a shared cache among CPU cores, serving as a buffer between L1 and main memory. L2 cache typically has 256KB-8MB capacity with latency around 10-20 cycles. It stores recently accessed data that didn't fit in L1 and allows cores to share data efficiently."
+  },
+  ram: {
+    title: "Main Memory (RAM)",
+    description: "Random Access Memory (RAM) is the primary storage for active programs and data. It's much larger than cache (gigabytes) but significantly slower (200-400 cycles latency). When data isn't found in any cache level, it must be fetched from RAM."
+  },
+  hardDisk: {
+    title: "Hard Disk Storage",
+    description: "Hard disk (or SSD) provides persistent storage for the operating system and applications. It has massive capacity but very high latency (thousands of cycles). Data must be loaded from disk into memory when a program starts or when accessing files."
+  }
 };
 
 export const CacheHierarchyVisualization: React.FC = () => {
@@ -16,12 +41,11 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const [latencyConfig, setLatencyConfig] = useState({
     l1: 1,
     l2: 10,
-    l3: 30,
     ram: 300,
     hardDisk: 5000, // Added hard disk latency
   });
   const [amat, setAmat] = useState<number | null>(null);
-  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, l3: 0, ram: 0, hardDisk: 0 }); // Added hard disk to access counts
+  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, ram: 0, hardDisk: 0 }); // Added hard disk to access counts
   const [isSimulating, setIsSimulating] = useState(false);
   const [cacheStats, setCacheStats] = useState({
     firstAccessLatency: latencyConfig.hardDisk, // Initial latency for first access
@@ -34,16 +58,16 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const simulateAccessPattern = () => {
     // Define miss rates based on access pattern and cache level
     const missRates = {
-      temporal: { l1: 0.1, l2: 0.2, l3: 0.3, ram: 0.8, hardDisk: 1.0 },
-      spatial: { l1: 0.3, l2: 0.15, l3: 0.25, ram: 0.7, hardDisk: 1.0 },
-      random: { l1: 0.8, l2: 0.85, l3: 0.9, ram: 0.95, hardDisk: 1.0 }
+      temporal: { l1: 0.1, l2: 0.2, ram: 0.8, hardDisk: 1.0 },
+      spatial: { l1: 0.3, l2: 0.15, ram: 0.7, hardDisk: 1.0 },
+      noLocality: { l1: 0.8, l2: 0.85, ram: 0.95, hardDisk: 1.0 },
     };
 
     // Startup cost: On first access, we need to reach hard disk for initial loading
     const STARTUP_CYCLES = 10;
     let isFirstAccess = false;
-    
-    setCacheStats(prev => {
+
+    setCacheStats((prev) => {
       if (prev.totalAccesses === 0) {
         isFirstAccess = true;
       }
@@ -51,7 +75,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
     });
 
     // Simulate cache hierarchy access - check each level sequentially
-    const levels: Array<keyof typeof latencyConfig> = ["l1", "l2", "l3", "ram", "hardDisk"];
+    const levels: Array<keyof typeof latencyConfig> = ["l1", "l2", "ram", "hardDisk"];
     let totalLatency = 0;
     let hitLevel: keyof typeof latencyConfig | null = null;
     let accessCount = 0;
@@ -65,10 +89,10 @@ export const CacheHierarchyVisualization: React.FC = () => {
       accessCount++;
       const missRate = missRates[selectedPattern][level];
       const hitRate = 1 - missRate;
-      
+
       // Add latency for accessing this level
       totalLatency += latencyConfig[level];
-      
+
       // Probabilistically determine if we hit at this level using hitRate
       const random = Math.random();
       if (random < hitRate || level === "hardDisk") {
@@ -81,13 +105,13 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
     // Calculate proper AMAT based on the cache hierarchy (including startup cost)
     let calculatedAmat = 0;
-    
+
     // Add startup cost to AMAT calculation
     calculatedAmat += STARTUP_CYCLES;
-    
+
     for (let i = 0; i < levels.length; i++) {
       const level = levels[i];
-      
+
       if (i === 0) {
         // L1 is always accessed
         calculatedAmat += latencyConfig[level];
@@ -100,7 +124,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
         calculatedAmat += missFromPrevious * latencyConfig[level];
       }
     }
-    
+
     setAmat(calculatedAmat);
 
     // Update cache stats
@@ -139,7 +163,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const resetSimulation = () => {
     setIsSimulating(false);
     setAmat(null);
-    setAccessCounts({ l1: 0, l2: 0, l3: 0, ram: 0, hardDisk: 0 });
+    setAccessCounts({ l1: 0, l2: 0, ram: 0, hardDisk: 0 });
     setCacheStats({
       firstAccessLatency: latencyConfig.hardDisk,
       subsequentAccessLatency: latencyConfig.l1,
@@ -150,98 +174,133 @@ export const CacheHierarchyVisualization: React.FC = () => {
   };
 
   const renderHierarchy = () => (
-    <div className="flex flex-col items-center space-y-4">
-      <div className="flex items-center space-x-4">
-        <Card
-          className={`text-center border-${stageSizesConfig.processorChip.borderStyle} border-${stageSizesConfig.processorChip.borderColor}`}
-          style={{ width: `${stageSizesConfig.processorChip.width}px` }}
-        >
-          <CardContent>
-            <div className="font-semibold">Processor Chip</div>
-            <div className="flex items-center  justify-center space-x-4 mt-2">
-              <Card
-                className={`text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor}`}
-                style={{ width: `${stageSizesConfig.cpu.width}px` }}
-              >
-                <CardContent>
-                  <div className="font-semibold">CPU</div>
-                </CardContent>
-              </Card>
-              <Card
-                className={`text-center border-${stageSizesConfig.cache.borderStyle} border-${stageSizesConfig.cache.borderColor}`}
-                style={{ width: `${stageSizesConfig.cache.width}px` }}
-              >
-                <CardContent>
-                  <div className="font-semibold">Cache</div>
-                  <div className="flex flex-col space-y-2 mt-2">
-                    <Card
-                      className={`text-center border-${stageSizesConfig.l1Cache.borderStyle} border-${stageSizesConfig.l1Cache.borderColor}`}
-                    >
-                      <CardContent>
-                        <div className="font-semibold">L1</div>
-                      </CardContent>
-                    </Card>
-                    <Card
-                      className={`text-center border-${stageSizesConfig.l2Cache.borderStyle} border-${stageSizesConfig.l2Cache.borderColor}`}
-                    >
-                      <CardContent>
-                        <div className="font-semibold">L2</div>
-                      </CardContent>
-                    </Card>
-                    <Card
-                      className={`text-center border-${stageSizesConfig.l3Cache.borderStyle} border-${stageSizesConfig.l3Cache.borderColor}`}
-                    >
-                      <CardContent>
-                        <div className="font-semibold">L3</div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </CardContent>
-        </Card>
-        <div className="w-12 h-0.5 bg-blue-500"></div>
-        <Card
-          className={`flex items-center justify-center text-center border-${stageSizesConfig.mainMemory.borderStyle} border-${stageSizesConfig.mainMemory.borderColor}`}
-          style={{ width: `${stageSizesConfig.mainMemory.width}px`, height: `${stageSizesConfig.mainMemory.height}px` }}
-        >
-          <CardContent>
-            <div className="font-semibold">Main Memory</div>
-          </CardContent>
-        </Card>
-        <div className="w-12 h-0.5 bg-blue-500"></div>
-        {stageSizesConfig.hardDisk && (
-          <div
-            style={{
-              width: stageSizesConfig.hardDisk.width,
-              height: stageSizesConfig.hardDisk.height,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
-            }}
+    <TooltipProvider>
+      <div className="flex flex-col items-center space-y-4">
+        <div className="flex items-center space-x-4">
+          <Card
+            className={`text-center border-${stageSizesConfig.processorChip.borderStyle} border-${stageSizesConfig.processorChip.borderColor}`}
+            style={{ width: `${stageSizesConfig.processorChip.width}px` }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-              <path
-                d="M2,50 A50,10 0 0,0 98,50 A50,10 0 0,0 2,50 L2,75 A50,10,0 0,0 98,75 L98,50"
-                style={{ stroke: "#000000", fill: "none" }}
-              />
-            </svg>
-            <div
-              style={{
-                position: "absolute",
-                color: "#000000",
-                fontWeight: "bold",
-                textAlign: "center",
-              }}
-            >
-              Hard Drive
-            </div>
-          </div>
-        )}
+            <CardContent>
+              <div className="font-semibold">Processor Chip</div>
+              <div className="mt-2 flex items-center justify-center space-x-2">
+                <Dialog>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DialogTrigger asChild>
+                        <Card
+                          className={`flex items-center justify-center text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                          style={{ width: `${stageSizesConfig.cpu.width}px`, height: `${stageSizesConfig.cpu.height}px` }}
+                        >
+                          <CardContent className="flex items-center justify-center">
+                            <div className="font-semibold">CPU</div>
+                          </CardContent>
+                        </Card>
+                      </DialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Click to learn more about the CPU</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{STAGE_EXPLANATIONS.cpu.title}</DialogTitle>
+                    </DialogHeader>
+                    <p>{STAGE_EXPLANATIONS.cpu.description}</p>
+                  </DialogContent>
+                </Dialog>
+                <div className="h-0.5 w-2 bg-blue-500"></div>
+                <Dialog>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DialogTrigger asChild>
+                        <Card
+                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l1Cache.borderStyle} border-${stageSizesConfig.l1Cache.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                          style={{
+                            width: `${stageSizesConfig.l1Cache.width}px`,
+                            height: `${stageSizesConfig.l1Cache.height}px`,
+                          }}
+                        >
+                          <CardContent className="flex items-center justify-center">
+                            <div className="font-semibold">L1</div>
+                          </CardContent>
+                        </Card>
+                      </DialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Click to learn more about L1 Cache</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{STAGE_EXPLANATIONS.l1.title}</DialogTitle>
+                    </DialogHeader>
+                    <p>{STAGE_EXPLANATIONS.l1.description}</p>
+                  </DialogContent>
+                </Dialog>
+                <div className="h-0.5 w-4 bg-blue-500"></div>
+                <Dialog>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DialogTrigger asChild>
+                        <Card
+                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l2Cache.borderStyle} border-${stageSizesConfig.l2Cache.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                        style={{
+                          width: `${stageSizesConfig.l2Cache.width}px`,
+                          height: `${stageSizesConfig.l2Cache.height}px`,
+                        }}
+                    >
+                          <CardContent className="flex items-center justify-center">
+                            <div className="font-semibold">L2</div>
+                          </CardContent>
+                        </Card>
+                      </DialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Click to learn more about L2 Shared Cache</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{STAGE_EXPLANATIONS.l2.title}</DialogTitle>
+                    </DialogHeader>
+                    <p>{STAGE_EXPLANATIONS.l2.description}</p>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardContent>
+          </Card>
+          <div className="h-0.5 w-12 bg-blue-500"></div>
+          <Dialog>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogTrigger asChild>
+                  <Card
+                    className={`flex items-center justify-center text-center border-${stageSizesConfig.mainMemory.borderStyle} border-${stageSizesConfig.mainMemory.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                    style={{
+                      width: `${stageSizesConfig.mainMemory.width}px`,
+                      height: `${stageSizesConfig.mainMemory.height}px`,
+                    }}
+                  >
+                    <CardContent>
+                      <div className="font-semibold">Main Memory</div>
+                    </CardContent>
+                  </Card>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Click to learn more about Main Memory (RAM)</p>
+              </TooltipContent>
+            </Tooltip>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{STAGE_EXPLANATIONS.ram.title}</DialogTitle>
+              </DialogHeader>
+              <p>{STAGE_EXPLANATIONS.ram.description}</p>
+            </DialogContent>
+          </Dialog>      </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 
   const renderConfiguration = () => (
@@ -251,9 +310,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
           <div className="w-24 text-right font-semibold capitalize">{level}</div>
           <Slider
             value={[latency]}
-            onValueChange={(value) =>
-              setLatencyConfig((prev) => ({ ...prev, [level]: value[0] }))
-            }
+            onValueChange={(value) => setLatencyConfig((prev) => ({ ...prev, [level]: value[0] }))}
             max={500}
             min={1}
             step={1}
@@ -274,7 +331,9 @@ export const CacheHierarchyVisualization: React.FC = () => {
           onClick={() => setSelectedPattern(pattern as keyof typeof ACCESS_PATTERNS)}
           className="flex-1"
         >
-          {pattern}
+          {pattern === "temporal" ? "Temporal Locality" : 
+           pattern === "spatial" ? "Spatial Locality" : 
+           pattern === "noLocality" ? "No Locality" : pattern}
         </Button>
       ))}
     </div>
@@ -295,33 +354,29 @@ export const CacheHierarchyVisualization: React.FC = () => {
     const missRates = {
       temporal: { l1: 0.1, l2: 0.2, l3: 0.3, ram: 0.8, hardDisk: 1.0 },
       spatial: { l1: 0.3, l2: 0.15, l3: 0.25, ram: 0.7, hardDisk: 1.0 },
-      random: { l1: 0.8, l2: 0.85, l3: 0.9, ram: 0.95, hardDisk: 1.0 }
+      noLocality: { l1: 0.8, l2: 0.85, l3: 0.9, ram: 0.95, hardDisk: 1.0 },
     };
 
     return (
       <div className="mt-4 text-center">
         <h4 className="text-lg font-semibold">Statistics</h4>
-        <p className="text-sm text-muted-foreground">
-          Total Accesses: {cacheStats.totalAccesses}
-        </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">Total Accesses: {cacheStats.totalAccesses}</p>
+        <p className="text-muted-foreground text-sm">
           Startup Cycles Used: {cacheStats.startupCycles}
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           First Access Latency: {cacheStats.firstAccessLatency} cycles
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Subsequent Access Latency: {cacheStats.subsequentAccessLatency} cycles
         </p>
-        <p className="text-sm text-muted-foreground">
-          Cache Misses: {cacheStats.cacheMisses}
-        </p>
+        <p className="text-muted-foreground text-sm">Cache Misses: {cacheStats.cacheMisses}</p>
         <div className="mt-2">
-          <h5 className="font-semibold text-sm">Current Pattern ({selectedPattern}) Hit Rates:</h5>
+          <h5 className="text-sm font-semibold">Current Pattern ({selectedPattern}) Hit Rates:</h5>
           {Object.entries(missRates[selectedPattern]).map(([level, missRate]) => {
             const hitRate = 1 - missRate;
             return (
-              <p key={level} className="text-sm text-muted-foreground">
+              <p key={level} className="text-muted-foreground text-sm">
                 {level.toUpperCase()}: {(hitRate * 100).toFixed(1)}% hit rate
               </p>
             );
@@ -355,7 +410,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
         </CardHeader>
         <CardContent>
           {renderAccessPattern()}
-          <div className="flex space-x-4 mt-4">
+          <div className="mt-4 flex space-x-4">
             <Button onClick={startSimulation} disabled={isSimulating}>
               Start Example
             </Button>
@@ -388,7 +443,9 @@ export const CacheHierarchyVisualization: React.FC = () => {
       {amat !== null && (
         <div className="mt-4 text-center">
           <h4 className="text-lg font-semibold">Memory Statistics</h4>
-          <p className="text-sm text-muted-foreground">Average Memory Access Time (AMAT): {amat.toFixed(2)} cycles</p>
+          <p className="text-muted-foreground text-sm">
+            Average Memory Access Time (AMAT): {amat.toFixed(2)} cycles
+          </p>
         </div>
       )}
     </div>

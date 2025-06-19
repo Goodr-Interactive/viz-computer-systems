@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,14 +32,14 @@ interface WorkloadTesterProps {
 
 interface MemoryAccess {
   address: number;
-  type: 'read' | 'write';
+  type: "read" | "write";
   id: number;
 }
 
 interface AccessResult {
   address: number;
-  type: 'read' | 'write';
-  hitLevel: 'l1' | 'l2' | 'l3' | 'ram';
+  type: "read" | "write";
+  hitLevel: "l1" | "l2" | "l3" | "ram";
   latency: number;
   id: number;
 }
@@ -48,13 +54,13 @@ const WORKLOADS = {
       const baseAddress = 0x1000;
       for (let i = 0; i < count; i++) {
         accesses.push({
-          address: baseAddress + (i * 4), // 4-byte integers
-          type: 'read',
-          id: i
+          address: baseAddress + i * 4, // 4-byte integers
+          type: "read",
+          id: i,
         });
       }
       return accesses;
-    }
+    },
   },
   strided: {
     name: "Strided Access",
@@ -65,13 +71,13 @@ const WORKLOADS = {
       const stride = 256; // Skip 256 bytes each time
       for (let i = 0; i < count; i++) {
         accesses.push({
-          address: baseAddress + (i * stride),
-          type: 'read',
-          id: i
+          address: baseAddress + i * stride,
+          type: "read",
+          id: i,
         });
       }
       return accesses;
-    }
+    },
   },
   random: {
     name: "Random Access",
@@ -83,12 +89,12 @@ const WORKLOADS = {
       for (let i = 0; i < count; i++) {
         accesses.push({
           address: baseAddress + Math.floor(Math.random() * range),
-          type: Math.random() > 0.8 ? 'write' : 'read',
-          id: i
+          type: Math.random() > 0.8 ? "write" : "read",
+          id: i,
         });
       }
       return accesses;
-    }
+    },
   },
   locality: {
     name: "Temporal Locality",
@@ -100,13 +106,13 @@ const WORKLOADS = {
         const address = hotAddresses[i % hotAddresses.length];
         accesses.push({
           address,
-          type: 'read',
-          id: i
+          type: "read",
+          id: i,
         });
       }
       return accesses;
-    }
-  }
+    },
+  },
 };
 
 export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
@@ -124,7 +130,7 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
   }>({
     l1: new Set(),
     l2: new Set(),
-    l3: new Set()
+    l3: new Set(),
   });
 
   const getBlockAddress = (address: number, blockSize: number) => {
@@ -133,16 +139,16 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
 
   const simulateAccess = (access: MemoryAccess): AccessResult => {
     const blockAddress = getBlockAddress(access.address, config.l1.blockSize);
-    
+
     // Check L1 cache
     if (config.l1.enabled && cacheState.l1.has(blockAddress)) {
       return {
         ...access,
-        hitLevel: 'l1',
-        latency: config.l1.accessTime
+        hitLevel: "l1",
+        latency: config.l1.accessTime,
       };
     }
-    
+
     // Check L2 cache
     if (config.l2.enabled && cacheState.l2.has(blockAddress)) {
       // Add to L1 cache (simulate cache fill)
@@ -157,16 +163,16 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
             newL1.delete(oldestBlock);
           }
         }
-        setCacheState(prev => ({ ...prev, l1: newL1 }));
+        setCacheState((prev) => ({ ...prev, l1: newL1 }));
       }
-      
+
       return {
         ...access,
-        hitLevel: 'l2',
-        latency: config.l2.accessTime
+        hitLevel: "l2",
+        latency: config.l2.accessTime,
       };
     }
-    
+
     // Check L3 cache
     if (config.l3.enabled && cacheState.l3.has(blockAddress)) {
       // Add to L2 and L1 caches
@@ -180,9 +186,9 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
             newL2.delete(oldestBlock);
           }
         }
-        setCacheState(prev => ({ ...prev, l2: newL2 }));
+        setCacheState((prev) => ({ ...prev, l2: newL2 }));
       }
-      
+
       if (config.l1.enabled) {
         const newL1 = new Set(cacheState.l1);
         newL1.add(blockAddress);
@@ -193,20 +199,20 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
             newL1.delete(oldestBlock);
           }
         }
-        setCacheState(prev => ({ ...prev, l1: newL1 }));
+        setCacheState((prev) => ({ ...prev, l1: newL1 }));
       }
-      
+
       return {
         ...access,
-        hitLevel: 'l3',
-        latency: config.l3.accessTime
+        hitLevel: "l3",
+        latency: config.l3.accessTime,
       };
     }
-    
+
     // RAM access - load into all enabled caches
-    setCacheState(prev => {
+    setCacheState((prev) => {
       const newState = { ...prev };
-      
+
       if (config.l3.enabled) {
         newState.l3 = new Set(prev.l3);
         newState.l3.add(blockAddress);
@@ -218,7 +224,7 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
           }
         }
       }
-      
+
       if (config.l2.enabled) {
         newState.l2 = new Set(prev.l2);
         newState.l2.add(blockAddress);
@@ -230,7 +236,7 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
           }
         }
       }
-      
+
       if (config.l1.enabled) {
         newState.l1 = new Set(prev.l1);
         newState.l1.add(blockAddress);
@@ -242,14 +248,14 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
           }
         }
       }
-      
+
       return newState;
     });
-    
+
     return {
       ...access,
-      hitLevel: 'ram',
-      latency: config.ramAccessTime
+      hitLevel: "ram",
+      latency: config.ramAccessTime,
     };
   };
 
@@ -257,47 +263,47 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
     setIsRunning(true);
     setResults([]);
     setCurrentAccess(0);
-    
+
     // Reset cache state
     setCacheState({ l1: new Set(), l2: new Set(), l3: new Set() });
-    
+
     const workload = WORKLOADS[selectedWorkload as keyof typeof WORKLOADS];
     const accesses = workload.generate(accessCount);
     const newResults: AccessResult[] = [];
-    
+
     for (let i = 0; i < accesses.length; i++) {
       setCurrentAccess(i + 1);
       const result = simulateAccess(accesses[i]);
       newResults.push(result);
       setResults([...newResults]);
-      
+
       // Add small delay for animation
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
-    
+
     setIsRunning(false);
   };
 
   const calculateStats = () => {
     if (results.length === 0) return null;
-    
+
     const hitCounts = {
-      l1: results.filter(r => r.hitLevel === 'l1').length,
-      l2: results.filter(r => r.hitLevel === 'l2').length,
-      l3: results.filter(r => r.hitLevel === 'l3').length,
-      ram: results.filter(r => r.hitLevel === 'ram').length
+      l1: results.filter((r) => r.hitLevel === "l1").length,
+      l2: results.filter((r) => r.hitLevel === "l2").length,
+      l3: results.filter((r) => r.hitLevel === "l3").length,
+      ram: results.filter((r) => r.hitLevel === "ram").length,
     };
-    
+
     const totalLatency = results.reduce((sum, r) => sum + r.latency, 0);
     const avgLatency = totalLatency / results.length;
-    
+
     const hitRates = {
       l1: hitCounts.l1 / results.length,
       l2: hitCounts.l2 / results.length,
       l3: hitCounts.l3 / results.length,
-      overall: (hitCounts.l1 + hitCounts.l2 + hitCounts.l3) / results.length
+      overall: (hitCounts.l1 + hitCounts.l2 + hitCounts.l3) / results.length,
     };
-    
+
     return { hitCounts, hitRates, avgLatency, totalLatency };
   };
 
@@ -325,14 +331,17 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-muted-foreground mt-1 text-xs">
                 {WORKLOADS[selectedWorkload as keyof typeof WORKLOADS].description}
               </p>
             </div>
-            
+
             <div>
               <label className="text-sm font-medium">Number of Accesses</label>
-              <Select value={accessCount.toString()} onValueChange={(value) => setAccessCount(parseInt(value))}>
+              <Select
+                value={accessCount.toString()}
+                onValueChange={(value) => setAccessCount(parseInt(value))}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -345,75 +354,75 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
               </Select>
             </div>
           </div>
-          
+
           <Button onClick={runWorkload} disabled={isRunning} className="w-full">
-            {isRunning ? `Running... (${currentAccess}/${accessCount})` : 'Run Workload'}
+            {isRunning ? `Running... (${currentAccess}/${accessCount})` : "Run Workload"}
           </Button>
-          
-          {isRunning && (
-            <Progress value={(currentAccess / accessCount) * 100} className="w-full" />
-          )}
+
+          {isRunning && <Progress value={(currentAccess / accessCount) * 100} className="w-full" />}
         </CardContent>
       </Card>
 
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Hit Rates</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {config.l1.enabled && (
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                    <div className="h-3 w-3 rounded bg-blue-400"></div>
                     L1 Cache
                   </span>
                   <div className="text-right">
                     <div className="font-semibold">{(stats.hitRates.l1 * 100).toFixed(1)}%</div>
-                    <div className="text-sm text-muted-foreground">{stats.hitCounts.l1} hits</div>
+                    <div className="text-muted-foreground text-sm">{stats.hitCounts.l1} hits</div>
                   </div>
                 </div>
               )}
-              
+
               {config.l2.enabled && (
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <div className="h-3 w-3 rounded bg-green-500"></div>
                     L2 Cache
                   </span>
                   <div className="text-right">
                     <div className="font-semibold">{(stats.hitRates.l2 * 100).toFixed(1)}%</div>
-                    <div className="text-sm text-muted-foreground">{stats.hitCounts.l2} hits</div>
+                    <div className="text-muted-foreground text-sm">{stats.hitCounts.l2} hits</div>
                   </div>
                 </div>
               )}
-              
+
               {config.l3.enabled && (
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                    <div className="h-3 w-3 rounded bg-yellow-500"></div>
                     L3 Cache
                   </span>
                   <div className="text-right">
                     <div className="font-semibold">{(stats.hitRates.l3 * 100).toFixed(1)}%</div>
-                    <div className="text-sm text-muted-foreground">{stats.hitCounts.l3} hits</div>
+                    <div className="text-muted-foreground text-sm">{stats.hitCounts.l3} hits</div>
                   </div>
                 </div>
               )}
-              
-              <div className="flex justify-between items-center border-t pt-2">
+
+              <div className="flex items-center justify-between border-t pt-2">
                 <span className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <div className="h-3 w-3 rounded bg-red-500"></div>
                   RAM Access
                 </span>
                 <div className="text-right">
-                  <div className="font-semibold">{((1 - stats.hitRates.overall) * 100).toFixed(1)}%</div>
-                  <div className="text-sm text-muted-foreground">{stats.hitCounts.ram} misses</div>
+                  <div className="font-semibold">
+                    {((1 - stats.hitRates.overall) * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-muted-foreground text-sm">{stats.hitCounts.ram} misses</div>
                 </div>
               </div>
-              
-              <div className="flex justify-between items-center bg-muted p-2 rounded">
+
+              <div className="bg-muted flex items-center justify-between rounded p-2">
                 <span className="font-semibold">Overall Hit Rate</span>
                 <span className="font-semibold">{(stats.hitRates.overall * 100).toFixed(1)}%</span>
               </div>
@@ -437,10 +446,10 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
                 <span>Total Accesses</span>
                 <span className="font-semibold">{results.length}</span>
               </div>
-              
-              <div className="mt-4 p-3 bg-blue-50 rounded">
-                <h4 className="font-semibold text-sm mb-2">Performance Impact</h4>
-                <div className="text-xs space-y-1">
+
+              <div className="mt-4 rounded bg-blue-50 p-3">
+                <h4 className="mb-2 text-sm font-semibold">Performance Impact</h4>
+                <div className="space-y-1 text-xs">
                   <div>• Higher hit rates = better performance</div>
                   <div>• L1 hits are fastest ({config.l1.accessTime} cycle)</div>
                   <div>• RAM misses are slowest ({config.ramAccessTime} cycles)</div>
@@ -457,23 +466,29 @@ export const WorkloadTester: React.FC<WorkloadTesterProps> = ({ config }) => {
             <CardTitle>Recent Access History</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="max-h-64 space-y-2 overflow-y-auto">
               {results.slice(-20).map((result) => (
-                <div key={result.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                <div
+                  key={result.id}
+                  className="bg-muted flex items-center justify-between rounded p-2 text-sm"
+                >
                   <div className="flex items-center gap-2">
-                    <Badge variant={result.type === 'read' ? 'default' : 'secondary'}>
+                    <Badge variant={result.type === "read" ? "default" : "secondary"}>
                       {result.type}
                     </Badge>
                     <span className="font-mono">0x{result.address.toString(16).toUpperCase()}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
+                    <Badge
                       variant="outline"
                       className={
-                        result.hitLevel === 'l1' ? 'border-blue-400 text-blue-600' :
-                        result.hitLevel === 'l2' ? 'border-green-500 text-green-600' :
-                        result.hitLevel === 'l3' ? 'border-yellow-500 text-yellow-600' :
-                        'border-red-500 text-red-600'
+                        result.hitLevel === "l1"
+                          ? "border-blue-400 text-blue-600"
+                          : result.hitLevel === "l2"
+                            ? "border-green-500 text-green-600"
+                            : result.hitLevel === "l3"
+                              ? "border-yellow-500 text-yellow-600"
+                              : "border-red-500 text-red-600"
                       }
                     >
                       {result.hitLevel.toUpperCase()}

@@ -1,31 +1,24 @@
 export const stageSizesConfig = {
   processorChip: {
-    width: 300,
+    width: 400,
     borderStyle: "dashed",
     borderColor: "gray-400",
   },
   cpu: {
     width: 100,
-    borderStyle: "solid",
-    borderColor: "gray-400",
-  },
-  cache: {
-    width: 130,
+    height: 75,
     borderStyle: "solid",
     borderColor: "gray-400",
   },
   l1Cache: {
-    width: "full",
+    width: 100,
+    height: 100,
     borderStyle: "solid",
     borderColor: "gray-400",
   },
   l2Cache: {
-    width: "full",
-    borderStyle: "solid",
-    borderColor: "gray-400",
-  },
-  l3Cache: {
-    width: "full",
+    width: 200,
+    height: 200,
     borderStyle: "solid",
     borderColor: "gray-400",
   },
@@ -35,13 +28,6 @@ export const stageSizesConfig = {
     borderStyle: "solid",
     borderColor: "gray-400",
   },
-  hardDisk: {
-    width: 400,
-    height: 200,
-    borderStyle: "solid",
-    borderColor: "gray-400",
-    shape: "cylinder",
-  },
 };
 
 export const latencyConfigDefaults = {
@@ -49,7 +35,6 @@ export const latencyConfigDefaults = {
   l2: 10,
   l3: 30,
   ram: 300,
-  hardDisk: 5000, // Added default latency for hard disk
 };
 
 export const latencyConfigUIEnabled = false; // Added flag to enable/disable latency config UI

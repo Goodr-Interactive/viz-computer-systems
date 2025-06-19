@@ -5,10 +5,6 @@ import { CacheHierarchyVisualization } from "./components";
 export const Caches: React.FunctionComponent = () => {
   return (
     <div className="flex min-h-screen flex-col items-center gap-6 p-8">
-      <h1 className="mb-2 scroll-m-20 text-3xl font-bold tracking-tight">
-        Cache Hierarchy and Access Latencies
-      </h1>
-      
       <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
         <CacheHierarchyVisualization />
       </div>

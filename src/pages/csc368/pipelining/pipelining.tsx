@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { BasicLaundry } from "./components";
+import { PipelineVisualization } from "./components";
 
 export const Pipelining: React.FunctionComponent = () => {
   return (
@@ -9,8 +9,8 @@ export const Pipelining: React.FunctionComponent = () => {
         Instruction Pipelining Basics: The Laundry Analogy
       </h1>
 
-      <div className="w-full max-w-4xl rounded-lg bg-white p-6 shadow-md">
-        <BasicLaundry />
+      <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
+        <PipelineVisualization />
       </div>
 
       <div className="mt-4 flex gap-[16px]">

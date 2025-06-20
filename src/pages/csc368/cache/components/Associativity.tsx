@@ -3,6 +3,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { BinaryBlock } from "./BinaryBlock";
+// Import the SVG assets for hardware visualization
+import ComparatorSvg from "@/assets/comparator.svg";
+import MultiplexerSvg from "@/assets/mux.svg";
 
 interface CacheConfig {
   ways: number;
@@ -250,6 +253,165 @@ function CacheArray({ config }: CacheArrayProps) {
   );
 }
 
+interface HardwareComplexityProps {
+  config: CacheConfig;
+}
+
+function HardwareComplexity({ config }: HardwareComplexityProps) {
+  // Calculate hardware requirements
+  const numComparators = config.ways; // One comparator per way for tag comparison
+  const muxSize = config.ways; // MUX size equals number of ways
+  
+  // Determine complexity level for visualization
+  const getComplexityLevel = () => {
+    if (config.ways === 1) return "Low";
+    if (config.ways <= 2) return "Medium";
+    if (config.ways <= 4) return "High";
+    return "Very High";
+  };
+
+  const complexityLevel = getComplexityLevel();
+  const complexityColor = {
+    "Low": "text-green-600 bg-green-50 border-green-200",
+    "Medium": "text-yellow-600 bg-yellow-50 border-yellow-200", 
+    "High": "text-orange-600 bg-orange-50 border-orange-200",
+    "Very High": "text-red-600 bg-red-50 border-red-200"
+  }[complexityLevel];
+
+  return (
+    <Card className="w-full max-w-4xl">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          Hardware Complexity Analysis
+          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${complexityColor}`}>
+            {complexityLevel} Complexity
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Summary */}
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">Hardware Requirements</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-blue-700 font-medium">Comparators:</span>
+                <div className="text-blue-900">{numComparators} units</div>
+              </div>
+              <div>
+                <span className="text-blue-700 font-medium">Multiplexer Size:</span>
+                <div className="text-blue-900">{config.ways === 1 ? "No MUX needed" : `${muxSize}-to-1 MUX`}</div>
+              </div>
+              <div>
+                <span className="text-blue-700 font-medium">Hit Logic:</span>
+                <div className="text-blue-900">{config.ways === 1 ? "Simple" : "Complex OR gate"}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Comparator Visualization */}
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-center">Tag Comparators</h4>
+              <div className="flex flex-col items-center space-y-2">
+                <div className="flex flex-wrap justify-center gap-2 max-w-sm">
+                  {[...Array(Math.min(numComparators, 8))].map((_, i) => (
+                    <div key={i} className="relative">
+                      <img 
+                        src={ComparatorSvg} 
+                        alt={`Comparator ${i + 1}`} 
+                        className="w-12 h-12" 
+                      />
+                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-xs bg-white px-1 rounded border">
+                        {i + 1}
+                      </div>
+                    </div>
+                  ))}
+                  {numComparators > 8 && (
+                    <div className="flex items-center text-gray-500 text-sm">
+                      +{numComparators - 8} more
+                    </div>
+                  )}
+                </div>
+                <div className="text-center text-sm text-gray-600 max-w-sm">
+                  Each way requires a separate comparator to check if the tag matches. 
+                  More ways = more comparators = higher cost and complexity.
+                </div>
+              </div>
+            </div>
+
+            {/* Multiplexer Visualization */}
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-center">Data Output Multiplexer</h4>
+              <div className="flex flex-col items-center space-y-2">
+                {config.ways === 1 ? (
+                  <div className="w-32 h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                    <span className="text-gray-500 font-medium text-sm">No MUX needed</span>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <img 
+                      src={MultiplexerSvg} 
+                      alt={`${muxSize}-to-1 Multiplexer`} 
+                      className="w-32 h-32" 
+                    />
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-sm bg-white px-2 py-1 rounded border font-medium">
+                      {muxSize}-to-1 MUX
+                    </div>
+                  </div>
+                )}
+                <div className="text-center text-sm text-gray-600 max-w-sm">
+                  {config.ways === 1 
+                    ? "Direct-mapped caches don't need a multiplexer since there's only one way per set."
+                    : "Selects data from the matching way. Multiplexer size grows with associativity, increasing propagation delay and hardware cost."
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Performance Impact */}
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Performance & Cost Trade-offs</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700">Access Time:</span>
+                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {config.ways === 1 ? 'Fastest' : config.ways <= 2 ? 'Moderate' : 'Slower'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">Hardware Cost:</span>
+                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {config.ways === 1 ? 'Lowest' : config.ways <= 2 ? 'Moderate' : 'Higher'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">Power Consumption:</span>
+                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {config.ways === 1 ? 'Lowest' : config.ways <= 2 ? 'Moderate' : 'Higher'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">Miss Rate:</span>
+                <span className={`font-medium ${config.ways === 1 ? 'text-red-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-green-600'}`}>
+                  {config.ways === 1 ? 'Highest' : config.ways <= 2 ? 'Moderate' : 'Lowest'}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-gray-600">
+              {config.ways === 1 && "Direct-mapped caches are fastest but have the highest miss rates due to conflicts."}
+              {config.ways > 1 && config.ways <= 2 && "Low associativity provides a good balance of performance and miss rate."}
+              {config.ways > 2 && config.ways <= 4 && "Higher associativity reduces miss rates but increases access time and cost."}
+              {config.ways > 4 && "Very high associativity approaches fully associative behavior with significant hardware overhead."}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Associativity() {
   const [mode, setMode] = useState<string>("4-Way Set Associative");
   const [useCustomConfig, setUseCustomConfig] = useState(false);
@@ -404,6 +566,7 @@ export default function Associativity() {
       <div className="w-full max-w-6xl space-y-8">
         <AddressField config={config} />
         <CacheArray config={config} />
+        <HardwareComplexity config={config} />
       </div>
     </div>
   );

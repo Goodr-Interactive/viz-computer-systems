@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { BarChart, XAxis, YAxis, Bar, ResponsiveContainer } from "recharts";
+import { BarChart, XAxis, YAxis, Bar, ResponsiveContainer, Legend } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { stageSizesConfig, latencyConfigUIEnabled, accessCountsUIEnabled } from "./Config";
@@ -40,7 +40,12 @@ export const CacheHierarchyVisualization: React.FC = () => {
     ram: 300,
   });
   const [amat, setAmat] = useState<number | null>(null);
-  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, ram: 0 }); // Added hard disk to access counts
+  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, ram: 0 }); // Total accesses to each level
+  const [hitMissData, setHitMissData] = useState({
+    l1: { hits: 0, misses: 0 },
+    l2: { hits: 0, misses: 0 },
+    ram: { hits: 0, misses: 0 }
+  }); // Hit/miss breakdown for stacked bar chart
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationInterval, setSimulationInterval] = useState<NodeJS.Timeout | null>(null);
   
@@ -48,10 +53,11 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const currentAccessCount = useRef(0);
   
   const [cacheStats, setCacheStats] = useState({
-    firstAccessLatency: latencyConfig.ram, // Initial latency for first access
     subsequentAccessLatency: latencyConfig.l1, // Reduced latency for subsequent accesses
     cacheMisses: 0, // Tracks the number of cache misses
     totalAccesses: 0, // Total number of access simulations
+    cacheHits: 0, // Total number of cache hits (L1 or L2, not RAM)
+    totalLatency: 0, // Cumulative latency across all accesses
   });
 
   // Deterministic hit level sequences for each access pattern
@@ -150,18 +156,22 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
     // Count cache misses more accurately - any access that doesn't hit L1 is an L1 miss
     const isL1Miss = hitLevel !== "l1";
+    const isCacheHit = hitLevel === "l1" || hitLevel === "l2"; // Cache hit if it hits L1 or L2
     console.log("Is L1 Miss:", isL1Miss);
+    console.log("Is Cache Hit:", isCacheHit);
+    console.log("Total latency for this access:", totalLatency);
 
     // Update cache stats (now using the ref value for totalAccesses)
     setCacheStats((prev) => ({
       ...prev,
-      firstAccessLatency: totalLatency,
       subsequentAccessLatency: latencyConfig[hitLevel],
       cacheMisses: prev.cacheMisses + (isL1Miss ? 1 : 0),
       totalAccesses: currentAccessCount.current, // Use the ref value
+      cacheHits: prev.cacheHits + (isCacheHit ? 1 : 0), // Only L1 or L2 hits count as cache hits
+      totalLatency: prev.totalLatency + totalLatency, // Add this access's latency to total
     }));
 
-    // Update access counts based on actual simulation
+    // Update access counts and hit/miss data based on actual simulation
     setAccessCounts((prev) => {
       const updatedCounts = { ...prev };
       for (let i = 0; i < accessCount; i++) {
@@ -169,6 +179,32 @@ export const CacheHierarchyVisualization: React.FC = () => {
       }
       console.log("Updated access counts:", updatedCounts);
       return updatedCounts;
+    });
+
+    // Update hit/miss data for stacked bar chart
+    setHitMissData((prev) => {
+      const updated = { ...prev };
+      
+      // For each level accessed before hitting
+      for (let i = 0; i < accessCount; i++) {
+        const level = levels[i];
+        if (level === hitLevel) {
+          // This level had a hit
+          updated[level] = {
+            ...updated[level],
+            hits: updated[level].hits + 1
+          };
+        } else {
+          // This level had a miss
+          updated[level] = {
+            ...updated[level],
+            misses: updated[level].misses + 1
+          };
+        }
+      }
+      
+      console.log("Updated hit/miss data:", updated);
+      return updated;
     });
 
     console.log("=== END DEBUG ===\n");
@@ -208,11 +244,17 @@ export const CacheHierarchyVisualization: React.FC = () => {
     // Reset all state to initial values
     setAmat(null);
     setAccessCounts({ l1: 0, l2: 0, ram: 0 });
+    setHitMissData({
+      l1: { hits: 0, misses: 0 },
+      l2: { hits: 0, misses: 0 },
+      ram: { hits: 0, misses: 0 }
+    });
     setCacheStats({
-      firstAccessLatency: latencyConfig.ram,
       subsequentAccessLatency: latencyConfig.l1,
       cacheMisses: 0,
       totalAccesses: 0,
+      cacheHits: 0,
+      totalLatency: 0,
     });
   };
 
@@ -382,15 +424,27 @@ export const CacheHierarchyVisualization: React.FC = () => {
     </div>
   );
 
-  const renderBarGraph = () => (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={Object.entries(accessCounts).map(([level, count]) => ({ level, count }))}>
-        <XAxis dataKey="level" />
-        <YAxis />
-        <Bar dataKey="count" fill="#8884d8" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
+  const renderBarGraph = () => {
+    // Transform hit/miss data for stacked bar chart
+    const chartData = Object.entries(hitMissData).map(([level, data]) => ({
+      level: level.toUpperCase(),
+      hits: data.hits,
+      misses: data.misses,
+      total: data.hits + data.misses
+    }));
+
+    return (
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={chartData}>
+          <XAxis dataKey="level" />
+          <YAxis />
+          <Legend />
+          <Bar dataKey="hits" stackId="a" fill="#22c55e" name="Hits" />
+          <Bar dataKey="misses" stackId="a" fill="#ef4444" name="Misses" />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
 
   const renderCacheStats = () => {
     // Calculate actual hit rates from the deterministic pattern
@@ -403,17 +457,27 @@ export const CacheHierarchyVisualization: React.FC = () => {
       hitCounts[level]++;
     });
 
+    // Calculate average latency
+    const averageLatency = cacheStats.totalAccesses > 0 ? 
+      (cacheStats.totalLatency / cacheStats.totalAccesses).toFixed(2) : "0.00";
+
     return (
       <div className="mt-4 text-center">
         <h4 className="text-lg font-semibold">Statistics</h4>
         <p className="text-muted-foreground text-sm">Total Accesses: {cacheStats.totalAccesses}</p>
+        <p className="text-muted-foreground text-sm">Cache Hits (L1/L2): {cacheStats.cacheHits}</p>
+        <p className="text-muted-foreground text-sm">Cache Misses (L1): {cacheStats.cacheMisses}</p>
+        <p className="text-muted-foreground text-sm">RAM Accesses: {cacheStats.totalAccesses - cacheStats.cacheHits}</p>
+        <p className="text-muted-foreground text-sm">Total Latency: {cacheStats.totalLatency} cycles</p>
+        <p className="text-muted-foreground text-sm">Average Latency: {averageLatency} cycles/access</p>
         <p className="text-muted-foreground text-sm">
-          First Access Latency: {cacheStats.firstAccessLatency} cycles
+          Last Access Latency: {cacheStats.subsequentAccessLatency} cycles
         </p>
-        <p className="text-muted-foreground text-sm">
-          Subsequent Access Latency: {cacheStats.subsequentAccessLatency} cycles
-        </p>
-        <p className="text-muted-foreground text-sm">Cache Misses: {cacheStats.cacheMisses}</p>
+        {amat !== null && (
+          <p className="text-muted-foreground text-sm">
+            Average Memory Access Time (AMAT): {amat.toFixed(2)} cycles
+          </p>
+        )}
         <div className="mt-2">
           <h5 className="text-sm font-semibold">Current Pattern ({selectedPattern}) Hit Distribution:</h5>
           {Object.entries(hitCounts).map(([level, count]) => {
@@ -473,14 +537,14 @@ export const CacheHierarchyVisualization: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Access Counts</CardTitle>
+              <CardTitle>Hit/Miss Breakdown</CardTitle>
             </CardHeader>
             <CardContent>{renderBarGraph()}</CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Cache Statistics</CardTitle>
+              <CardTitle>Statistics</CardTitle>
             </CardHeader>
             <CardContent>{renderCacheStats()}</CardContent>
           </Card>
@@ -490,19 +554,10 @@ export const CacheHierarchyVisualization: React.FC = () => {
       {!accessCountsUIEnabled && (
         <Card>
           <CardHeader>
-            <CardTitle>Cache Statistics</CardTitle>
+            <CardTitle>Statistics</CardTitle>
           </CardHeader>
           <CardContent>{renderCacheStats()}</CardContent>
         </Card>
-      )}
-
-      {amat !== null && (
-        <div className="mt-4 text-center">
-          <h4 className="text-lg font-semibold">Memory Statistics</h4>
-          <p className="text-muted-foreground text-sm">
-            Average Memory Access Time (AMAT): {amat.toFixed(2)} cycles
-          </p>
-        </div>
       )}
     </div>
   );

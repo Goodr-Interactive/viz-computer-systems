@@ -48,9 +48,13 @@ export const CacheHierarchyVisualization: React.FC = () => {
   }); // Hit/miss breakdown for stacked bar chart
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationInterval, setSimulationInterval] = useState<NodeJS.Timeout | null>(null);
+  const [currentAccessLevel, setCurrentAccessLevel] = useState<keyof typeof latencyConfig | null>(null);
   
   // Use ref to track current access count synchronously
   const currentAccessCount = useRef(0);
+  
+  // State to track which stages should be highlighted during access
+  const [highlightedStages, setHighlightedStages] = useState<Set<string>>(new Set());
   
   const [cacheStats, setCacheStats] = useState({
     subsequentAccessLatency: latencyConfig.l1, // Reduced latency for subsequent accesses
@@ -63,8 +67,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
   // Deterministic hit level sequences for each access pattern
   const DETERMINISTIC_HIT_LEVELS: Record<keyof typeof ACCESS_PATTERNS, Array<keyof typeof latencyConfig>> = {
     "temporal": ["ram", "l1", "l1", "l1", "l1", "l1", "l1", "l1", "l2", "l1"], // mostly L1 hits (70%), some L2 (20%), rare RAM (10%)
-    "spatial":  ["ram", "l1", "l2", "l1", "l2", "l1", "l2", "l1", "l2", "ram", "ram"], // mix of L1/L2 (40% each), some RAM (20%)
-    "noLocality": ["ram", "ram", "ram", "ram", "ram", "ram", "ram", "l2", "l1", "ram"], // mostly RAM (70%), some L2 (10%), rare L1 (20%)
+    "spatial":  ["ram", "l1", "l2", "l1", "l2", "l1", "l2", "l1", "l2", "ram"], // mix of L1/L2 (40% each), some RAM (20%)
+    "noLocality": ["ram", "ram", "ram", "ram", "ram", "ram", "ram", "ram", "ram", "ram"], // mostly RAM (70%), some L2 (10%), rare L1 (20%)
   };
 
   // DEBUG: Log the deterministic patterns
@@ -110,6 +114,29 @@ export const CacheHierarchyVisualization: React.FC = () => {
     console.log("Total Accesses (from state):", cacheStats.totalAccesses);
     console.log("Index (currentAccessCount % hitLevels.length):", currentAccessCount.current % hitLevels.length);
     console.log("Hit Level for this access:", hitLevel);
+
+    // Set highlighted stages based on the access level
+    const stagesToHighlight = new Set<string>();
+    stagesToHighlight.add("cpu"); // CPU is always accessed first
+    
+    if (hitLevel === "l1") {
+      stagesToHighlight.add("l1");
+    } else if (hitLevel === "l2") {
+      stagesToHighlight.add("l1"); // L1 is checked first
+      stagesToHighlight.add("l2");
+    } else if (hitLevel === "ram") {
+      stagesToHighlight.add("l1"); // L1 is checked first
+      stagesToHighlight.add("l2"); // L2 is checked second
+      stagesToHighlight.add("ram"); // Finally RAM
+    }
+    
+    setHighlightedStages(stagesToHighlight);
+    setCurrentAccessLevel(hitLevel);
+
+    // Clear highlights after a brief delay to show the access path
+    setTimeout(() => {
+      setHighlightedStages(new Set());
+    }, 800);
 
     let totalLatency = 0;
     let accessCount = 0;
@@ -164,7 +191,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
     // Update cache stats (now using the ref value for totalAccesses)
     setCacheStats((prev) => ({
       ...prev,
-      subsequentAccessLatency: latencyConfig[hitLevel],
+      subsequentAccessLatency: totalLatency, // Use the cumulative latency, not just the hit level latency
       cacheMisses: prev.cacheMisses + (isL1Miss ? 1 : 0),
       totalAccesses: currentAccessCount.current, // Use the ref value
       cacheHits: prev.cacheHits + (isCacheHit ? 1 : 0), // Only L1 or L2 hits count as cache hits
@@ -256,6 +283,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
       cacheHits: 0,
       totalLatency: 0,
     });
+    setCurrentAccessLevel(null);
+    setHighlightedStages(new Set());
   };
 
   const renderHierarchy = () => (
@@ -274,7 +303,11 @@ export const CacheHierarchyVisualization: React.FC = () => {
                     <TooltipTrigger asChild>
                       <DialogTrigger asChild>
                         <Card
-                          className={`flex items-center justify-center text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                          className={`flex items-center justify-center text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor} cursor-pointer transition-colors ${
+                            highlightedStages.has("cpu") 
+                              ? "bg-yellow-200 border-yellow-500 shadow-lg" 
+                              : "hover:bg-gray-100"
+                          }`}
                           style={{ width: `${stageSizesConfig.cpu.width}px`, height: `${stageSizesConfig.cpu.height}px` }}
                         >
                           <CardContent className="flex items-center justify-center p-1">
@@ -300,7 +333,11 @@ export const CacheHierarchyVisualization: React.FC = () => {
                     <TooltipTrigger asChild>
                       <DialogTrigger asChild>
                         <Card
-                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l1Cache.borderStyle} border-${stageSizesConfig.l1Cache.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l1Cache.borderStyle} border-${stageSizesConfig.l1Cache.borderColor} cursor-pointer transition-colors ${
+                            highlightedStages.has("l1") 
+                              ? "bg-yellow-200 border-yellow-500 shadow-lg" 
+                              : "hover:bg-gray-100"
+                          }`}
                           style={{
                             width: `${stageSizesConfig.l1Cache.width}px`,
                             height: `${stageSizesConfig.l1Cache.height}px`,
@@ -329,7 +366,11 @@ export const CacheHierarchyVisualization: React.FC = () => {
                     <TooltipTrigger asChild>
                       <DialogTrigger asChild>
                         <Card
-                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l2Cache.borderStyle} border-${stageSizesConfig.l2Cache.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l2Cache.borderStyle} border-${stageSizesConfig.l2Cache.borderColor} cursor-pointer transition-colors ${
+                            highlightedStages.has("l2") 
+                              ? "bg-yellow-200 border-yellow-500 shadow-lg" 
+                              : "hover:bg-gray-100"
+                          }`}
                         style={{
                           width: `${stageSizesConfig.l2Cache.width}px`,
                           height: `${stageSizesConfig.l2Cache.height}px`,
@@ -361,7 +402,11 @@ export const CacheHierarchyVisualization: React.FC = () => {
               <TooltipTrigger asChild>
                 <DialogTrigger asChild>
                   <Card
-                    className={`flex items-center justify-center text-center border-${stageSizesConfig.mainMemory.borderStyle} border-${stageSizesConfig.mainMemory.borderColor} cursor-pointer hover:bg-gray-100 transition-colors`}
+                    className={`flex items-center justify-center text-center border-${stageSizesConfig.mainMemory.borderStyle} border-${stageSizesConfig.mainMemory.borderColor} cursor-pointer transition-colors ${
+                      highlightedStages.has("ram") 
+                        ? "bg-yellow-200 border-yellow-500 shadow-lg" 
+                        : "hover:bg-gray-100"
+                    }`}
                     style={{
                       width: `${stageSizesConfig.mainMemory.width}px`,
                       height: `${stageSizesConfig.mainMemory.height}px`,
@@ -434,10 +479,10 @@ export const CacheHierarchyVisualization: React.FC = () => {
     }));
 
     return (
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData}>
           <XAxis dataKey="level" />
-          <YAxis />
+          <YAxis domain={[0, 10]} />
           <Legend />
           <Bar dataKey="hits" stackId="a" fill="#22c55e" name="Hits" />
           <Bar dataKey="misses" stackId="a" fill="#ef4444" name="Misses" />
@@ -462,32 +507,70 @@ export const CacheHierarchyVisualization: React.FC = () => {
       (cacheStats.totalLatency / cacheStats.totalAccesses).toFixed(2) : "0.00";
 
     return (
-      <div className="mt-4 text-center">
-        <h4 className="text-lg font-semibold">Statistics</h4>
-        <p className="text-muted-foreground text-sm">Total Accesses: {cacheStats.totalAccesses}</p>
-        <p className="text-muted-foreground text-sm">Cache Hits (L1/L2): {cacheStats.cacheHits}</p>
-        <p className="text-muted-foreground text-sm">Cache Misses (L1): {cacheStats.cacheMisses}</p>
-        <p className="text-muted-foreground text-sm">RAM Accesses: {cacheStats.totalAccesses - cacheStats.cacheHits}</p>
-        <p className="text-muted-foreground text-sm">Total Latency: {cacheStats.totalLatency} cycles</p>
-        <p className="text-muted-foreground text-sm">Average Latency: {averageLatency} cycles/access</p>
-        <p className="text-muted-foreground text-sm">
-          Last Access Latency: {cacheStats.subsequentAccessLatency} cycles
-        </p>
-        {amat !== null && (
-          <p className="text-muted-foreground text-sm">
-            Average Memory Access Time (AMAT): {amat.toFixed(2)} cycles
-          </p>
-        )}
-        <div className="mt-2">
-          <h5 className="text-sm font-semibold">Current Pattern ({selectedPattern}) Hit Distribution:</h5>
-          {Object.entries(hitCounts).map(([level, count]) => {
-            const hitRate = (count / totalHits) * 100;
-            return (
-              <p key={level} className="text-muted-foreground text-sm">
-                {level.toUpperCase()}: {hitRate.toFixed(1)}% ({count}/{totalHits} hits)
-              </p>
-            );
-          })}
+      <div className="space-y-4">
+        {/* Main Statistics */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-center">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Total Accesses</span>
+            <span className="text-lg font-semibold">{cacheStats.totalAccesses}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Cache Hits (L1/L2)</span>
+            <span className="text-lg font-semibold text-green-600">{cacheStats.cacheHits}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Cache Misses (L1)</span>
+            <span className="text-lg font-semibold text-red-600">{cacheStats.cacheMisses}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">RAM Accesses</span>
+            <span className="text-lg font-semibold text-orange-600">{cacheStats.totalAccesses - cacheStats.cacheHits}</span>
+          </div>
+        </div>
+
+        {/* Latency Statistics */}
+        <div className="border-t pt-4">
+          <div className="grid grid-cols-1 gap-2 text-center">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total Latency:</span>
+              <span className="text-sm font-medium">{cacheStats.totalLatency} cycles</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Average Latency:</span>
+              <span className="text-sm font-medium">{averageLatency} cycles/access</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Last Access Latency:</span>
+              <span className="text-sm font-medium">{cacheStats.subsequentAccessLatency} cycles</span>
+            </div>
+            {amat !== null && (
+              <div className="flex justify-between items-center bg-blue-50 px-2 py-1 rounded">
+                <span className="text-sm font-medium text-blue-700">AMAT:</span>
+                <span className="text-sm font-semibold text-blue-700">{amat.toFixed(2)} cycles</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pattern Distribution */}
+        <div className="border-t pt-4">
+          <h5 className="text-sm font-semibold text-center mb-3">
+            Current Pattern ({selectedPattern === "temporal" ? "Temporal" : 
+                            selectedPattern === "spatial" ? "Spatial" : 
+                            "No Locality"}) Hit Distribution
+          </h5>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {Object.entries(hitCounts).map(([level, count]) => {
+              const hitRate = (count / totalHits) * 100;
+              return (
+                <div key={level} className="flex flex-col bg-gray-50 px-2 py-2 rounded">
+                  <span className="text-xs font-medium text-muted-foreground">{level.toUpperCase()}</span>
+                  <span className="text-sm font-semibold">{hitRate.toFixed(1)}%</span>
+                  <span className="text-xs text-muted-foreground">({count}/{totalHits})</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );

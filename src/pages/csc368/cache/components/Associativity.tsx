@@ -6,6 +6,7 @@ import { BinaryBlock } from "./BinaryBlock";
 // Import the SVG assets for hardware visualization
 import ComparatorSvg from "@/assets/comparator.svg";
 import MultiplexerSvg from "@/assets/mux.svg";
+import DecoderSvg from "@/assets/decoder.svg";
 
 interface CacheConfig {
   ways: number;
@@ -279,7 +280,7 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
   }[complexityLevel];
 
   return (
-    <Card className="w-full max-w-4xl">
+    <Card className="w-full max-w-6xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Hardware Complexity Analysis
@@ -293,7 +294,7 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
           {/* Summary */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="text-sm font-medium text-blue-900 mb-2">Hardware Requirements</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-blue-700 font-medium">Comparators:</span>
                 <div className="text-blue-900">{numComparators} units</div>
@@ -303,13 +304,17 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
                 <div className="text-blue-900">{config.ways === 1 ? "No MUX needed" : `${muxSize}-to-1 MUX`}</div>
               </div>
               <div>
+                <span className="text-blue-700 font-medium">Decoder:</span>
+                <div className="text-blue-900">{getAddressPartition(config).setBits === 0 ? "No decoder needed" : `${getAddressPartition(config).setBits}-to-${Math.pow(2, getAddressPartition(config).setBits)} decoder`}</div>
+              </div>
+              <div>
                 <span className="text-blue-700 font-medium">Hit Logic:</span>
                 <div className="text-blue-900">{config.ways === 1 ? "Simple" : "Complex OR gate"}</div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Comparator Visualization */}
             <div className="space-y-4">
               <h4 className="text-md font-medium text-center">Tag Comparators</h4>
@@ -333,10 +338,39 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
                     </div>
                   )}
                 </div>
-                <div className="text-center text-sm text-gray-600 max-w-sm">
+                {/* <div className="text-center text-sm text-gray-600 max-w-sm">
                   Each way requires a separate comparator to check if the tag matches. 
                   More ways = more comparators = higher cost and complexity.
-                </div>
+                </div> */}
+              </div>
+            </div>
+
+            {/* Decoder Visualization */}
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-center">Set Index Decoder</h4>
+              <div className="flex flex-col items-center space-y-2">
+                {getAddressPartition(config).setBits === 0 ? (
+                  <div className="w-32 h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                    <span className="text-gray-500 font-medium text-sm">No decoder needed</span>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <img 
+                      src={DecoderSvg} 
+                      alt={`${getAddressPartition(config).setBits}-to-${Math.pow(2, getAddressPartition(config).setBits)} Decoder`} 
+                      className="w-32 h-32" 
+                    />
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-sm bg-white px-2 py-1 rounded border font-medium">
+                      {getAddressPartition(config).setBits}-to-{Math.pow(2, getAddressPartition(config).setBits)}
+                    </div>
+                  </div>
+                )}
+                {/* <div className="text-center text-sm text-gray-600 max-w-sm">
+                  {getAddressPartition(config).setBits === 0 
+                    ? "Fully associative caches don't need set selection since there's only one set."
+                    : "Converts set index bits into individual set selection lines. Complexity grows with the number of sets."
+                  }
+                </div> */}
               </div>
             </div>
 
@@ -360,12 +394,12 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
                     </div>
                   </div>
                 )}
-                <div className="text-center text-sm text-gray-600 max-w-sm">
+                {/* <div className="text-center text-sm text-gray-600 max-w-sm">
                   {config.ways === 1 
                     ? "Direct-mapped caches don't need a multiplexer since there's only one way per set."
                     : "Selects data from the matching way. Multiplexer size grows with associativity, increasing propagation delay and hardware cost."
                   }
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -376,26 +410,26 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-700">Access Time:</span>
-                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {config.ways === 1 ? 'Fastest' : config.ways <= 2 ? 'Moderate' : 'Slower'}
+                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-lime-600' : config.ways <= 4 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {config.ways === 1 ? 'Lowest' : config.ways <= 2 ? 'Low' : config.ways <= 4 ? 'Moderate' : 'Highest'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Hardware Cost:</span>
-                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {config.ways === 1 ? 'Lowest' : config.ways <= 2 ? 'Moderate' : 'Higher'}
+                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-lime-600' : config.ways <= 4 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {config.ways === 1 ? 'Lowest' : config.ways <= 2 ? 'Low' : config.ways <= 4 ? 'Moderate' : 'Highest'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Power Consumption:</span>
-                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {config.ways === 1 ? 'Lowest' : config.ways <= 2 ? 'Moderate' : 'Higher'}
+                <span className={`font-medium ${config.ways === 1 ? 'text-green-600' : config.ways <= 2 ? 'text-lime-600' : config.ways <= 4 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {config.ways === 1 ? 'Lowest' : config.ways <= 2 ? 'Low' : config.ways <= 4 ? 'Moderate' : 'Highest'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Miss Rate:</span>
-                <span className={`font-medium ${config.ways === 1 ? 'text-red-600' : config.ways <= 2 ? 'text-yellow-600' : 'text-green-600'}`}>
-                  {config.ways === 1 ? 'Highest' : config.ways <= 2 ? 'Moderate' : 'Lowest'}
+                <span className={`font-medium ${config.ways === 1 ? 'text-red-600' : config.ways <= 2 ? 'text-yellow-600' : config.ways <= 4 ? 'text-lime-600' : 'text-green-600'}`}>
+                  {config.ways === 1 ? 'Highest' : config.ways <= 2 ? 'Moderate' : config.ways <= 4 ? 'Low' : 'Lowest'}
                 </span>
               </div>
             </div>
@@ -403,7 +437,7 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
               {config.ways === 1 && "Direct-mapped caches are fastest but have the highest miss rates due to conflicts."}
               {config.ways > 1 && config.ways <= 2 && "Low associativity provides a good balance of performance and miss rate."}
               {config.ways > 2 && config.ways <= 4 && "Higher associativity reduces miss rates but increases access time and cost."}
-              {config.ways > 4 && "Very high associativity approaches fully associative behavior with significant hardware overhead."}
+              {config.ways > 4 && "Fully associative caches have the lowest miss rates but significant hardware overhead and slower access times."}
             </div>
           </div>
         </div>
@@ -459,7 +493,8 @@ export default function Associativity() {
                       {key}
                     </SelectItem>
                   ))}
-                  <SelectItem value="custom">Custom Configuration</SelectItem>
+                  {/* Custom configuration in the future */}
+                  {/* <SelectItem value="custom">Custom Configuration</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>

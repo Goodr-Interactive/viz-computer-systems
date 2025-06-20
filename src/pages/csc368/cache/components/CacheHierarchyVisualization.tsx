@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -30,10 +30,6 @@ const STAGE_EXPLANATIONS = {
     title: "Main Memory (RAM)",
     description: "Random Access Memory (RAM) is the primary storage for active programs and data. It's much larger than cache (gigabytes) but significantly slower (200-400 cycles latency). When data isn't found in any cache level, it must be fetched from RAM."
   },
-  hardDisk: {
-    title: "Hard Disk Storage",
-    description: "Hard disk (or SSD) provides persistent storage for the operating system and applications. It has massive capacity but very high latency (thousands of cycles). Data must be loaded from disk into memory when a program starts or when accessing files."
-  }
 };
 
 export const CacheHierarchyVisualization: React.FC = () => {
@@ -42,99 +38,127 @@ export const CacheHierarchyVisualization: React.FC = () => {
     l1: 1,
     l2: 10,
     ram: 300,
-    hardDisk: 5000, // Added hard disk latency
   });
   const [amat, setAmat] = useState<number | null>(null);
-  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, ram: 0, hardDisk: 0 }); // Added hard disk to access counts
+  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, ram: 0 }); // Added hard disk to access counts
   const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationInterval, setSimulationInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Use ref to track current access count synchronously
+  const currentAccessCount = useRef(0);
+  
   const [cacheStats, setCacheStats] = useState({
-    firstAccessLatency: latencyConfig.hardDisk, // Initial latency for first access
+    firstAccessLatency: latencyConfig.ram, // Initial latency for first access
     subsequentAccessLatency: latencyConfig.l1, // Reduced latency for subsequent accesses
     cacheMisses: 0, // Tracks the number of cache misses
     totalAccesses: 0, // Total number of access simulations
-    startupCycles: 0, // Tracks startup overhead cycles
   });
 
-  const simulateAccessPattern = () => {
-    // Define miss rates based on access pattern and cache level
-    const missRates = {
-      temporal: { l1: 0.1, l2: 0.2, ram: 0.8, hardDisk: 1.0 },
-      spatial: { l1: 0.3, l2: 0.15, ram: 0.7, hardDisk: 1.0 },
-      noLocality: { l1: 0.8, l2: 0.85, ram: 0.95, hardDisk: 1.0 },
-    };
+  // Deterministic hit level sequences for each access pattern
+  const DETERMINISTIC_HIT_LEVELS: Record<keyof typeof ACCESS_PATTERNS, Array<keyof typeof latencyConfig>> = {
+    "temporal": ["ram", "l1", "l1", "l1", "l1", "l1", "l1", "l1", "l2", "l1"], // mostly L1 hits (70%), some L2 (20%), rare RAM (10%)
+    "spatial":  ["ram", "l1", "l2", "l1", "l2", "l1", "l2", "l1", "l2", "ram", "ram"], // mix of L1/L2 (40% each), some RAM (20%)
+    "noLocality": ["ram", "ram", "ram", "ram", "ram", "ram", "ram", "l2", "l1", "ram"], // mostly RAM (70%), some L2 (10%), rare L1 (20%)
+  };
 
-    // Startup cost: On first access, we need to reach hard disk for initial loading
-    const STARTUP_CYCLES = 10;
-    let isFirstAccess = false;
+  // DEBUG: Log the deterministic patterns
+  console.log("DETERMINISTIC_HIT_LEVELS:", DETERMINISTIC_HIT_LEVELS);
 
-    setCacheStats((prev) => {
-      if (prev.totalAccesses === 0) {
-        isFirstAccess = true;
-      }
-      return prev;
+  // Reset simulation when access pattern changes to avoid stale data
+  useEffect(() => {
+    resetSimulation();
+    
+    // Immediately calculate AMAT for the new pattern
+    const hitLevels = DETERMINISTIC_HIT_LEVELS[selectedPattern];
+    const hitCounts = { l1: 0, l2: 0, ram: 0 };
+    hitLevels.forEach(level => {
+      hitCounts[level]++;
     });
+    
+    const totalPatternHits = hitLevels.length;
+    const l1HitRate = hitCounts.l1 / totalPatternHits;
+    const l2HitRate = hitCounts.l2 / totalPatternHits;
+    const ramHitRate = hitCounts.ram / totalPatternHits;
+    
+    const l1MissRate = 1 - l1HitRate;
+    const l2MissRate = l2HitRate > 0 ? ramHitRate / (l2HitRate + ramHitRate) : 1;
+    
+    const calculatedAmat = latencyConfig.l1 + 
+                          l1MissRate * (latencyConfig.l2 + 
+                          l2MissRate * latencyConfig.ram);
+    
+    setAmat(calculatedAmat);
+  }, [selectedPattern, latencyConfig]);
 
-    // Simulate cache hierarchy access - check each level sequentially
-    const levels: Array<keyof typeof latencyConfig> = ["l1", "l2", "ram", "hardDisk"];
+  const simulateAccessPattern = () => {
+    // Use deterministic hit level based on selected pattern and current access count (using ref for synchronous updates)
+    const levels: Array<keyof typeof latencyConfig> = ["l1", "l2", "ram"];
+    const hitLevels = DETERMINISTIC_HIT_LEVELS[selectedPattern];
+    const hitLevel = hitLevels[currentAccessCount.current % hitLevels.length];
+
+    // DEBUG: Console logging
+    console.log("=== SIMULATION DEBUG ===");
+    console.log("Selected Pattern:", selectedPattern);
+    console.log("Hit Levels Array:", hitLevels);
+    console.log("Current Access Count (from ref):", currentAccessCount.current);
+    console.log("Total Accesses (from state):", cacheStats.totalAccesses);
+    console.log("Index (currentAccessCount % hitLevels.length):", currentAccessCount.current % hitLevels.length);
+    console.log("Hit Level for this access:", hitLevel);
+
     let totalLatency = 0;
-    let hitLevel: keyof typeof latencyConfig | null = null;
     let accessCount = 0;
 
-    // Add startup latency if this is the first access in the simulation
-    if (isFirstAccess) {
-      totalLatency += STARTUP_CYCLES;
-    }
-
+    // Simulate cache hierarchy access - check each level sequentially
     for (const level of levels) {
       accessCount++;
-      const missRate = missRates[selectedPattern][level];
-      const hitRate = 1 - missRate;
-
-      // Add latency for accessing this level
       totalLatency += latencyConfig[level];
-
-      // Probabilistically determine if we hit at this level using hitRate
-      const random = Math.random();
-      if (random < hitRate || level === "hardDisk") {
-        // Hit at this level (or reached final level)
-        hitLevel = level;
+      console.log(`Checking level ${level}, total latency so far: ${totalLatency}`);
+      if (level === hitLevel) {
+        console.log(`HIT at level ${level}! Breaking out of loop.`);
         break;
       }
-      // If miss (random >= hitRate), continue to next level
+      console.log(`MISS at level ${level}, continuing to next level...`);
     }
 
-    // Calculate proper AMAT based on the cache hierarchy (including startup cost)
-    let calculatedAmat = 0;
+    // Increment the access count synchronously
+    currentAccessCount.current += 1;
 
-    // Add startup cost to AMAT calculation
-    calculatedAmat += STARTUP_CYCLES;
+    // Calculate AMAT based on the overall pattern statistics, not just this single access
+    const hitCounts = { l1: 0, l2: 0, ram: 0 };
+    hitLevels.forEach(level => {
+      hitCounts[level]++;
+    });
+    
+    const totalPatternHits = hitLevels.length;
+    const l1HitRate = hitCounts.l1 / totalPatternHits;
+    const l2HitRate = hitCounts.l2 / totalPatternHits;
+    const ramHitRate = hitCounts.ram / totalPatternHits;
 
-    for (let i = 0; i < levels.length; i++) {
-      const level = levels[i];
+    console.log("Hit Counts:", hitCounts);
+    console.log("Hit Rates - L1:", l1HitRate, "L2:", l2HitRate, "RAM:", ramHitRate);
+    
+    // AMAT = L1_latency + L1_miss_rate * (L2_latency + L2_miss_rate * RAM_latency)
+    const l1MissRate = 1 - l1HitRate;
+    const l2MissRate = l2HitRate > 0 ? ramHitRate / (l2HitRate + ramHitRate) : 1;
+    
+    let calculatedAmat = latencyConfig.l1 + 
+                        l1MissRate * (latencyConfig.l2 + 
+                        l2MissRate * latencyConfig.ram);
 
-      if (i === 0) {
-        // L1 is always accessed
-        calculatedAmat += latencyConfig[level];
-      } else {
-        // Higher levels are accessed only on miss from previous levels
-        let missFromPrevious = 1;
-        for (let j = 0; j < i; j++) {
-          missFromPrevious *= missRates[selectedPattern][levels[j]];
-        }
-        calculatedAmat += missFromPrevious * latencyConfig[level];
-      }
-    }
-
+    console.log("Calculated AMAT:", calculatedAmat);
     setAmat(calculatedAmat);
 
-    // Update cache stats
+    // Count cache misses more accurately - any access that doesn't hit L1 is an L1 miss
+    const isL1Miss = hitLevel !== "l1";
+    console.log("Is L1 Miss:", isL1Miss);
+
+    // Update cache stats (now using the ref value for totalAccesses)
     setCacheStats((prev) => ({
       ...prev,
       firstAccessLatency: totalLatency,
-      subsequentAccessLatency: hitLevel ? latencyConfig[hitLevel] : latencyConfig.hardDisk,
-      cacheMisses: prev.cacheMisses + (hitLevel === "ram" || hitLevel === "hardDisk" ? 1 : 0),
-      totalAccesses: prev.totalAccesses + 1,
-      startupCycles: prev.startupCycles + (isFirstAccess ? STARTUP_CYCLES : 0),
+      subsequentAccessLatency: latencyConfig[hitLevel],
+      cacheMisses: prev.cacheMisses + (isL1Miss ? 1 : 0),
+      totalAccesses: currentAccessCount.current, // Use the ref value
     }));
 
     // Update access counts based on actual simulation
@@ -143,33 +167,52 @@ export const CacheHierarchyVisualization: React.FC = () => {
       for (let i = 0; i < accessCount; i++) {
         updatedCounts[levels[i]] += 1;
       }
+      console.log("Updated access counts:", updatedCounts);
       return updatedCounts;
     });
+
+    console.log("=== END DEBUG ===\n");
   };
 
   const startSimulation = () => {
+    if (simulationInterval) {
+      clearInterval(simulationInterval);
+    }
+    
     setIsSimulating(true);
     const interval = setInterval(() => {
       simulateAccessPattern();
     }, 1000);
-
-    return () => clearInterval(interval);
+    
+    setSimulationInterval(interval);
   };
 
   const stopSimulation = () => {
     setIsSimulating(false);
+    if (simulationInterval) {
+      clearInterval(simulationInterval);
+      setSimulationInterval(null);
+    }
   };
 
   const resetSimulation = () => {
     setIsSimulating(false);
+    if (simulationInterval) {
+      clearInterval(simulationInterval);
+      setSimulationInterval(null);
+    }
+    
+    // Reset the ref counter
+    currentAccessCount.current = 0;
+    
+    // Reset all state to initial values
     setAmat(null);
-    setAccessCounts({ l1: 0, l2: 0, ram: 0, hardDisk: 0 });
+    setAccessCounts({ l1: 0, l2: 0, ram: 0 });
     setCacheStats({
-      firstAccessLatency: latencyConfig.hardDisk,
+      firstAccessLatency: latencyConfig.ram,
       subsequentAccessLatency: latencyConfig.l1,
       cacheMisses: 0,
       totalAccesses: 0,
-      startupCycles: 0,
     });
   };
 
@@ -350,20 +393,20 @@ export const CacheHierarchyVisualization: React.FC = () => {
   );
 
   const renderCacheStats = () => {
-    // Define miss rates based on access pattern and cache level
-    const missRates = {
-      temporal: { l1: 0.1, l2: 0.2, l3: 0.3, ram: 0.8, hardDisk: 1.0 },
-      spatial: { l1: 0.3, l2: 0.15, l3: 0.25, ram: 0.7, hardDisk: 1.0 },
-      noLocality: { l1: 0.8, l2: 0.85, l3: 0.9, ram: 0.95, hardDisk: 1.0 },
-    };
+    // Calculate actual hit rates from the deterministic pattern
+    const hitLevels = DETERMINISTIC_HIT_LEVELS[selectedPattern];
+    const totalHits = hitLevels.length;
+    const hitCounts = { l1: 0, l2: 0, ram: 0 };
+    
+    // Count hits at each level in the deterministic pattern
+    hitLevels.forEach(level => {
+      hitCounts[level]++;
+    });
 
     return (
       <div className="mt-4 text-center">
         <h4 className="text-lg font-semibold">Statistics</h4>
         <p className="text-muted-foreground text-sm">Total Accesses: {cacheStats.totalAccesses}</p>
-        <p className="text-muted-foreground text-sm">
-          Startup Cycles Used: {cacheStats.startupCycles}
-        </p>
         <p className="text-muted-foreground text-sm">
           First Access Latency: {cacheStats.firstAccessLatency} cycles
         </p>
@@ -372,12 +415,12 @@ export const CacheHierarchyVisualization: React.FC = () => {
         </p>
         <p className="text-muted-foreground text-sm">Cache Misses: {cacheStats.cacheMisses}</p>
         <div className="mt-2">
-          <h5 className="text-sm font-semibold">Current Pattern ({selectedPattern}) Hit Rates:</h5>
-          {Object.entries(missRates[selectedPattern]).map(([level, missRate]) => {
-            const hitRate = 1 - missRate;
+          <h5 className="text-sm font-semibold">Current Pattern ({selectedPattern}) Hit Distribution:</h5>
+          {Object.entries(hitCounts).map(([level, count]) => {
+            const hitRate = (count / totalHits) * 100;
             return (
               <p key={level} className="text-muted-foreground text-sm">
-                {level.toUpperCase()}: {(hitRate * 100).toFixed(1)}% hit rate
+                {level.toUpperCase()}: {hitRate.toFixed(1)}% ({count}/{totalHits} hits)
               </p>
             );
           })}

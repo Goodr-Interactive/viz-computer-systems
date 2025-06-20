@@ -7,56 +7,67 @@ import { BinaryBlock } from "./BinaryBlock";
 interface CacheConfig {
   ways: number;
   cacheSize: number; // in KB
-  blockSize: number; // in bytes
+  blockSizeWords: number; // number of words per block
+  wordSize: number; // bytes per word
 }
 
-const CACHE_SIZE_KB = 64;
-const BLOCK_SIZE_BYTES = 64;
+const CACHE_SIZE_KB = 0.03125; // 32 bytes = 0.03125 KB (8 words × 4 bytes)
+const WORD_SIZE_BYTES = 4; // 4 bytes per word (32-bit words)
+const DEFAULT_BLOCK_SIZE_WORDS = 1; // 1 word per block by default
 
 const cacheModes: Record<string, CacheConfig> = {
-  "Direct-Mapped (1-way)": { 
+  "Direct-Mapped (1-way, 1 word)": { 
     ways: 1, 
     cacheSize: CACHE_SIZE_KB, 
-    blockSize: BLOCK_SIZE_BYTES 
+    blockSizeWords: 1,
+    wordSize: WORD_SIZE_BYTES
+  },
+  "Direct-Mapped (1-way, 2 words)": { 
+    ways: 1, 
+    cacheSize: CACHE_SIZE_KB, 
+    blockSizeWords: 2,
+    wordSize: WORD_SIZE_BYTES
   },
   "2-Way Set Associative": { 
     ways: 2, 
     cacheSize: CACHE_SIZE_KB, 
-    blockSize: BLOCK_SIZE_BYTES 
+    blockSizeWords: DEFAULT_BLOCK_SIZE_WORDS,
+    wordSize: WORD_SIZE_BYTES
   },
   "4-Way Set Associative": { 
     ways: 4, 
     cacheSize: CACHE_SIZE_KB, 
-    blockSize: BLOCK_SIZE_BYTES 
-  },
-  "8-Way Set Associative": { 
-    ways: 8, 
-    cacheSize: CACHE_SIZE_KB, 
-    blockSize: BLOCK_SIZE_BYTES 
-  },
-  "16-Way Set Associative": { 
-    ways: 16, 
-    cacheSize: CACHE_SIZE_KB, 
-    blockSize: BLOCK_SIZE_BYTES 
+    blockSizeWords: DEFAULT_BLOCK_SIZE_WORDS,
+    wordSize: WORD_SIZE_BYTES
   },
   "Fully Associative": { 
-    ways: 1024, // All blocks in one set
+    ways: 8, // All 8 words in one set
     cacheSize: CACHE_SIZE_KB, 
-    blockSize: BLOCK_SIZE_BYTES 
+    blockSizeWords: DEFAULT_BLOCK_SIZE_WORDS,
+    wordSize: WORD_SIZE_BYTES
   }
 };
 
-function getAddressPartition(config: CacheConfig): { tagBits: number; setBits: number; offsetBits: number } {
-  const offsetBits = Math.log2(config.blockSize);
-  // Calculate number of sets: total cache size / (ways * block size)
-  const numSets = (config.cacheSize * 1024) / (config.ways * config.blockSize);
-  const setBits = config.ways === 1024 ? 0 : Math.log2(numSets); // Fully associative has 0 set bits
+function getBlockSizeBytes(config: CacheConfig): number {
+  return config.blockSizeWords * config.wordSize;
+}
+
+function getAddressPartition(config: CacheConfig): { tagBits: number; setBits: number; offsetBits: number; wordOffsetBits: number; byteOffsetBits: number } {
+  const blockSizeBytes = getBlockSizeBytes(config);
+  const offsetBits = Math.log2(blockSizeBytes);
+  const wordOffsetBits = Math.log2(config.blockSizeWords); // Bits to select word within block
+  const byteOffsetBits = Math.log2(config.wordSize); // Bits to select byte within word (always 2 for 4-byte words)
+  
+  // Calculate number of sets: total cache size / (ways * block size in bytes)
+  const numSets = (config.cacheSize * 1024) / (config.ways * blockSizeBytes);
+  const setBits = numSets === 1 ? 0 : Math.log2(numSets); // Fully associative has 0 set bits
   const tagBits = 32 - offsetBits - setBits;
-  return { tagBits, setBits, offsetBits };
+  return { tagBits, setBits, offsetBits, wordOffsetBits, byteOffsetBits };
 }
 
 function getNumSets(config: CacheConfig): number {
-  return (config.cacheSize * 1024) / (config.ways * config.blockSize);
+  const blockSizeBytes = getBlockSizeBytes(config);
+  return (config.cacheSize * 1024) / (config.ways * blockSizeBytes);
 }
 
 interface AddressFieldProps {
@@ -64,14 +75,17 @@ interface AddressFieldProps {
 }
 
 function AddressField({ config }: AddressFieldProps) {
-  const { tagBits, setBits, offsetBits } = getAddressPartition(config);
+  const { tagBits, setBits, offsetBits, wordOffsetBits, byteOffsetBits } = getAddressPartition(config);
   
   // For fully associative cache, don't show set field (0 bits)
   const showSet = setBits > 0;
+  const showWordOffset = wordOffsetBits > 0; // Only show if block has multiple words
   
   // Calculate bit ranges
-  const offsetStart = 0;
-  const offsetEnd = offsetBits - 1;
+  const byteOffsetStart = 0;
+  const byteOffsetEnd = byteOffsetBits - 1;
+  const wordOffsetStart = byteOffsetBits;
+  const wordOffsetEnd = byteOffsetBits + wordOffsetBits - 1;
   const setStart = offsetBits;
   const setEnd = offsetBits + setBits - 1;
   const tagStart = offsetBits + setBits;
@@ -122,20 +136,41 @@ function AddressField({ config }: AddressFieldProps) {
           />
         )}
         
-        {/* Offset Block */}
+        {/* Block Offset - only show if block has multiple words */}
+        {showWordOffset && (
+          <BinaryBlock
+            blocks={wordOffsetBits}
+            color="bg-green-100"
+            borderColor="border-green-300"
+            hoverColor="group-hover:bg-green-200"
+            showLeftBorder={false}
+            label={`Block Offset (${wordOffsetBits} bits: ${wordOffsetEnd}-${wordOffsetStart})`}
+            startBitNumber={wordOffsetStart}
+            tooltip={
+              <div className="max-w-sm space-y-1">
+                <p className="text-sm font-medium">Block Offset Field ({wordOffsetBits} bits)</p>
+                <p className="text-xs">
+                  Selects which word within the cache block ({config.blockSizeWords} words).
+                </p>
+              </div>
+            }
+          />
+        )}
+        
+        {/* Byte Offset Block */}
         <BinaryBlock
-          blocks={offsetBits}
+          blocks={byteOffsetBits}
           color="bg-pink-100"
           borderColor="border-pink-300"
           hoverColor="group-hover:bg-pink-200"
           showLeftBorder={false}
-          label={`Offset (${offsetBits} bits: ${offsetEnd}-${offsetStart})`}
-          startBitNumber={offsetStart}
+          label={`Byte Offset (${byteOffsetBits} bits: ${byteOffsetEnd}-${byteOffsetStart})`}
+          startBitNumber={byteOffsetStart}
           tooltip={
             <div className="max-w-sm space-y-1">
-              <p className="text-sm font-medium">Block Offset Field ({offsetBits} bits)</p>
+              <p className="text-sm font-medium">Byte Offset Field ({byteOffsetBits} bits)</p>
               <p className="text-xs">
-                Selects which byte within the cache block.
+                Selects which byte within the word ({config.wordSize} bytes per word).
               </p>
             </div>
           }
@@ -221,7 +256,8 @@ export default function Associativity() {
   const [customConfig, setCustomConfig] = useState<CacheConfig>({
     ways: 4,
     cacheSize: CACHE_SIZE_KB,
-    blockSize: BLOCK_SIZE_BYTES
+    blockSizeWords: DEFAULT_BLOCK_SIZE_WORDS,
+    wordSize: WORD_SIZE_BYTES
   });
   
   const config: CacheConfig = useCustomConfig ? customConfig : cacheModes[mode];
@@ -272,11 +308,11 @@ export default function Associativity() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-blue-700 font-medium">Cache Size:</span>
-                  <div className="text-blue-900">{config.cacheSize} KB</div>
+                  <div className="text-blue-900">{Math.round(config.cacheSize * 1024)} bytes (8 words)</div>
                 </div>
                 <div>
                   <span className="text-blue-700 font-medium">Block Size:</span>
-                  <div className="text-blue-900">{config.blockSize} bytes</div>
+                  <div className="text-blue-900">{getBlockSizeBytes(config)} bytes ({config.blockSizeWords} words)</div>
                 </div>
                 <div>
                   <span className="text-blue-700 font-medium">Total Sets:</span>
@@ -288,8 +324,8 @@ export default function Associativity() {
                 </div>
               </div>
               <div className="mt-3 text-xs text-blue-600">
-                Total cache blocks: {(config.cacheSize * 1024) / config.blockSize} | 
-                Address partition: {getAddressPartition(config).tagBits} tag + {getAddressPartition(config).setBits} set + {getAddressPartition(config).offsetBits} offset bits
+                Total cache blocks: {(config.cacheSize * 1024) / getBlockSizeBytes(config)} | 
+                Address partition: {getAddressPartition(config).tagBits} tag + {getAddressPartition(config).setBits} set + {getAddressPartition(config).wordOffsetBits} word + {getAddressPartition(config).byteOffsetBits} byte bits
               </div>
             </div>
 
@@ -298,19 +334,36 @@ export default function Associativity() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Cache Size: {customConfig.cacheSize} KB (fixed)
+                    Cache Size: {Math.round(customConfig.cacheSize * 1024)} bytes (fixed)
                   </label>
                   <div className="text-xs text-gray-600">
-                    Educational example uses 64KB cache
+                    Educational example uses 32-byte cache (8 words)
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Block Size: {customConfig.blockSize} bytes (fixed)
+                    Word Size: {customConfig.wordSize} bytes (fixed)
                   </label>
                   <div className="text-xs text-gray-600">
-                    Educational example uses 64-byte blocks
+                    Standard 32-bit words
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Block Size: {customConfig.blockSizeWords} words ({getBlockSizeBytes(customConfig)} bytes)
+                  </label>
+                  <Slider
+                    value={[customConfig.blockSizeWords]}
+                    onValueChange={([value]) => updateCustomConfig('blockSizeWords', value)}
+                    min={1}
+                    max={4}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="text-xs text-gray-600">
+                    Number of words pulled into cache per block
                   </div>
                 </div>
 
@@ -322,7 +375,7 @@ export default function Associativity() {
                     value={[customConfig.ways]}
                     onValueChange={([value]) => updateCustomConfig('ways', value)}
                     min={1}
-                    max={32}
+                    max={8}
                     step={1}
                     className="w-full"
                   />
@@ -336,9 +389,10 @@ export default function Associativity() {
                     Configuration Summary
                   </label>
                   <div className="text-xs text-gray-600 space-y-1">
-                    <div>Total Blocks: {(customConfig.cacheSize * 1024) / customConfig.blockSize}</div>
+                    <div>Total Blocks: {(customConfig.cacheSize * 1024) / getBlockSizeBytes(customConfig)}</div>
                     <div>Sets: {getNumSets(customConfig)}</div>
                     <div>Ways: {customConfig.ways}</div>
+                    <div>Block Size: {getBlockSizeBytes(customConfig)} bytes</div>
                   </div>
                 </div>
               </div>

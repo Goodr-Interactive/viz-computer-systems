@@ -50,7 +50,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
     ram: 300,
   });
   const [amat, setAmat] = useState<number | null>(null);
-  const [accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, ram: 0 }); // Total accesses to each level
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_accessCounts, setAccessCounts] = useState({ l1: 0, l2: 0, ram: 0 }); // Total accesses to each level
   const [hitMissData, setHitMissData] = useState({
     l1: { hits: 0, misses: 0 },
     l2: { hits: 0, misses: 0 },
@@ -58,7 +59,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
   }); // Hit/miss breakdown for stacked bar chart
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationInterval, setSimulationInterval] = useState<NodeJS.Timeout | null>(null);
-  const [currentAccessLevel, setCurrentAccessLevel] = useState<keyof typeof latencyConfig | null>(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_currentAccessLevel, setCurrentAccessLevel] = useState<keyof typeof latencyConfig | null>(
     null
   );
 

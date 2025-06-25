@@ -1,10 +1,11 @@
 import React from "react";
 import { motion } from "motion/react";
-import { BinaryBlock } from "../BinaryBlock"; // Adjust path as necessary
+import { BinaryBlock } from "./BinaryBlock"; // Adjust path as necessary
 import type { BinaryBlockProps } from "../types"; // Adjust path as necessary
 
 export interface AnimatedBinaryBlockProps extends BinaryBlockProps {
   layoutId?: string;
+  showLeftBorder?: boolean;
 }
 
 export const AnimatedBinaryBlock: React.FC<AnimatedBinaryBlockProps> = ({ layoutId, ...props }) => (

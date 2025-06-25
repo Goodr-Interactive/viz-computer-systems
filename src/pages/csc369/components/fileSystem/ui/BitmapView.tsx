@@ -6,15 +6,53 @@ import { TitleWithTooltip } from "../TitleWithTooltip";
 interface BitmapViewProps {
   fileSystem: FileSystem;
   bitmapType: "inode" | "data";
+  onBlockClick?: (blockIndex: number) => void;
+  onInodeClick?: (inodeNumber: number, isUsed: boolean) => void;
 }
 
-export const BitmapView: React.FC<BitmapViewProps> = ({ fileSystem, bitmapType }) => {
+export const BitmapView: React.FC<BitmapViewProps> = ({ 
+  fileSystem, 
+  bitmapType, 
+  onBlockClick, 
+  onInodeClick 
+}) => {
   const bitmap = bitmapType === "inode" ? fileSystem.getInodeBitmap() : fileSystem.getDataBitmap();
   const itemsPerRow = 16;
   const rows = [];
 
   // Calculate how many rows we need
   const totalRows = Math.ceil(bitmap.length / itemsPerRow);
+
+  const handleItemClick = (itemIndex: number) => {
+    const isUsed = bitmap[itemIndex];
+    
+    if (bitmapType === "inode") {
+      // Calculate which inode block contains this inode
+      const sb = fileSystem.getSuperBlock();
+      const blockSize = Math.pow(2, sb.s_log_block_size);
+      const inodesPerBlock = blockSize / sb.s_inode_size;
+      const inodeBlockIndex = 3 + Math.floor(itemIndex / inodesPerBlock);
+      
+      if (isUsed && onInodeClick) {
+        // For used inodes, navigate to block and select the specific inode
+        if (onBlockClick) {
+          onBlockClick(inodeBlockIndex);
+        }
+        
+        setTimeout(() => {
+          onInodeClick(itemIndex, isUsed);
+        }, 50);
+      } else if (!isUsed && onBlockClick) {
+        // For free inodes, just open the inode block
+        onBlockClick(inodeBlockIndex);
+      }
+    } else {
+      // For data bitmap, allow clicking on any block to view it
+      if (onBlockClick) {
+        onBlockClick(itemIndex);
+      }
+    }
+  };
 
   for (let row = 0; row < totalRows; row++) {
     const rowItems = [];
@@ -23,16 +61,25 @@ export const BitmapView: React.FC<BitmapViewProps> = ({ fileSystem, bitmapType }
       if (itemIndex >= bitmap.length) break;
 
       const isUsed = bitmap[itemIndex];
+      
       const colors = isUsed
         ? {
             color: "bg-green-100",
             borderColor: "border-green-300",
             hoverColor: "group-hover:bg-green-200",
           }
-        : { color: "bg-gray-100", borderColor: "border-gray-300", hoverColor: "" };
+        : { 
+            color: "bg-gray-100", 
+            borderColor: "border-gray-300", 
+            hoverColor: "group-hover:bg-gray-200"
+          };
 
       rowItems.push(
-        <div key={itemIndex} className="flex flex-col items-center">
+        <div 
+          key={itemIndex} 
+          className="flex flex-col items-center cursor-pointer"
+          onClick={() => handleItemClick(itemIndex)}
+        >
           <MultiColorBinaryBlock
             blocks={1}
             digits={[itemIndex.toString()]}
@@ -58,8 +105,8 @@ export const BitmapView: React.FC<BitmapViewProps> = ({ fileSystem, bitmapType }
           title={`${bitmapType === "inode" ? "Inode" : "Data"} Bitmap`}
           tooltipText={
             bitmapType === "inode"
-              ? "Tracks the allocation status of all inodes. Each bit represents one inode: '1' for used, '0' for free."
-              : "Tracks the allocation status of all data blocks. Each bit represents one block: '1' for used, '0' for free."
+              ? "Tracks the allocation status of all inodes. Each bit represents one inode: '1' for used, '0' for free. Click on used inodes to view their details."
+              : "Tracks the allocation status of all data blocks. Each bit represents one block: '1' for used, '0' for free. Click on any block to view its content."
           }
           className="pt-2 text-start font-medium"
         />

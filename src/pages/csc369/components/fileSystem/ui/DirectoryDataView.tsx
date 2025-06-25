@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableHeader,
@@ -7,7 +7,7 @@ import {
   TableRow,
   TableHead,
 } from "@/components/ui/table";
-import { Folder, File } from "lucide-react";
+import { Folder, File, ArrowRight } from "lucide-react";
 import type { FileSystem } from "../FileSystem";
 import { TitleWithTooltip } from "../TitleWithTooltip";
 
@@ -23,6 +23,7 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
   onDirectoryRowClick,
 }) => {
   const entries = fileSystem.getDirectoryEntriesFromBlock(blockIndex);
+  const [hoveredEntry, setHoveredEntry] = useState<string | null>(null);
 
   return (
     <div className="flex w-full justify-center">
@@ -50,14 +51,28 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
                     key={entry.name}
                     className={`flex h-8 items-center gap-2.5 border px-2 py-1 text-sm transition-colors ${
                       isDirectory
-                        ? "border-blue-200 bg-blue-50 hover:bg-blue-100"
-                        : "border-orange-200 bg-orange-50 hover:bg-orange-100"
+                        ? "border-blue-200 bg-blue-50"
+                        : "border-orange-200 bg-orange-50"
+                    } ${
+                      hoveredEntry === entry.name &&
+                      (isDirectory ? "bg-blue-100" : "bg-orange-100")
                     }`}
+                    onMouseEnter={() => setHoveredEntry(entry.name)}
+                    onMouseLeave={() => setHoveredEntry(null)}
                   >
                     {icon}
                     <span className="truncate font-mono font-medium" title={entry.name}>
                       {entry.name}
                     </span>
+                    <div className="flex-grow" />
+                    <ArrowRight 
+                      size={16} 
+                      className={`-right-8 relative text-muted-foreground transition-all duration-300 ${
+                        hoveredEntry === entry.name 
+                          ? "opacity-100 translate-x-0" 
+                          : "opacity-0 -translate-x-2"
+                      }`} 
+                    />
                   </div>
                 );
               })
@@ -71,7 +86,7 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
             <Table>
               <TableHeader>
                 <TableRow className="h-[41px]">
-                  <TableHead className="h-8 w-32 pl-3 text-base">Name</TableHead>
+                  <TableHead className="h-8 w-40 pl-3 text-base">Name</TableHead>
                   <TableHead className="h-8 w-[72px] border-l pl-3 text-base">Inode</TableHead>
                 </TableRow>
               </TableHeader>
@@ -80,10 +95,14 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
                   entries.map((entry) => (
                     <TableRow
                       key={entry.name}
-                      className="h-10 cursor-pointer"
+                      className={`h-10 cursor-pointer ${
+                        hoveredEntry === entry.name ? "bg-muted" : ""
+                      }`}
                       onClick={() => onDirectoryRowClick(entry.inode)}
+                      onMouseEnter={() => setHoveredEntry(entry.name)}
+                      onMouseLeave={() => setHoveredEntry(null)}
                     >
-                      <TableCell className="h-8 w-32 py-1 pl-3.5">{entry.name}</TableCell>
+                      <TableCell className="h-8 w-40 py-1 pl-3.5">{entry.name}</TableCell>
                       <TableCell className="h-8 w-[72px] border-l py-1 pl-3.5 font-mono">
                         {entry.inode}
                       </TableCell>

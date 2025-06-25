@@ -157,7 +157,7 @@ export const InodeBlockView: React.FC<InodeBlockViewProps> = ({
                               key={pointer}
                               variant="outline"
                               size="sm"
-                              className="h-7 w-9 cursor-pointer rounded bg-transparent font-mono"
+                              className="h-7 w-9 cursor-pointer rounded border border-zinc-400/50 bg-white font-mono"
                               onClick={() => onBlockClick(pointer)}
                             >
                               {pointer}

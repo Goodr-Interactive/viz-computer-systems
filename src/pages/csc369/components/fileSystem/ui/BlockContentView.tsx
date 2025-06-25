@@ -39,11 +39,24 @@ export const BlockContentView: React.FC<BlockContentViewProps> = (props) => {
   }
 
   if (content.startsWith("INODE_BITMAP:")) {
-    return <BitmapView fileSystem={fileSystem} bitmapType="inode" />;
+    return (
+      <BitmapView 
+        fileSystem={fileSystem} 
+        bitmapType="inode" 
+        onBlockClick={props.onBlockClick}
+        onInodeClick={props.onInodeClick}
+      />
+    );
   }
 
   if (content.startsWith("DATA_BITMAP:")) {
-    return <BitmapView fileSystem={fileSystem} bitmapType="data" />;
+    return (
+      <BitmapView 
+        fileSystem={fileSystem} 
+        bitmapType="data" 
+        onBlockClick={props.onBlockClick}
+      />
+    );
   }
 
   if (content.startsWith("DIRECTORY_DATA_BLOCK:")) {

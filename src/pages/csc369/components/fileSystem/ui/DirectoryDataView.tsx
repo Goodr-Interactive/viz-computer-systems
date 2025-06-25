@@ -50,12 +50,9 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
                   <div
                     key={entry.name}
                     className={`flex h-8 items-center gap-2.5 border px-2 py-1 text-sm transition-colors ${
-                      isDirectory
-                        ? "border-blue-200 bg-blue-50"
-                        : "border-orange-200 bg-orange-50"
+                      isDirectory ? "border-blue-200 bg-blue-50" : "border-orange-200 bg-orange-50"
                     } ${
-                      hoveredEntry === entry.name &&
-                      (isDirectory ? "bg-blue-100" : "bg-orange-100")
+                      hoveredEntry === entry.name && (isDirectory ? "bg-blue-100" : "bg-orange-100")
                     }`}
                     onMouseEnter={() => setHoveredEntry(entry.name)}
                     onMouseLeave={() => setHoveredEntry(null)}
@@ -65,13 +62,13 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
                       {entry.name}
                     </span>
                     <div className="flex-grow" />
-                    <ArrowRight 
-                      size={16} 
-                      className={`-right-8 relative text-muted-foreground transition-all duration-300 ${
-                        hoveredEntry === entry.name 
-                          ? "opacity-100 translate-x-0" 
-                          : "opacity-0 -translate-x-2"
-                      }`} 
+                    <ArrowRight
+                      size={16}
+                      className={`text-muted-foreground relative -right-8 transition-all duration-300 ${
+                        hoveredEntry === entry.name
+                          ? "translate-x-0 opacity-100"
+                          : "-translate-x-2 opacity-0"
+                      }`}
                     />
                   </div>
                 );

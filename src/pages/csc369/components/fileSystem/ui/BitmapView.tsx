@@ -10,11 +10,11 @@ interface BitmapViewProps {
   onInodeClick?: (inodeNumber: number, isUsed: boolean) => void;
 }
 
-export const BitmapView: React.FC<BitmapViewProps> = ({ 
-  fileSystem, 
-  bitmapType, 
-  onBlockClick, 
-  onInodeClick 
+export const BitmapView: React.FC<BitmapViewProps> = ({
+  fileSystem,
+  bitmapType,
+  onBlockClick,
+  onInodeClick,
 }) => {
   const bitmap = bitmapType === "inode" ? fileSystem.getInodeBitmap() : fileSystem.getDataBitmap();
   const itemsPerRow = 16;
@@ -25,20 +25,20 @@ export const BitmapView: React.FC<BitmapViewProps> = ({
 
   const handleItemClick = (itemIndex: number) => {
     const isUsed = bitmap[itemIndex];
-    
+
     if (bitmapType === "inode") {
       // Calculate which inode block contains this inode
       const sb = fileSystem.getSuperBlock();
       const blockSize = Math.pow(2, sb.s_log_block_size);
       const inodesPerBlock = blockSize / sb.s_inode_size;
       const inodeBlockIndex = 3 + Math.floor(itemIndex / inodesPerBlock);
-      
+
       if (isUsed && onInodeClick) {
         // For used inodes, navigate to block and select the specific inode
         if (onBlockClick) {
           onBlockClick(inodeBlockIndex);
         }
-        
+
         setTimeout(() => {
           onInodeClick(itemIndex, isUsed);
         }, 50);
@@ -61,23 +61,23 @@ export const BitmapView: React.FC<BitmapViewProps> = ({
       if (itemIndex >= bitmap.length) break;
 
       const isUsed = bitmap[itemIndex];
-      
+
       const colors = isUsed
         ? {
             color: "bg-green-100",
             borderColor: "border-green-300",
             hoverColor: "group-hover:bg-green-200",
           }
-        : { 
-            color: "bg-gray-100", 
-            borderColor: "border-gray-300", 
-            hoverColor: "group-hover:bg-gray-200"
+        : {
+            color: "bg-gray-100",
+            borderColor: "border-gray-300",
+            hoverColor: "group-hover:bg-gray-200",
           };
 
       rowItems.push(
-        <div 
-          key={itemIndex} 
-          className="flex flex-col items-center cursor-pointer"
+        <div
+          key={itemIndex}
+          className="flex cursor-pointer flex-col items-center"
           onClick={() => handleItemClick(itemIndex)}
         >
           <MultiColorBinaryBlock

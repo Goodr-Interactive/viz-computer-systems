@@ -11,7 +11,7 @@ export const FileSystemExample: React.FC = () => {
     const fs = new FileSystem(FILE_SYSTEM_CONFIG.dataBlocks, FILE_SYSTEM_CONFIG.totalInodes);
 
     // Create all files from config
-    FILE_SYSTEM_CONFIG.files.forEach(fileConfig => {
+    FILE_SYSTEM_CONFIG.files.forEach((fileConfig) => {
       if (fileConfig.content) {
         fs.createFile(fileConfig.path, fileConfig.type || "text", fileConfig.content);
       } else {

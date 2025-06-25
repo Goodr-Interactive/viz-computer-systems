@@ -12,8 +12,10 @@ export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({ fileSystem }) 
   const superBlock = fileSystem.getSuperBlock();
   const totalBlocks = fileSystem.getTotalBlocks();
   const blockSize = Math.pow(2, superBlock.s_log_block_size);
-  const [randomPath, setRandomPath] = useState(FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)].path);
-  
+  const [randomPath, setRandomPath] = useState(
+    FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)].path
+  );
+
   return (
     <section className="w-full max-w-7xl">
       <SectionHeading>File System Simulation</SectionHeading>
@@ -25,17 +27,18 @@ export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({ fileSystem }) 
           superblock, bitmaps for inodes and data, inode tables, and data blocks. This simulation
           uses only direct pointers for simplicity. <br />
           <br />
-          Click on blocks in the{" "}
-          <span className="font-semibold">Disk Layout</span> to view their contents below. Try to determine the data block of the file{" "}
-          <span className="bg-muted rounded border px-1 font-mono font-medium">
-            {randomPath}
-          </span>
+          Click on blocks in the <span className="font-semibold">Disk Layout</span> to view their
+          contents below. Try to determine the data block of the file{" "}
+          <span className="bg-muted rounded border px-1 font-mono font-medium">{randomPath}</span>
         </p>
       </div>
-      <Button onClick={() => {
-        const randomFile = FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)];
-        setRandomPath(randomFile.path);
-      }}>
+      <Button
+        onClick={() => {
+          const randomFile =
+            FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)];
+          setRandomPath(randomFile.path);
+        }}
+      >
         Get New File
       </Button>
     </section>

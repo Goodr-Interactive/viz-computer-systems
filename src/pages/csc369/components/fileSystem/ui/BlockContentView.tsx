@@ -40,9 +40,9 @@ export const BlockContentView: React.FC<BlockContentViewProps> = (props) => {
 
   if (content.startsWith("INODE_BITMAP:")) {
     return (
-      <BitmapView 
-        fileSystem={fileSystem} 
-        bitmapType="inode" 
+      <BitmapView
+        fileSystem={fileSystem}
+        bitmapType="inode"
         onBlockClick={props.onBlockClick}
         onInodeClick={props.onInodeClick}
       />
@@ -51,11 +51,7 @@ export const BlockContentView: React.FC<BlockContentViewProps> = (props) => {
 
   if (content.startsWith("DATA_BITMAP:")) {
     return (
-      <BitmapView 
-        fileSystem={fileSystem} 
-        bitmapType="data" 
-        onBlockClick={props.onBlockClick}
-      />
+      <BitmapView fileSystem={fileSystem} bitmapType="data" onBlockClick={props.onBlockClick} />
     );
   }
 

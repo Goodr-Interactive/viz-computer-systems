@@ -5,6 +5,7 @@ import { BinaryBlock } from "./BinaryBlock";
 // Import the SVG assets for hardware visualization
 import ComparatorSvg from "@/assets/comparator.svg";
 import MultiplexerSvg from "@/assets/mux.svg";
+import AssociativitySvg from "@/assets/associativity-direct-2-words.svg";
 
 interface CacheConfig {
   ways: number;
@@ -277,6 +278,19 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
   return (
     <div className="space-y-4">
       {/* Hardware Components Grid */}
+             {/* Hardware Layout */}
+    <div className="space-y-3">
+    <div className="flex justify-center">
+      <div className="relative max-w-3xl w-full">
+        <img 
+          src={AssociativitySvg} 
+          alt={`${muxSize}-to-1 Multiplexer`} 
+          className="w-full h-auto rounded-lg shadow-md border border-gray-300"
+        />
+      </div>
+    </div>
+  </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Tag Comparators */}
         <div className="space-y-3">
@@ -362,7 +376,6 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
           </div>
         </div>
       </div>
-
       {/* Hardware Summary */}
       <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
         <h4 className="text-sm font-medium text-blue-900 mb-2">Hardware Summary</h4>

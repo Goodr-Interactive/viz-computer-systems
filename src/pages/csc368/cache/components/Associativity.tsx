@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BinaryBlock } from "./BinaryBlock";
 // Import the SVG assets for hardware visualization
@@ -19,48 +25,54 @@ const WORD_SIZE_BYTES = 4; // 4 bytes per word (32-bit words)
 const DEFAULT_BLOCK_SIZE_WORDS = 1; // 1 word per block by default
 
 const cacheModes: Record<string, CacheConfig> = {
-  "Direct-Mapped (1-way, 1 word)": { 
-    ways: 1, 
-    cacheSize: CACHE_SIZE_KB, 
+  "Direct-Mapped (1-way, 1 word)": {
+    ways: 1,
+    cacheSize: CACHE_SIZE_KB,
     blockSizeWords: 1,
-    wordSize: WORD_SIZE_BYTES
+    wordSize: WORD_SIZE_BYTES,
   },
-  "Direct-Mapped (1-way, 2 words)": { 
-    ways: 1, 
-    cacheSize: CACHE_SIZE_KB, 
+  "Direct-Mapped (1-way, 2 words)": {
+    ways: 1,
+    cacheSize: CACHE_SIZE_KB,
     blockSizeWords: 2,
-    wordSize: WORD_SIZE_BYTES
+    wordSize: WORD_SIZE_BYTES,
   },
-  "2-Way Set Associative": { 
-    ways: 2, 
-    cacheSize: CACHE_SIZE_KB, 
+  "2-Way Set Associative": {
+    ways: 2,
+    cacheSize: CACHE_SIZE_KB,
     blockSizeWords: DEFAULT_BLOCK_SIZE_WORDS,
-    wordSize: WORD_SIZE_BYTES
+    wordSize: WORD_SIZE_BYTES,
   },
-  "4-Way Set Associative": { 
-    ways: 4, 
-    cacheSize: CACHE_SIZE_KB, 
+  "4-Way Set Associative": {
+    ways: 4,
+    cacheSize: CACHE_SIZE_KB,
     blockSizeWords: DEFAULT_BLOCK_SIZE_WORDS,
-    wordSize: WORD_SIZE_BYTES
+    wordSize: WORD_SIZE_BYTES,
   },
-  "Fully Associative": { 
+  "Fully Associative": {
     ways: 8, // All 8 words in one set
-    cacheSize: CACHE_SIZE_KB, 
+    cacheSize: CACHE_SIZE_KB,
     blockSizeWords: DEFAULT_BLOCK_SIZE_WORDS,
-    wordSize: WORD_SIZE_BYTES
-  }
+    wordSize: WORD_SIZE_BYTES,
+  },
 };
 
 function getBlockSizeBytes(config: CacheConfig): number {
   return config.blockSizeWords * config.wordSize;
 }
 
-function getAddressPartition(config: CacheConfig): { tagBits: number; setBits: number; offsetBits: number; wordOffsetBits: number; byteOffsetBits: number } {
+function getAddressPartition(config: CacheConfig): {
+  tagBits: number;
+  setBits: number;
+  offsetBits: number;
+  wordOffsetBits: number;
+  byteOffsetBits: number;
+} {
   const blockSizeBytes = getBlockSizeBytes(config);
   const offsetBits = Math.log2(blockSizeBytes);
   const wordOffsetBits = Math.log2(config.blockSizeWords); // Bits to select word within block
   const byteOffsetBits = Math.log2(config.wordSize); // Bits to select byte within word (always 2 for 4-byte words)
-  
+
   // Calculate number of sets: total cache size / (ways * block size in bytes)
   const numSets = (config.cacheSize * 1024) / (config.ways * blockSizeBytes);
   const setBits = numSets === 1 ? 0 : Math.log2(numSets); // Fully associative has 0 set bits
@@ -78,12 +90,13 @@ interface AddressFieldProps {
 }
 
 function AddressField({ config }: AddressFieldProps) {
-  const { tagBits, setBits, offsetBits, wordOffsetBits, byteOffsetBits } = getAddressPartition(config);
-  
+  const { tagBits, setBits, offsetBits, wordOffsetBits, byteOffsetBits } =
+    getAddressPartition(config);
+
   // For fully associative cache, don't show set field (0 bits)
   const showSet = setBits > 0;
   const showWordOffset = wordOffsetBits > 0; // Only show if block has multiple words
-  
+
   // Calculate bit ranges
   const byteOffsetStart = 0;
   const byteOffsetEnd = byteOffsetBits - 1;
@@ -93,12 +106,12 @@ function AddressField({ config }: AddressFieldProps) {
   const setEnd = offsetBits + setBits - 1;
   const tagStart = offsetBits + setBits;
   const tagEnd = 31;
-  
+
   return (
-    <div className="space-y-4 w-full">
-      <h3 className="text-lg font-medium text-center">Memory Address (32 bits)</h3>
-      
-      <div className="flex justify-center items-start gap-0">
+    <div className="w-full space-y-4">
+      <h3 className="text-center text-lg font-medium">Memory Address (32 bits)</h3>
+
+      <div className="flex items-start justify-center gap-0">
         {/* Tag Block */}
         <BinaryBlock
           blocks={tagBits}
@@ -117,7 +130,7 @@ function AddressField({ config }: AddressFieldProps) {
             </div>
           }
         />
-        
+
         {/* Set Block - only show if setBits > 0 */}
         {showSet && (
           <BinaryBlock
@@ -131,14 +144,12 @@ function AddressField({ config }: AddressFieldProps) {
             tooltip={
               <div className="max-w-sm space-y-1">
                 <p className="text-sm font-medium">Set Index Field ({setBits} bits)</p>
-                <p className="text-xs">
-                  Determines which set in the cache to access.
-                </p>
+                <p className="text-xs">Determines which set in the cache to access.</p>
               </div>
             }
           />
         )}
-        
+
         {/* Block Offset - only show if block has multiple words */}
         {showWordOffset && (
           <BinaryBlock
@@ -159,7 +170,7 @@ function AddressField({ config }: AddressFieldProps) {
             }
           />
         )}
-        
+
         {/* Byte Offset Block */}
         <BinaryBlock
           blocks={byteOffsetBits}
@@ -192,21 +203,27 @@ function CacheArray({ config }: CacheArrayProps) {
   const maxDisplaySets = 8; // Limit display for very large caches
   const displaySets = Math.min(numSets, maxDisplaySets);
   const showTruncated = numSets > maxDisplaySets;
-  
+
   return (
-    <div className="space-y-4 w-full">
+    <div className="w-full space-y-4">
       {/* <h3 className="text-lg font-medium text-center">
         Cache Structure ({numSets} sets × {config.ways} ways)
         {showTruncated && <span className="text-sm text-gray-500 block">Showing first {maxDisplaySets} sets</span>}
       </h3> */}
-      
+
       <div className="flex justify-center">
-        <div className="inline-block border border-gray-300 rounded-lg p-4 bg-white shadow-sm max-w-full overflow-x-auto">
+        <div className="inline-block max-w-full overflow-x-auto rounded-lg border border-gray-300 bg-white p-4 shadow-sm">
           {/* Header row with way labels */}
-          <div className="grid gap-2 mb-2" style={{ gridTemplateColumns: `60px repeat(${Math.min(config.ways, 8)}, 80px)` }}>
+          <div
+            className="mb-2 grid gap-2"
+            style={{ gridTemplateColumns: `60px repeat(${Math.min(config.ways, 8)}, 80px)` }}
+          >
             <div></div> {/* Empty cell for set labels column */}
             {[...Array(Math.min(config.ways, 8))].map((_, w) => (
-              <div key={`way-header-${w}`} className="text-center text-sm font-medium text-gray-600">
+              <div
+                key={`way-header-${w}`}
+                className="text-center text-sm font-medium text-gray-600"
+              >
                 Way {w}
               </div>
             ))}
@@ -216,34 +233,38 @@ function CacheArray({ config }: CacheArrayProps) {
               </div>
             )}
           </div>
-          
+
           {/* Cache blocks grid */}
           {[...Array(displaySets)].map((_, s) => (
-            <div key={`set-${s}`} className="grid gap-2 mb-2" style={{ gridTemplateColumns: `60px repeat(${Math.min(config.ways, 8)}, 80px)` }}>
+            <div
+              key={`set-${s}`}
+              className="mb-2 grid gap-2"
+              style={{ gridTemplateColumns: `60px repeat(${Math.min(config.ways, 8)}, 80px)` }}
+            >
               {/* Set label */}
               <div className="flex items-center justify-center text-sm font-medium text-gray-700">
                 Set {s}
               </div>
-              
+
               {/* Cache blocks for this set */}
               {[...Array(Math.min(config.ways, 8))].map((_, w) => (
                 <div
                   key={`s${s}w${w}`}
-                  className="h-9 bg-sky-100 border-2 border-sky-500 rounded flex items-center justify-center text-xs font-medium text-gray-700 hover:bg-sky-200 transition-colors"
+                  className="flex h-9 items-center justify-center rounded border-2 border-sky-500 bg-sky-100 text-xs font-medium text-gray-700 transition-colors hover:bg-sky-200"
                 >
                   Block
                 </div>
               ))}
               {config.ways > 8 && (
-                <div className="h-9 flex items-center justify-center text-xs text-gray-500">
+                <div className="flex h-9 items-center justify-center text-xs text-gray-500">
                   ...
                 </div>
               )}
             </div>
           ))}
-          
+
           {showTruncated && (
-            <div className="text-center text-sm text-gray-500 mt-2">
+            <div className="mt-2 text-center text-sm text-gray-500">
               ... and {numSets - maxDisplaySets} more sets
             </div>
           )}
@@ -261,11 +282,11 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
   // Calculate hardware requirements
   const numComparators = config.ways; // One comparator per way for tag comparison
   const muxSize = config.ways; // MUX size equals number of ways
-  
+
   // Get the appropriate SVG for the current configuration
   const getAssociativitySvg = (config: CacheConfig) => {
     const key = `${config.ways}-way-${config.blockSizeWords}-word`;
-    
+
     // TODO: Add more SVGs as they become available
     const svgMap: Record<string, string> = {
       "1-way-2-word": AssociativitySvg, // Currently available: direct-mapped with 2 words
@@ -275,47 +296,47 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
       // "4-way-1-word": FourWaySetAssociativeSvg,
       // "8-way-1-word": FullyAssociativeSvg,
     };
-    
+
     return svgMap[key] || null;
   };
-  
+
   const currentSvg = getAssociativitySvg(config);
-  
+
   // Transistor count estimation (rough calculation)
   const transistorsPerComparator = 32 * 6; // ~6 transistors per bit comparison (XNOR gate)
   const transistorsPerMux = config.ways > 1 ? config.ways * 4 + 8 : 0; // Transmission gates + control logic
   const transistorsPerAndGate = 6; // NAND gate (4) + inverter (2)
   const transistorsPerOrGate = 6; // NOR gate (4) + inverter (2)
-  
+
   const totalComparatorTransistors = numComparators * transistorsPerComparator;
   const totalMuxTransistors = config.ways > 1 ? transistorsPerMux : 0;
-  const totalLogicGateTransistors = (config.ways * transistorsPerAndGate) + // AND gates for hit detection
-                                   (config.ways > 1 ? transistorsPerOrGate : 0); // OR gate for final hit signal
-  
-  const totalTransistors = totalComparatorTransistors + totalMuxTransistors + totalLogicGateTransistors;
+  const totalLogicGateTransistors =
+    config.ways * transistorsPerAndGate + // AND gates for hit detection
+    (config.ways > 1 ? transistorsPerOrGate : 0); // OR gate for final hit signal
+
+  const totalTransistors =
+    totalComparatorTransistors + totalMuxTransistors + totalLogicGateTransistors;
 
   return (
     <div className="space-y-4">
       {/* Hardware Layout */}
       <div className="space-y-3">
         <div className="flex justify-center">
-          <div className="relative max-w-3xl w-full">
+          <div className="relative w-full max-w-3xl">
             {currentSvg ? (
-              <img 
-                src={currentSvg} 
-                alt={`${config.ways}-way cache hardware diagram`} 
-                className="w-full h-auto rounded-lg shadow-md border border-gray-300"
+              <img
+                src={currentSvg}
+                alt={`${config.ways}-way cache hardware diagram`}
+                className="h-auto w-full rounded-lg border border-gray-300 shadow-md"
               />
             ) : (
-              <div className="w-full h-64 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+              <div className="flex h-64 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
                 <div className="text-center text-gray-500">
-                  <div className="text-sm font-medium mb-1">Hardware Diagram</div>
+                  <div className="mb-1 text-sm font-medium">Hardware Diagram</div>
                   <div className="text-xs">
                     {config.ways}-way, {config.blockSizeWords}-word block
                   </div>
-                  <div className="text-xs mt-1 italic">
-                    (SVG coming soon)
-                  </div>
+                  <div className="mt-1 text-xs italic">(SVG coming soon)</div>
                 </div>
               </div>
             )}
@@ -323,31 +344,25 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {/* Tag Comparators */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-center">Tag Comparators</h4>
+          <h4 className="text-center text-sm font-medium">Tag Comparators</h4>
           <div className="flex flex-col items-center space-y-2">
-            <div className="flex flex-wrap justify-center gap-1 max-w-sm">
+            <div className="flex max-w-sm flex-wrap justify-center gap-1">
               {[...Array(Math.min(numComparators, 4))].map((_, i) => (
                 <div key={i} className="relative">
-                  <img 
-                    src={ComparatorSvg} 
-                    alt={`Comparator ${i + 1}`} 
-                    className="w-8 h-8" 
-                  />
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-xs bg-white px-1 rounded border">
+                  <img src={ComparatorSvg} alt={`Comparator ${i + 1}`} className="h-8 w-8" />
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 transform rounded border bg-white px-1 text-xs">
                     {i + 1}
                   </div>
                 </div>
               ))}
               {numComparators > 4 && (
-                <div className="flex items-center text-gray-500 text-xs">
-                  +{numComparators - 4}
-                </div>
+                <div className="flex items-center text-xs text-gray-500">+{numComparators - 4}</div>
               )}
             </div>
-            <div className="text-xs text-gray-600 text-center">
+            <div className="text-center text-xs text-gray-600">
               {numComparators} × 32-bit comparators
             </div>
           </div>
@@ -355,25 +370,25 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
 
         {/* Multiplexer */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-center">Data Multiplexer</h4>
+          <h4 className="text-center text-sm font-medium">Data Multiplexer</h4>
           <div className="flex flex-col items-center space-y-2">
             {config.ways === 1 ? (
-              <div className="w-16 h-16 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
-                <span className="text-gray-500 font-medium text-xs">No MUX</span>
+              <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
+                <span className="text-xs font-medium text-gray-500">No MUX</span>
               </div>
             ) : (
               <div className="relative">
-                <img 
-                  src={MultiplexerSvg} 
-                  alt={`${muxSize}-to-1 Multiplexer`} 
-                  className="w-16 h-16" 
+                <img
+                  src={MultiplexerSvg}
+                  alt={`${muxSize}-to-1 Multiplexer`}
+                  className="h-16 w-16"
                 />
-                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-xs bg-white px-1 rounded border">
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 transform rounded border bg-white px-1 text-xs">
                   {muxSize}:1
                 </div>
               </div>
             )}
-            <div className="text-xs text-gray-600 text-center">
+            <div className="text-center text-xs text-gray-600">
               {config.ways === 1 ? "Direct connection" : `${muxSize}-to-1 MUX`}
             </div>
           </div>
@@ -381,56 +396,62 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
 
         {/* AND/OR Gates */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-center">Logic Gates</h4>
+          <h4 className="text-center text-sm font-medium">Logic Gates</h4>
           <div className="flex flex-col items-center space-y-2">
             <div className="space-y-1">
               {/* AND Gates */}
               <div className="flex items-center justify-center gap-1">
                 {[...Array(Math.min(config.ways, 4))].map((_, i) => (
-                  <div key={`and-${i}`} className="w-4 h-4 bg-green-200 border border-green-400 rounded flex items-center justify-center text-xs font-bold">
+                  <div
+                    key={`and-${i}`}
+                    className="flex h-4 w-4 items-center justify-center rounded border border-green-400 bg-green-200 text-xs font-bold"
+                  >
                     &
                   </div>
                 ))}
-                {config.ways > 4 && <span className="text-xs text-gray-500">+{config.ways - 4}</span>}
+                {config.ways > 4 && (
+                  <span className="text-xs text-gray-500">+{config.ways - 4}</span>
+                )}
               </div>
               {/* OR Gate */}
               {config.ways > 1 && (
                 <div className="flex justify-center">
-                  <div className="w-6 h-4 bg-blue-200 border border-blue-400 rounded flex items-center justify-center text-xs font-bold">
+                  <div className="flex h-4 w-6 items-center justify-center rounded border border-blue-400 bg-blue-200 text-xs font-bold">
                     OR
                   </div>
                 </div>
               )}
             </div>
-            <div className="text-xs text-gray-600 text-center">
+            <div className="text-center text-xs text-gray-600">
               {config.ways} AND + {config.ways > 1 ? "1 OR" : "0 OR"}
             </div>
           </div>
         </div>
       </div>
       {/* Hardware Summary */}
-      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="text-sm font-medium text-blue-900 mb-2">Hardware Summary</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+        <h4 className="mb-2 text-sm font-medium text-blue-900">Hardware Summary</h4>
+        <div className="grid grid-cols-2 gap-3 text-xs md:grid-cols-4">
           <div>
-            <span className="text-blue-700 font-medium">Comparators:</span>
+            <span className="font-medium text-blue-700">Comparators:</span>
             <div className="text-blue-900">{numComparators} units</div>
           </div>
           <div>
-            <span className="text-blue-700 font-medium">Multiplexers:</span>
+            <span className="font-medium text-blue-700">Multiplexers:</span>
             <div className="text-blue-900">{config.ways === 1 ? "0" : "1"} units</div>
           </div>
           <div>
-            <span className="text-blue-700 font-medium">Logic Gates:</span>
+            <span className="font-medium text-blue-700">Logic Gates:</span>
             <div className="text-blue-900">{config.ways + (config.ways > 1 ? 1 : 0)} gates</div>
           </div>
           <div>
-            <span className="text-blue-700 font-medium">Transistors:</span>
+            <span className="font-medium text-blue-700">Transistors:</span>
             <div className="text-blue-900">~{totalTransistors.toLocaleString()}</div>
           </div>
         </div>
         <div className="mt-2 text-xs text-gray-600">
-          Breakdown: {totalComparatorTransistors.toLocaleString()} (comparators) + {totalMuxTransistors} (mux) + {totalLogicGateTransistors} (gates)
+          Breakdown: {totalComparatorTransistors.toLocaleString()} (comparators) +{" "}
+          {totalMuxTransistors} (mux) + {totalLogicGateTransistors} (gates)
         </div>
       </div>
     </div>
@@ -439,13 +460,13 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
 
 export default function Associativity() {
   const [mode, setMode] = useState<string>("4-Way Set Associative");
-  
+
   const config: CacheConfig = cacheModes[mode];
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-2 space-y-3">
+    <div className="mx-auto w-full max-w-7xl space-y-3 p-2">
       {/* Top Section: 2 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {/* Top Left: Configuration Panel */}
         <Card className="h-fit">
           <CardHeader className="pb-2">
@@ -455,8 +476,8 @@ export default function Associativity() {
             {/* Mode Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Configuration Mode:</label>
-              <Select 
-                value={mode} 
+              <Select
+                value={mode}
                 onValueChange={(value) => {
                   setMode(value);
                 }}
@@ -475,29 +496,28 @@ export default function Associativity() {
             </div>
 
             {/* Configuration Summary */}
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="text-xs font-medium text-blue-900 mb-2">Cache Parameters</h4>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <h4 className="mb-2 text-xs font-medium text-blue-900">Cache Parameters</h4>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span className="text-blue-700 font-medium">Cache Size:</span>
+                  <span className="font-medium text-blue-700">Cache Size:</span>
                   <div className="text-blue-900">{Math.round(config.cacheSize * 1024)} bytes</div>
                 </div>
                 <div>
-                  <span className="text-blue-700 font-medium">Block Size:</span>
+                  <span className="font-medium text-blue-700">Block Size:</span>
                   <div className="text-blue-900">{getBlockSizeBytes(config)} bytes</div>
                 </div>
                 <div>
-                  <span className="text-blue-700 font-medium">Total Sets:</span>
+                  <span className="font-medium text-blue-700">Total Sets:</span>
                   <div className="text-blue-900">{getNumSets(config)}</div>
                 </div>
                 <div>
-                  <span className="text-blue-700 font-medium">Ways per Set:</span>
+                  <span className="font-medium text-blue-700">Ways per Set:</span>
                   <div className="text-blue-900">{config.ways}</div>
                 </div>
               </div>
             </div>
             <CacheArray config={config} />
-
           </CardContent>
         </Card>
 

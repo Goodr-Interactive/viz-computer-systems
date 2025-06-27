@@ -6,8 +6,8 @@ export const AssociativityPage: React.FunctionComponent = () => {
   return (
     <div className="flex min-h-screen flex-col items-center gap-6 p-8">
       <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
-       <Associativity />
-    </div>
+        <Associativity />
+      </div>
 
       <div className="mt-4 flex gap-[16px]">
         <Button asChild variant="outline">

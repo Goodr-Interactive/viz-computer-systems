@@ -23,7 +23,7 @@ const ACCESS_PATTERNS = {
 // Memory instruction types
 interface MemoryInstruction {
   id: number;
-  type: 'load' | 'store';
+  type: "load" | "store";
   address: number;
   data?: number;
   description: string;
@@ -40,8 +40,8 @@ const L1_CACHE_CONFIG = {
 // Generate 10 memory instructions with different access patterns
 const generateInstructions = (pattern: keyof typeof ACCESS_PATTERNS): MemoryInstruction[] => {
   const instructions: MemoryInstruction[] = [];
-  
-  if (pattern === 'temporal') {
+
+  if (pattern === "temporal") {
     // Temporal locality: access same addresses repeatedly with some variation
     const baseAddresses = [0x1000, 0x1004, 0x1008, 0x1010];
     for (let i = 0; i < 10; i++) {
@@ -56,55 +56,62 @@ const generateInstructions = (pattern: keyof typeof ACCESS_PATTERNS): MemoryInst
         // Mix of repeated and new addresses
         addr = i === 7 ? 0x1014 : baseAddresses[(i - 1) % baseAddresses.length];
       }
-      
+
       instructions.push({
         id: i + 1,
-        type: i % 3 === 0 ? 'store' : 'load',
+        type: i % 3 === 0 ? "store" : "load",
         address: addr,
-        data: i % 3 === 0 ? 0xDEADBEEF + i : undefined,
-        description: `${i % 3 === 0 ? 'Store' : 'Load'} 0x${addr.toString(16).toUpperCase()}`
+        data: i % 3 === 0 ? 0xdeadbeef + i : undefined,
+        description: `${i % 3 === 0 ? "Store" : "Load"} 0x${addr.toString(16).toUpperCase()}`,
       });
     }
-  } else if (pattern === 'spatial') {
+  } else if (pattern === "spatial") {
     // Spatial locality: access consecutive addresses with some gaps
     const baseAddr = 0x2000;
     for (let i = 0; i < 10; i++) {
       let addr;
       if (i < 4) {
         // Sequential access
-        addr = baseAddr + (i * 4);
+        addr = baseAddr + i * 4;
       } else if (i < 7) {
         // Jump to different area but still sequential
-        addr = baseAddr + 0x100 + ((i - 4) * 4);
+        addr = baseAddr + 0x100 + (i - 4) * 4;
       } else {
         // Some scattered accesses
-        addr = baseAddr + (i * 8);
+        addr = baseAddr + i * 8;
       }
-      
+
       instructions.push({
         id: i + 1,
-        type: i % 4 === 0 ? 'store' : 'load',
+        type: i % 4 === 0 ? "store" : "load",
         address: addr,
-        data: i % 4 === 0 ? 0xCAFEBABE + i : undefined,
-        description: `${i % 4 === 0 ? 'Store' : 'Load'} 0x${addr.toString(16).toUpperCase()}`
+        data: i % 4 === 0 ? 0xcafebabe + i : undefined,
+        description: `${i % 4 === 0 ? "Store" : "Load"} 0x${addr.toString(16).toUpperCase()}`,
       });
     }
   } else {
     // No locality: diverse addresses that will cause cache conflicts
     const noLocalityAddresses = [
-      0x3000, 0x4000, 0x5000, 0x6000,  // Different cache sets
-      0x3040, 0x4040, 0x5040,          // Same sets as first 3, different tags (conflicts)
-      0x7000, 0x8000, 0x9000           // More different addresses
+      0x3000,
+      0x4000,
+      0x5000,
+      0x6000, // Different cache sets
+      0x3040,
+      0x4040,
+      0x5040, // Same sets as first 3, different tags (conflicts)
+      0x7000,
+      0x8000,
+      0x9000, // More different addresses
     ];
-    
+
     for (let i = 0; i < 10; i++) {
       const addr = noLocalityAddresses[i];
       instructions.push({
         id: i + 1,
-        type: i % 2 === 0 ? 'store' : 'load',
+        type: i % 2 === 0 ? "store" : "load",
         address: addr,
-        data: i % 2 === 0 ? 0xDEADBEEF + i : undefined,
-        description: `${i % 2 === 0 ? 'Store' : 'Load'} 0x${addr.toString(16).toUpperCase()}`
+        data: i % 2 === 0 ? 0xdeadbeef + i : undefined,
+        description: `${i % 2 === 0 ? "Store" : "Load"} 0x${addr.toString(16).toUpperCase()}`,
       });
     }
   }
@@ -179,22 +186,26 @@ export const CacheHierarchyVisualization: React.FC = () => {
     const cache: CacheState = [];
     for (let i = 0; i < L1_CACHE_CONFIG.sets; i++) {
       cache.push({
-        blocks: Array(L1_CACHE_CONFIG.associativity).fill(null).map(() => ({
-          valid: false,
-          tag: 0,
-          data: 0,
-          lastAccessed: 0
-        }))
+        blocks: Array(L1_CACHE_CONFIG.associativity)
+          .fill(null)
+          .map(() => ({
+            valid: false,
+            tag: 0,
+            data: 0,
+            lastAccessed: 0,
+          })),
       });
     }
     return cache;
   });
-  const [accessHistory, setAccessHistory] = useState<Array<{
-    instruction: MemoryInstruction;
-    hit: boolean;
-    level: 'l1' | 'l2' | 'ram';
-    latency: number;
-  }>>([]);
+  const [accessHistory, setAccessHistory] = useState<
+    Array<{
+      instruction: MemoryInstruction;
+      hit: boolean;
+      level: "l1" | "l2" | "ram";
+      latency: number;
+    }>
+  >([]);
 
   // Cache simulation functions
   const getAddressParts = (address: number) => {
@@ -204,26 +215,31 @@ export const CacheHierarchyVisualization: React.FC = () => {
     return { blockOffset, setIndex, tag };
   };
 
-  const simulateL1Access = (instruction: MemoryInstruction, currentCache: CacheState): { hit: boolean; latency: number; newCacheState: CacheState } => {
+  const simulateL1Access = (
+    instruction: MemoryInstruction,
+    currentCache: CacheState
+  ): { hit: boolean; latency: number; newCacheState: CacheState } => {
     const { setIndex, tag } = getAddressParts(instruction.address);
     const set = currentCache[setIndex];
-    
+
     console.log(`Instruction ${instruction.id}: ${instruction.description}`);
-    console.log(`  Address: 0x${instruction.address.toString(16)}, Set: ${setIndex}, Tag: 0x${tag.toString(16)}`);
-    
+    console.log(
+      `  Address: 0x${instruction.address.toString(16)}, Set: ${setIndex}, Tag: 0x${tag.toString(16)}`
+    );
+
     // Create a deep copy of cache state for modifications
-    const newCacheState = currentCache.map(cacheSet => ({
-      blocks: cacheSet.blocks.map(block => ({ ...block }))
+    const newCacheState = currentCache.map((cacheSet) => ({
+      blocks: cacheSet.blocks.map((block) => ({ ...block })),
     }));
-    
+
     // Check for hit
-    const hitBlock = set.blocks.find(block => block.valid && block.tag === tag);
-    
+    const hitBlock = set.blocks.find((block) => block.valid && block.tag === tag);
+
     if (hitBlock) {
       // Cache hit - update the block in new state
       const hitBlockIndex = set.blocks.indexOf(hitBlock);
       newCacheState[setIndex].blocks[hitBlockIndex].lastAccessed = Date.now();
-      if (instruction.type === 'store' && instruction.data !== undefined) {
+      if (instruction.type === "store" && instruction.data !== undefined) {
         newCacheState[setIndex].blocks[hitBlockIndex].data = instruction.data;
       }
       console.log(`  → HIT in set ${setIndex}, way ${hitBlockIndex}`);
@@ -233,7 +249,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
       // Find replacement block (LRU)
       let replaceBlockIndex = 0;
       let replaceBlock = set.blocks[0];
-      
+
       for (let i = 0; i < set.blocks.length; i++) {
         const block = set.blocks[i];
         if (!block.valid) {
@@ -246,17 +262,19 @@ export const CacheHierarchyVisualization: React.FC = () => {
           replaceBlockIndex = i;
         }
       }
-      
-      console.log(`  → MISS in set ${setIndex}, replacing way ${replaceBlockIndex} (was tag: 0x${replaceBlock.tag.toString(16)}, valid: ${replaceBlock.valid})`);
-      
+
+      console.log(
+        `  → MISS in set ${setIndex}, replacing way ${replaceBlockIndex} (was tag: 0x${replaceBlock.tag.toString(16)}, valid: ${replaceBlock.valid})`
+      );
+
       // Load block from memory in new state
       newCacheState[setIndex].blocks[replaceBlockIndex] = {
         valid: true,
         tag: tag,
         data: instruction.data || 0,
-        lastAccessed: Date.now()
+        lastAccessed: Date.now(),
       };
-      
+
       return { hit: false, latency: latencyConfig.l1 + latencyConfig.ram, newCacheState };
     }
   };
@@ -270,35 +288,38 @@ export const CacheHierarchyVisualization: React.FC = () => {
     }
 
     const instruction = memoryInstructions[currentInstructionIndexRef.current];
-    
+
     // Use functional state update to get current cache state
-    setCacheState(currentCache => {
+    setCacheState((currentCache) => {
       const result = simulateL1Access(instruction, currentCache);
-      
+
       // Update access history
-      setAccessHistory(prev => [...prev, {
-        instruction,
-        hit: result.hit,
-        level: result.hit ? 'l1' : 'ram',
-        latency: result.latency
-      }]);
+      setAccessHistory((prev) => [
+        ...prev,
+        {
+          instruction,
+          hit: result.hit,
+          level: result.hit ? "l1" : "ram",
+          latency: result.latency,
+        },
+      ]);
 
       // Update hit/miss statistics
-      setHitMissData(prev => ({
+      setHitMissData((prev) => ({
         ...prev,
         l1: {
           hits: prev.l1.hits + (result.hit ? 1 : 0),
-          misses: prev.l1.misses + (result.hit ? 0 : 1)
+          misses: prev.l1.misses + (result.hit ? 0 : 1),
         },
         ram: {
           hits: prev.ram.hits + (result.hit ? 0 : 1),
-          misses: prev.ram.misses
-        }
+          misses: prev.ram.misses,
+        },
       }));
 
       // Highlight the accessed level
-      setHighlightedStages(new Set(result.hit ? ['cpu', 'l1'] : ['cpu', 'l1', 'ram']));
-      
+      setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "ram"]));
+
       setTimeout(() => {
         setHighlightedStages(new Set());
       }, 800);
@@ -338,7 +359,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   // Reset simulation when access pattern changes to avoid stale data
   useEffect(() => {
     resetSimulation();
-    
+
     // Generate new instructions for the selected pattern
     const newInstructions = generateInstructions(selectedPattern);
     setMemoryInstructions(newInstructions);
@@ -401,12 +422,14 @@ export const CacheHierarchyVisualization: React.FC = () => {
       const cache: CacheState = [];
       for (let i = 0; i < L1_CACHE_CONFIG.sets; i++) {
         cache.push({
-          blocks: Array(L1_CACHE_CONFIG.associativity).fill(null).map(() => ({
-            valid: false,
-            tag: 0,
-            data: 0,
-            lastAccessed: 0
-          }))
+          blocks: Array(L1_CACHE_CONFIG.associativity)
+            .fill(null)
+            .map(() => ({
+              valid: false,
+              tag: 0,
+              data: 0,
+              lastAccessed: 0,
+            })),
         });
       }
       return cache;
@@ -435,40 +458,46 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const renderMemoryInstructions = () => (
     <div className="space-y-4">
       <h4 className="text-lg font-semibold">Memory Instructions ({memoryInstructions.length})</h4>
-      <div className="max-h-64 overflow-y-auto space-y-2">
+      <div className="max-h-64 space-y-2 overflow-y-auto">
         {memoryInstructions.map((instruction, index) => (
           <div
             key={instruction.id}
-            className={`p-3 rounded-lg border-2 transition-all ${
+            className={`rounded-lg border-2 p-3 transition-all ${
               index === currentInstructionIndex
-                ? 'border-blue-500 bg-blue-50'
+                ? "border-blue-500 bg-blue-50"
                 : index < currentInstructionIndex
-                ? 'border-green-500 bg-green-50'
-                : 'border-gray-300 bg-gray-50'
+                  ? "border-green-500 bg-green-50"
+                  : "border-gray-300 bg-gray-50"
             }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <span className="font-mono text-sm font-medium">
-                  {instruction.id.toString().padStart(2, '0')}
+                  {instruction.id.toString().padStart(2, "0")}
                 </span>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  instruction.type === 'load' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
-                }`}>
+                <span
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    instruction.type === "load"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-orange-100 text-orange-800"
+                  }`}
+                >
                   {instruction.type.toUpperCase()}
                 </span>
-                <span className="font-mono text-sm">
-                  {instruction.description}
-                </span>
+                <span className="font-mono text-sm">{instruction.description}</span>
               </div>
               {index < currentInstructionIndex && (
                 <div className="flex items-center space-x-2">
                   {accessHistory[index] && (
                     <>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        accessHistory[index].hit ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {accessHistory[index].hit ? 'HIT' : 'MISS'}
+                      <span
+                        className={`rounded px-2 py-1 text-xs font-medium ${
+                          accessHistory[index].hit
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {accessHistory[index].hit ? "HIT" : "MISS"}
                       </span>
                       <span className="text-xs text-gray-600">
                         {accessHistory[index].latency} cycles
@@ -478,10 +507,10 @@ export const CacheHierarchyVisualization: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Address breakdown using BinaryBlock */}
             <div className="mt-2">
-              <div className="text-xs text-gray-600 mb-1">Address Breakdown:</div>
+              <div className="mb-1 text-xs text-gray-600">Address Breakdown:</div>
               <div className="flex items-center space-x-0">
                 {(() => {
                   const { tag, setIndex, blockOffset } = getAddressParts(instruction.address);
@@ -527,23 +556,25 @@ export const CacheHierarchyVisualization: React.FC = () => {
       <h4 className="text-lg font-semibold">L1 Cache State (2-way, 4 sets)</h4>
       <div className="grid grid-cols-1 gap-2">
         {cacheState.map((set, setIndex) => (
-          <div key={setIndex} className="border rounded-lg p-3">
-            <div className="text-sm font-medium mb-2">Set {setIndex}</div>
+          <div key={setIndex} className="rounded-lg border p-3">
+            <div className="mb-2 text-sm font-medium">Set {setIndex}</div>
             <div className="grid grid-cols-2 gap-2">
               {set.blocks.map((block, wayIndex) => (
                 <div
                   key={wayIndex}
-                  className={`p-2 rounded border-2 text-center text-sm ${
-                    block.valid
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-gray-300 bg-gray-50'
+                  className={`rounded border-2 p-2 text-center text-sm ${
+                    block.valid ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50"
                   }`}
                 >
                   <div className="font-medium">Way {wayIndex}</div>
                   {block.valid ? (
                     <>
-                      <div className="text-xs text-gray-600">Tag: 0x{block.tag.toString(16).toUpperCase()}</div>
-                      <div className="text-xs text-gray-600">Data: 0x{block.data.toString(16).toUpperCase()}</div>
+                      <div className="text-xs text-gray-600">
+                        Tag: 0x{block.tag.toString(16).toUpperCase()}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        Data: 0x{block.data.toString(16).toUpperCase()}
+                      </div>
                     </>
                   ) : (
                     <div className="text-xs text-gray-500">Empty</div>
@@ -887,7 +918,12 @@ export const CacheHierarchyVisualization: React.FC = () => {
           <CardContent>
             {renderAccessPattern()}
             <div className="mt-4 flex space-x-4">
-              <Button onClick={startSimulation} disabled={isSimulating || currentInstructionIndexRef.current >= memoryInstructions.length}>
+              <Button
+                onClick={startSimulation}
+                disabled={
+                  isSimulating || currentInstructionIndexRef.current >= memoryInstructions.length
+                }
+              >
                 Start Simulation
               </Button>
               <Button onClick={stopSimulation} disabled={!isSimulating}>

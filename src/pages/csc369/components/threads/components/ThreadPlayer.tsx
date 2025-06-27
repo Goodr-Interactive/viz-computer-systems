@@ -15,7 +15,7 @@ export const ThreadPlayer: React.FunctionComponent<Props> = ({ thread, controlle
   const atEnd = controller.threadState[thread.id]?.timeStep === thread.timeSteps;
 
   return (
-    <div className="flex h-full w-[250px] flex-col gap-[12px] rounded-lg border p-[12px]">
+    <div className="flex h-full w-[224px] flex-col gap-[12px] rounded-lg border p-[12px]">
       <div className="flex h-[24px] w-full items-center justify-between">
         <Label>{thread.id}</Label>
         {!atStart ? (

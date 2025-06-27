@@ -33,9 +33,8 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
               <span
                 className="text-xs"
                 style={{
-                  
                   color:
-                  // @ts-expect-error tailwindcolors
+                    // @ts-expect-error tailwindcolors
                     tailwindcolors[controller.colors[controller.blockingEvent.resourceId]][500],
                 }}
               >

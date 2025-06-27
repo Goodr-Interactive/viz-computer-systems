@@ -97,7 +97,6 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
               {controller.conditionVariables.map((cv) => (
                 <TableRow key={cv.id}>
                   <TableCell className="flex items-center gap-[4px] font-medium">
-                    
                     <LayersOne
                       size={16}
                       //@ts-expect-error tailwind

@@ -2,7 +2,7 @@ import React from "react";
 import type { Semaphore, Thread, Lock, ConditionVariable } from "./types";
 import { useThreads } from "./hooks";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Controls, EventsList, Legend, RunThreads, ThreadsDisplay } from "./components";
+import { Controls, EventsList, RunThreads, ThreadsDisplay } from "./components";
 import { ResourceDisplay } from "./components/ResourceDisplay";
 
 export interface ThreadsProps {
@@ -36,6 +36,10 @@ export const Threads: React.FunctionComponent<ThreadsProps> = ({
             <ResizablePanel>
               <ThreadsDisplay controller={controller} />
             </ResizablePanel>
+            <ResizableHandle />
+            <ResizablePanel className="max-w-[300px]">
+              <ResourceDisplay controller={controller} />
+            </ResizablePanel>
           </ResizablePanelGroup>
 
           <ResizableHandle />
@@ -53,17 +57,6 @@ export const Threads: React.FunctionComponent<ThreadsProps> = ({
 
         <ResizableHandle />
 
-        <ResizablePanelGroup direction="vertical" className="max-w-[300px]">
-          <ResizablePanel>
-            <ResourceDisplay controller={controller} />
-          </ResizablePanel>
-          <ResizableHandle />
-          <ResizablePanel className="max-h-[150px]">
-            <Legend controller={controller} />
-          </ResizablePanel>
-        </ResizablePanelGroup>
-
-        <ResizableHandle />
         <ResizablePanelGroup className="max-w-[350px]" direction="vertical">
           <ResizablePanel>
             <EventsList controller={controller} />

@@ -92,16 +92,20 @@ export const useThreads = (
   };
 
   const addEvent = (event: ThreadEvent) => {
-    setEvents((e) => [...e, event]);
     if (event.onComplete) {
       setBlockingEvent(event);
       setRunning(undefined);
+    } else {
+      setEvents((e) => [...e, event]);
     }
   };
 
   const unblockEvent = () => {
-    blockingEvent?.onComplete?.();
-    setBlockingEvent(undefined);
+    if (blockingEvent) {
+      blockingEvent.onComplete?.();
+      setEvents((e) => [...e, blockingEvent]);
+      setBlockingEvent(undefined);
+    }
   };
 
   const updateSemaphores = (thread: Thread, step: number) => {

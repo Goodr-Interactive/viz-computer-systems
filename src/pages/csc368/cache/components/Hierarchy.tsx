@@ -280,7 +280,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   };
 
   const executeNextInstruction = () => {
-    if (currentInstructionIndexRef.current >= memoryInstructions.length - 1) {
+    if (currentInstructionIndexRef.current >= memoryInstructions.length) {
       console.log("All instructions executed, stopping simulation.");
       setIsSimulating(false);
       stopSimulation();
@@ -315,6 +315,16 @@ export const CacheHierarchyVisualization: React.FC = () => {
           hits: prev.ram.hits + (result.hit ? 0 : 1),
           misses: prev.ram.misses,
         },
+      }));
+
+      // Update cache statistics
+      setCacheStats((prev) => ({
+        ...prev,
+        totalAccesses: prev.totalAccesses + 1,
+        cacheHits: prev.cacheHits + (result.hit ? 1 : 0),
+        cacheMisses: prev.cacheMisses + (result.hit ? 0 : 1),
+        totalLatency: prev.totalLatency + result.latency,
+        subsequentAccessLatency: result.latency,
       }));
 
       // Highlight the accessed level

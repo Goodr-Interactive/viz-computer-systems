@@ -14,13 +14,14 @@
     "check-lint": "eslint . --ext js,jsx,ts,tsx"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.8.0",
     "@fontsource/inter": "^5.2.5",
     "@mynaui/icons-react": "^0.3.3",
     "@radix-ui/react-alert-dialog": "^1.1.13",
     "@radix-ui/react-checkbox": "^1.3.1",
     "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-label": "^2.1.6",
-    "@radix-ui/react-popover": "^1.1.13",
+    "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-progress": "^1.1.6",
     "@radix-ui/react-radio-group": "^1.3.6",
     "@radix-ui/react-scroll-area": "^1.2.9",

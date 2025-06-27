@@ -20,10 +20,6 @@ export interface BinaryBlockProps {
    */
   tooltip?: React.ReactNode;
   /**
-   * Show left border on the first block
-   */
-  showLeftBorder?: boolean;
-  /**
    * Label to display below the blocks
    */
   label?: React.ReactNode;
@@ -43,12 +39,22 @@ export interface BinaryBlockProps {
    * Optional click handler for the entire block group
    */
   onClick?: () => void;
+  /**
+   * Optional array of digits to display inside each block (monospaced)
+   * Array length should match the number of blocks
+   */
+  digits?: Array<string | number>;
 }
 
 /**
  * Represents the physical memory size options in bytes
  */
 export const PhysicalMemorySize = {
+  KB_1: 1 * 1024,
+  KB_32: 32 * 1024,
+  KB_64: 64 * 1024,
+  MB_1: 1 * 1024 * 1024,
+  MB_16: 16 * 1024 * 1024,
   MB_128: 128 * 1024 * 1024,
   MB_256: 256 * 1024 * 1024,
   MB_512: 512 * 1024 * 1024,
@@ -63,6 +69,9 @@ export type PhysicalMemorySize = (typeof PhysicalMemorySize)[keyof typeof Physic
  * Represents the page size options in bytes
  */
 export const PageSize = {
+  B_64: 64,
+  B_128: 128,
+  B_256: 256,
   B_512: 512,
   KB_1: 1 * 1024,
   KB_2: 2 * 1024,
@@ -87,3 +96,16 @@ export const VirtualAddressBits = {
 } as const;
 
 export type VirtualAddressBits = (typeof VirtualAddressBits)[keyof typeof VirtualAddressBits];
+
+export function formatBytes(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+
+  return `${value} ${units[unitIndex]}`;
+}

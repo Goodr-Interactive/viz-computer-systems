@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BinaryBlock } from "./BinaryBlock";
 import { stageSizesConfig, latencyConfigUIEnabled, accessCountsUIEnabled } from "./Config";
 
 const ACCESS_PATTERNS = {
@@ -18,6 +19,111 @@ const ACCESS_PATTERNS = {
   spatial: "spatial",
   noLocality: "noLocality",
 };
+
+// Memory instruction types
+interface MemoryInstruction {
+  id: number;
+  type: 'load' | 'store';
+  address: number;
+  data?: number;
+  description: string;
+}
+
+// Cache configuration for L1
+const L1_CACHE_CONFIG = {
+  size: 32, // 32 bytes
+  blockSize: 4, // 4 bytes per block (1 word)
+  associativity: 2, // 2-way set associative
+  sets: 4, // 32 bytes / (4 bytes/block * 2 ways) = 4 sets
+};
+
+// Generate 10 memory instructions with different access patterns
+const generateInstructions = (pattern: keyof typeof ACCESS_PATTERNS): MemoryInstruction[] => {
+  const instructions: MemoryInstruction[] = [];
+  
+  if (pattern === 'temporal') {
+    // Temporal locality: access same addresses repeatedly with some variation
+    const baseAddresses = [0x1000, 0x1004, 0x1008, 0x1010];
+    for (let i = 0; i < 10; i++) {
+      let addr;
+      if (i < 3) {
+        // First few accesses to different addresses
+        addr = baseAddresses[i];
+      } else if (i < 7) {
+        // Repeat earlier addresses for temporal locality
+        addr = baseAddresses[i % 3];
+      } else {
+        // Mix of repeated and new addresses
+        addr = i === 7 ? 0x1014 : baseAddresses[(i - 1) % baseAddresses.length];
+      }
+      
+      instructions.push({
+        id: i + 1,
+        type: i % 3 === 0 ? 'store' : 'load',
+        address: addr,
+        data: i % 3 === 0 ? 0xDEADBEEF + i : undefined,
+        description: `${i % 3 === 0 ? 'Store' : 'Load'} 0x${addr.toString(16).toUpperCase()}`
+      });
+    }
+  } else if (pattern === 'spatial') {
+    // Spatial locality: access consecutive addresses with some gaps
+    const baseAddr = 0x2000;
+    for (let i = 0; i < 10; i++) {
+      let addr;
+      if (i < 4) {
+        // Sequential access
+        addr = baseAddr + (i * 4);
+      } else if (i < 7) {
+        // Jump to different area but still sequential
+        addr = baseAddr + 0x100 + ((i - 4) * 4);
+      } else {
+        // Some scattered accesses
+        addr = baseAddr + (i * 8);
+      }
+      
+      instructions.push({
+        id: i + 1,
+        type: i % 4 === 0 ? 'store' : 'load',
+        address: addr,
+        data: i % 4 === 0 ? 0xCAFEBABE + i : undefined,
+        description: `${i % 4 === 0 ? 'Store' : 'Load'} 0x${addr.toString(16).toUpperCase()}`
+      });
+    }
+  } else {
+    // No locality: diverse addresses that will cause cache conflicts
+    const noLocalityAddresses = [
+      0x3000, 0x4000, 0x5000, 0x6000,  // Different cache sets
+      0x3040, 0x4040, 0x5040,          // Same sets as first 3, different tags (conflicts)
+      0x7000, 0x8000, 0x9000           // More different addresses
+    ];
+    
+    for (let i = 0; i < 10; i++) {
+      const addr = noLocalityAddresses[i];
+      instructions.push({
+        id: i + 1,
+        type: i % 2 === 0 ? 'store' : 'load',
+        address: addr,
+        data: i % 2 === 0 ? 0xDEADBEEF + i : undefined,
+        description: `${i % 2 === 0 ? 'Store' : 'Load'} 0x${addr.toString(16).toUpperCase()}`
+      });
+    }
+  }
+  return instructions;
+};
+
+// Cache simulation state
+interface CacheBlock {
+  valid: boolean;
+  tag: number;
+  data: number;
+  lastAccessed: number;
+}
+
+interface CacheSet {
+  blocks: CacheBlock[];
+}
+
+type CacheState = CacheSet[];
 
 const STAGE_EXPLANATIONS = {
   cpu: {
@@ -64,8 +170,150 @@ export const CacheHierarchyVisualization: React.FC = () => {
     null
   );
 
+  // New state for memory instruction simulation
+  const [memoryInstructions, setMemoryInstructions] = useState<MemoryInstruction[]>([]);
+  const [currentInstructionIndex, setCurrentInstructionIndex] = useState(0);
+  const currentInstructionIndexRef = useRef(0);
+  const [cacheState, setCacheState] = useState<CacheState>(() => {
+    // Initialize empty cache
+    const cache: CacheState = [];
+    for (let i = 0; i < L1_CACHE_CONFIG.sets; i++) {
+      cache.push({
+        blocks: Array(L1_CACHE_CONFIG.associativity).fill(null).map(() => ({
+          valid: false,
+          tag: 0,
+          data: 0,
+          lastAccessed: 0
+        }))
+      });
+    }
+    return cache;
+  });
+  const [accessHistory, setAccessHistory] = useState<Array<{
+    instruction: MemoryInstruction;
+    hit: boolean;
+    level: 'l1' | 'l2' | 'ram';
+    latency: number;
+  }>>([]);
+
   // Use ref to track current access count synchronously
   const currentAccessCount = useRef(0);
+
+  // Cache simulation functions
+  const getAddressParts = (address: number) => {
+    const blockOffset = address & 0x3; // Last 2 bits (4-byte blocks)
+    const setIndex = (address >> 2) & 0x3; // Next 2 bits (4 sets)
+    const tag = address >> 4; // Remaining bits
+    return { blockOffset, setIndex, tag };
+  };
+
+  const simulateL1Access = (instruction: MemoryInstruction, currentCache: CacheState): { hit: boolean; latency: number; newCacheState: CacheState } => {
+    const { setIndex, tag } = getAddressParts(instruction.address);
+    const set = currentCache[setIndex];
+    
+    console.log(`Instruction ${instruction.id}: ${instruction.description}`);
+    console.log(`  Address: 0x${instruction.address.toString(16)}, Set: ${setIndex}, Tag: 0x${tag.toString(16)}`);
+    
+    // Create a deep copy of cache state for modifications
+    const newCacheState = currentCache.map(cacheSet => ({
+      blocks: cacheSet.blocks.map(block => ({ ...block }))
+    }));
+    
+    // Check for hit
+    const hitBlock = set.blocks.find(block => block.valid && block.tag === tag);
+    
+    if (hitBlock) {
+      // Cache hit - update the block in new state
+      const hitBlockIndex = set.blocks.indexOf(hitBlock);
+      newCacheState[setIndex].blocks[hitBlockIndex].lastAccessed = Date.now();
+      if (instruction.type === 'store' && instruction.data !== undefined) {
+        newCacheState[setIndex].blocks[hitBlockIndex].data = instruction.data;
+      }
+      console.log(`  → HIT in set ${setIndex}, way ${hitBlockIndex}`);
+      return { hit: true, latency: latencyConfig.l1, newCacheState };
+    } else {
+      // Cache miss - need to load from memory
+      // Find replacement block (LRU)
+      let replaceBlockIndex = 0;
+      let replaceBlock = set.blocks[0];
+      
+      for (let i = 0; i < set.blocks.length; i++) {
+        const block = set.blocks[i];
+        if (!block.valid) {
+          replaceBlock = block;
+          replaceBlockIndex = i;
+          break;
+        }
+        if (block.lastAccessed < replaceBlock.lastAccessed) {
+          replaceBlock = block;
+          replaceBlockIndex = i;
+        }
+      }
+      
+      console.log(`  → MISS in set ${setIndex}, replacing way ${replaceBlockIndex} (was tag: 0x${replaceBlock.tag.toString(16)}, valid: ${replaceBlock.valid})`);
+      
+      // Load block from memory in new state
+      newCacheState[setIndex].blocks[replaceBlockIndex] = {
+        valid: true,
+        tag: tag,
+        data: instruction.data || 0,
+        lastAccessed: Date.now()
+      };
+      
+      return { hit: false, latency: latencyConfig.l1 + latencyConfig.ram, newCacheState };
+    }
+  };
+
+  const executeNextInstruction = () => {
+    if (currentInstructionIndexRef.current >= memoryInstructions.length) {
+      console.log("All instructions executed, stopping simulation.");
+      setIsSimulating(false);
+      stopSimulation();
+      return;
+    }
+
+    const instruction = memoryInstructions[currentInstructionIndexRef.current];
+    
+    // Use functional state update to get current cache state
+    setCacheState(currentCache => {
+      const result = simulateL1Access(instruction, currentCache);
+      
+      // Update access history
+      setAccessHistory(prev => [...prev, {
+        instruction,
+        hit: result.hit,
+        level: result.hit ? 'l1' : 'ram',
+        latency: result.latency
+      }]);
+
+      // Update hit/miss statistics
+      setHitMissData(prev => ({
+        ...prev,
+        l1: {
+          hits: prev.l1.hits + (result.hit ? 1 : 0),
+          misses: prev.l1.misses + (result.hit ? 0 : 1)
+        },
+        ram: {
+          hits: prev.ram.hits + (result.hit ? 0 : 1),
+          misses: prev.ram.misses
+        }
+      }));
+
+      // Highlight the accessed level
+      setHighlightedStages(new Set(result.hit ? ['cpu', 'l1'] : ['cpu', 'l1', 'ram']));
+      
+      setTimeout(() => {
+        setHighlightedStages(new Set());
+      }, 800);
+
+      return result.newCacheState;
+    });
+
+    // Update both the ref and state synchronously
+    currentInstructionIndexRef.current += 1;
+    setCurrentInstructionIndex(currentInstructionIndexRef.current);
+    currentAccessCount.current += 1;
+  };
 
   // State to track which stages should be highlighted during access
   const [highlightedStages, setHighlightedStages] = useState<Set<string>>(new Set());
@@ -94,6 +342,10 @@ export const CacheHierarchyVisualization: React.FC = () => {
   // Reset simulation when access pattern changes to avoid stale data
   useEffect(() => {
     resetSimulation();
+    
+    // Generate new instructions for the selected pattern
+    const newInstructions = generateInstructions(selectedPattern);
+    setMemoryInstructions(newInstructions);
 
     // Immediately calculate AMAT for the new pattern
     const hitLevels = DETERMINISTIC_HIT_LEVELS[selectedPattern];
@@ -116,145 +368,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
     setAmat(calculatedAmat);
   }, [selectedPattern, latencyConfig]);
 
-  const simulateAccessPattern = () => {
-    // Use deterministic hit level based on selected pattern and current access count (using ref for synchronous updates)
-    const levels: Array<keyof typeof latencyConfig> = ["l1", "l2", "ram"];
-    const hitLevels = DETERMINISTIC_HIT_LEVELS[selectedPattern];
-    const hitLevel = hitLevels[currentAccessCount.current % hitLevels.length];
-
-    // DEBUG: Console logging
-    console.log("=== SIMULATION DEBUG ===");
-    console.log("Selected Pattern:", selectedPattern);
-    console.log("Hit Levels Array:", hitLevels);
-    console.log("Current Access Count (from ref):", currentAccessCount.current);
-    console.log("Total Accesses (from state):", cacheStats.totalAccesses);
-    console.log(
-      "Index (currentAccessCount % hitLevels.length):",
-      currentAccessCount.current % hitLevels.length
-    );
-    console.log("Hit Level for this access:", hitLevel);
-
-    // Set highlighted stages based on the access level
-    const stagesToHighlight = new Set<string>();
-    stagesToHighlight.add("cpu"); // CPU is always accessed first
-
-    if (hitLevel === "l1") {
-      stagesToHighlight.add("l1");
-    } else if (hitLevel === "l2") {
-      stagesToHighlight.add("l1"); // L1 is checked first
-      stagesToHighlight.add("l2");
-    } else if (hitLevel === "ram") {
-      stagesToHighlight.add("l1"); // L1 is checked first
-      stagesToHighlight.add("l2"); // L2 is checked second
-      stagesToHighlight.add("ram"); // Finally RAM
-    }
-
-    setHighlightedStages(stagesToHighlight);
-    setCurrentAccessLevel(hitLevel);
-
-    // Clear highlights after a brief delay to show the access path
-    setTimeout(() => {
-      setHighlightedStages(new Set());
-    }, 800);
-
-    let totalLatency = 0;
-    let accessCount = 0;
-
-    // Simulate cache hierarchy access - check each level sequentially
-    for (const level of levels) {
-      accessCount++;
-      totalLatency += latencyConfig[level];
-      console.log(`Checking level ${level}, total latency so far: ${totalLatency}`);
-      if (level === hitLevel) {
-        console.log(`HIT at level ${level}! Breaking out of loop.`);
-        break;
-      }
-      console.log(`MISS at level ${level}, continuing to next level...`);
-    }
-
-    // Increment the access count synchronously
-    currentAccessCount.current += 1;
-
-    // Calculate AMAT based on the overall pattern statistics, not just this single access
-    const hitCounts = { l1: 0, l2: 0, ram: 0 };
-    hitLevels.forEach((level) => {
-      hitCounts[level]++;
-    });
-
-    const totalPatternHits = hitLevels.length;
-    const l1HitRate = hitCounts.l1 / totalPatternHits;
-    const l2HitRate = hitCounts.l2 / totalPatternHits;
-    const ramHitRate = hitCounts.ram / totalPatternHits;
-
-    console.log("Hit Counts:", hitCounts);
-    console.log("Hit Rates - L1:", l1HitRate, "L2:", l2HitRate, "RAM:", ramHitRate);
-
-    // AMAT = L1_latency + L1_miss_rate * (L2_latency + L2_miss_rate * RAM_latency)
-    const l1MissRate = 1 - l1HitRate;
-    const l2MissRate = l2HitRate > 0 ? ramHitRate / (l2HitRate + ramHitRate) : 1;
-
-    let calculatedAmat =
-      latencyConfig.l1 + l1MissRate * (latencyConfig.l2 + l2MissRate * latencyConfig.ram);
-
-    console.log("Calculated AMAT:", calculatedAmat);
-    setAmat(calculatedAmat);
-
-    // Count cache misses more accurately - any access that doesn't hit L1 is an L1 miss
-    const isL1Miss = hitLevel !== "l1";
-    const isCacheHit = hitLevel === "l1" || hitLevel === "l2"; // Cache hit if it hits L1 or L2
-    console.log("Is L1 Miss:", isL1Miss);
-    console.log("Is Cache Hit:", isCacheHit);
-    console.log("Total latency for this access:", totalLatency);
-
-    // Update cache stats (now using the ref value for totalAccesses)
-    setCacheStats((prev) => ({
-      ...prev,
-      subsequentAccessLatency: totalLatency, // Use the cumulative latency, not just the hit level latency
-      cacheMisses: prev.cacheMisses + (isL1Miss ? 1 : 0),
-      totalAccesses: currentAccessCount.current, // Use the ref value
-      cacheHits: prev.cacheHits + (isCacheHit ? 1 : 0), // Only L1 or L2 hits count as cache hits
-      totalLatency: prev.totalLatency + totalLatency, // Add this access's latency to total
-    }));
-
-    // Update access counts and hit/miss data based on actual simulation
-    setAccessCounts((prev) => {
-      const updatedCounts = { ...prev };
-      for (let i = 0; i < accessCount; i++) {
-        updatedCounts[levels[i]] += 1;
-      }
-      console.log("Updated access counts:", updatedCounts);
-      return updatedCounts;
-    });
-
-    // Update hit/miss data for stacked bar chart
-    setHitMissData((prev) => {
-      const updated = { ...prev };
-
-      // For each level accessed before hitting
-      for (let i = 0; i < accessCount; i++) {
-        const level = levels[i];
-        if (level === hitLevel) {
-          // This level had a hit
-          updated[level] = {
-            ...updated[level],
-            hits: updated[level].hits + 1,
-          };
-        } else {
-          // This level had a miss
-          updated[level] = {
-            ...updated[level],
-            misses: updated[level].misses + 1,
-          };
-        }
-      }
-
-      console.log("Updated hit/miss data:", updated);
-      return updated;
-    });
-
-    console.log("=== END DEBUG ===\n");
-  };
-
   const startSimulation = () => {
     if (simulationInterval) {
       clearInterval(simulationInterval);
@@ -262,8 +375,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
     setIsSimulating(true);
     const interval = setInterval(() => {
-      simulateAccessPattern();
-    }, 1000);
+      executeNextInstruction();
+    }, 1500); // Slower pace to see each instruction
 
     setSimulationInterval(interval);
   };
@@ -285,6 +398,24 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
     // Reset the ref counter
     currentAccessCount.current = 0;
+    currentInstructionIndexRef.current = 0;
+    setCurrentInstructionIndex(0);
+
+    // Reset cache state
+    setCacheState(() => {
+      const cache: CacheState = [];
+      for (let i = 0; i < L1_CACHE_CONFIG.sets; i++) {
+        cache.push({
+          blocks: Array(L1_CACHE_CONFIG.associativity).fill(null).map(() => ({
+            valid: false,
+            tag: 0,
+            data: 0,
+            lastAccessed: 0
+          }))
+        });
+      }
+      return cache;
+    });
 
     // Reset all state to initial values
     setAmat(null);
@@ -294,6 +425,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
       l2: { hits: 0, misses: 0 },
       ram: { hits: 0, misses: 0 },
     });
+    setAccessHistory([]);
     setCacheStats({
       subsequentAccessLatency: latencyConfig.l1,
       cacheMisses: 0,
@@ -304,6 +436,131 @@ export const CacheHierarchyVisualization: React.FC = () => {
     setCurrentAccessLevel(null);
     setHighlightedStages(new Set());
   };
+
+  const renderMemoryInstructions = () => (
+    <div className="space-y-4">
+      <h4 className="text-lg font-semibold">Memory Instructions ({memoryInstructions.length})</h4>
+      <div className="max-h-64 overflow-y-auto space-y-2">
+        {memoryInstructions.map((instruction, index) => (
+          <div
+            key={instruction.id}
+            className={`p-3 rounded-lg border-2 transition-all ${
+              index === currentInstructionIndex
+                ? 'border-blue-500 bg-blue-50'
+                : index < currentInstructionIndex
+                ? 'border-green-500 bg-green-50'
+                : 'border-gray-300 bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="font-mono text-sm font-medium">
+                  {instruction.id.toString().padStart(2, '0')}
+                </span>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  instruction.type === 'load' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                }`}>
+                  {instruction.type.toUpperCase()}
+                </span>
+                <span className="font-mono text-sm">
+                  {instruction.description}
+                </span>
+              </div>
+              {index < currentInstructionIndex && (
+                <div className="flex items-center space-x-2">
+                  {accessHistory[index] && (
+                    <>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        accessHistory[index].hit ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {accessHistory[index].hit ? 'HIT' : 'MISS'}
+                      </span>
+                      <span className="text-xs text-gray-600">
+                        {accessHistory[index].latency} cycles
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Address breakdown using BinaryBlock */}
+            <div className="mt-2">
+              <div className="text-xs text-gray-600 mb-1">Address Breakdown:</div>
+              <div className="flex items-center space-x-0">
+                {(() => {
+                  const { tag, setIndex, blockOffset } = getAddressParts(instruction.address);
+                  return (
+                    <>
+                      <BinaryBlock
+                        blocks={12}
+                        color="bg-blue-100"
+                        borderColor="border-blue-300"
+                        showLeftBorder={true}
+                        label={`Tag: 0x${tag.toString(16).toUpperCase()}`}
+                        className="text-xs"
+                      />
+                      <BinaryBlock
+                        blocks={2}
+                        color="bg-yellow-100"
+                        borderColor="border-yellow-300"
+                        showLeftBorder={false}
+                        label={`Set: ${setIndex}`}
+                        className="text-xs"
+                      />
+                      <BinaryBlock
+                        blocks={2}
+                        color="bg-green-100"
+                        borderColor="border-green-300"
+                        showLeftBorder={false}
+                        label={`Offset: ${blockOffset}`}
+                        className="text-xs"
+                      />
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderCacheVisualization = () => (
+    <div className="space-y-4">
+      <h4 className="text-lg font-semibold">L1 Cache State (2-way, 4 sets)</h4>
+      <div className="grid grid-cols-1 gap-2">
+        {cacheState.map((set, setIndex) => (
+          <div key={setIndex} className="border rounded-lg p-3">
+            <div className="text-sm font-medium mb-2">Set {setIndex}</div>
+            <div className="grid grid-cols-2 gap-2">
+              {set.blocks.map((block, wayIndex) => (
+                <div
+                  key={wayIndex}
+                  className={`p-2 rounded border-2 text-center text-sm ${
+                    block.valid
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-300 bg-gray-50'
+                  }`}
+                >
+                  <div className="font-medium">Way {wayIndex}</div>
+                  {block.valid ? (
+                    <>
+                      <div className="text-xs text-gray-600">Tag: 0x{block.tag.toString(16).toUpperCase()}</div>
+                      <div className="text-xs text-gray-600">Data: 0x{block.data.toString(16).toUpperCase()}</div>
+                    </>
+                  ) : (
+                    <div className="text-xs text-gray-500">Empty</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   const renderHierarchy = () => (
     <TooltipProvider>
@@ -635,17 +892,37 @@ export const CacheHierarchyVisualization: React.FC = () => {
           <CardContent>
             {renderAccessPattern()}
             <div className="mt-4 flex space-x-4">
-              <Button onClick={startSimulation} disabled={isSimulating}>
-                Start Example
+              <Button onClick={startSimulation} disabled={isSimulating || currentInstructionIndexRef.current >= memoryInstructions.length}>
+                Start Simulation
               </Button>
               <Button onClick={stopSimulation} disabled={!isSimulating}>
-                Stop Example
+                Stop Simulation
               </Button>
               <Button onClick={resetSimulation} variant="outline">
                 Reset
               </Button>
             </div>
+            <div className="mt-4 text-sm text-gray-600">
+              Instruction {currentInstructionIndex + 1} of {memoryInstructions.length}
+            </div>
           </CardContent>
+        </Card>
+      </div>
+
+      {/* Memory Instructions and Cache State */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Memory Instructions</CardTitle>
+          </CardHeader>
+          <CardContent>{renderMemoryInstructions()}</CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>L1 Cache State</CardTitle>
+          </CardHeader>
+          <CardContent>{renderCacheVisualization()}</CardContent>
         </Card>
       </div>
 

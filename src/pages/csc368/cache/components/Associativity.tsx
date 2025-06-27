@@ -262,6 +262,25 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
   const numComparators = config.ways; // One comparator per way for tag comparison
   const muxSize = config.ways; // MUX size equals number of ways
   
+  // Get the appropriate SVG for the current configuration
+  const getAssociativitySvg = (config: CacheConfig) => {
+    const key = `${config.ways}-way-${config.blockSizeWords}-word`;
+    
+    // TODO: Add more SVGs as they become available
+    const svgMap: Record<string, string> = {
+      "1-way-2-word": AssociativitySvg, // Currently available: direct-mapped with 2 words
+      // Add placeholders for future SVGs:
+      // "1-way-1-word": DirectMapped1WordSvg,
+      // "2-way-1-word": TwoWaySetAssociativeSvg,
+      // "4-way-1-word": FourWaySetAssociativeSvg,
+      // "8-way-1-word": FullyAssociativeSvg,
+    };
+    
+    return svgMap[key] || null;
+  };
+  
+  const currentSvg = getAssociativitySvg(config);
+  
   // Transistor count estimation (rough calculation)
   const transistorsPerComparator = 32 * 6; // ~6 transistors per bit comparison (XNOR gate)
   const transistorsPerMux = config.ways > 1 ? config.ways * 4 + 8 : 0; // Transmission gates + control logic
@@ -277,19 +296,32 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
 
   return (
     <div className="space-y-4">
-      {/* Hardware Components Grid */}
-             {/* Hardware Layout */}
-    <div className="space-y-3">
-    <div className="flex justify-center">
-      <div className="relative max-w-3xl w-full">
-        <img 
-          src={AssociativitySvg} 
-          alt={`${muxSize}-to-1 Multiplexer`} 
-          className="w-full h-auto rounded-lg shadow-md border border-gray-300"
-        />
+      {/* Hardware Layout */}
+      <div className="space-y-3">
+        <div className="flex justify-center">
+          <div className="relative max-w-3xl w-full">
+            {currentSvg ? (
+              <img 
+                src={currentSvg} 
+                alt={`${config.ways}-way cache hardware diagram`} 
+                className="w-full h-auto rounded-lg shadow-md border border-gray-300"
+              />
+            ) : (
+              <div className="w-full h-64 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <div className="text-sm font-medium mb-1">Hardware Diagram</div>
+                  <div className="text-xs">
+                    {config.ways}-way, {config.blockSizeWords}-word block
+                  </div>
+                  <div className="text-xs mt-1 italic">
+                    (SVG coming soon)
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Tag Comparators */}

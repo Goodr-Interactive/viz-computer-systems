@@ -16,8 +16,8 @@ export interface LockState {
 }
 
 export interface SemaphoreState {
-  heldBy: string[];
-  waiting: string[];
+  count: number;
+  waiting: Array<string>;
 }
 
 export interface SemaphoreContext {
@@ -59,6 +59,7 @@ export enum ThreadAction {
   CRITICAL_SECTION_ENTER = "CRITICAL_SECTION_ENTER",
   CRITICAL_SECTION_EXIT = "CRITICAL_SECTION_EXIT",
   SEM_WAIT = "SEM_WAIT",
+  SEM_PASS = "SEM_PASS",
   SEM_POST = "SEM_POST",
 }
 
@@ -70,6 +71,8 @@ export interface ThreadEvent {
 }
 
 export const LOCK_COLORS = ["green", "purple", "orange"];
+
+export const SEM_COLORS = ["green", "purple", "orange"]
 
 export const CRITICAL_SECTION_COLORS = ["blue", "red", "yellow"];
 
@@ -87,4 +90,6 @@ export interface ThreadsController {
   threadState: Record<string, ThreadState>;
   colors: Record<string, string>;
   step: (thread: Thread) => void;
+  lockState: Record<string, LockState>;
+  semaphoreState: Record<string, SemaphoreState>;
 }

@@ -9,7 +9,7 @@ export const Legend: React.FunctionComponent<Props> = ({ controller }) => {
   return (
     <div className="h-full w-full p-[12px]">
       <h1 className="text-xl font-medium tracking-tight">Legend</h1>
-      <div className="flex flex-wrap gap-[28px] py-[12px]">
+      <div className="flex flex-wrap gap-[12px] py-[12px]">
         {Object.entries(controller.colors).map(([id, color], index) => (
           <div className="flex items-center gap-[8px]" key={index}>
             <div

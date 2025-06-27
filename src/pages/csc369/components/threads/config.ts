@@ -149,3 +149,179 @@ export const DEADLOCK: ThreadsProps = {
   ],
   semaphores: [],
 };
+
+export const READER_WRITER: ThreadsProps = {
+  title: "Reader & Writer",
+  description:
+    "The following threads example uses Semaphores to manage access to a message queue.",
+  threads: [
+    {
+      id: "Writer",
+      timeSteps: 500,
+      locks: [],
+      criticalSections: [
+        {
+          id: "Write",
+          startAt: 50,
+          endAt: 100,
+        },
+        {
+          id: "Write",
+          startAt: 200,
+          endAt: 250,
+        },
+        {
+          id: "Write",
+          startAt: 350,
+          endAt: 400,
+        },
+      ],
+      semaphores: [
+        {
+          id: "Semaphore",
+          posts: [100, 250, 400],
+          waits: []
+        }
+      ],
+    },
+    {
+      id: "Reader",
+      timeSteps: 500,
+      locks: [],
+      criticalSections: [
+        {
+          id: "Read",
+          startAt: 40,
+          endAt: 90,
+        },
+        {
+          id: "Read",
+          startAt: 210,
+          endAt: 260,
+        },
+        {
+          id: "Read",
+          startAt: 340,
+          endAt: 390,
+        },
+      ],
+      semaphores: [
+        {
+          id: "Semaphore",
+          posts: [],
+          waits: [40, 210, 340]
+        }
+      ],
+    },
+  ],
+  locks: [],
+  semaphores: [
+    {
+      id: "Semaphore",
+      initial: 0
+    }
+  ],
+};
+
+export const MULTI_READER_WRITER: ThreadsProps = {
+  title: "Multiple Reader & Single Writer",
+  description:
+    "The following threads example uses Semaphores to manage access to a message queue.",
+  threads: [
+    {
+      id: "Writer",
+      timeSteps: 500,
+      locks: [],
+      criticalSections: [
+        {
+          id: "Write",
+          startAt: 50,
+          endAt: 75,
+        },
+        {
+          id: "Write",
+          startAt: 150,
+          endAt: 175,
+        },
+        {
+          id: "Write",
+          startAt: 250,
+          endAt: 275,
+        },
+        {
+          id: "Write",
+          startAt: 350,
+          endAt: 375,
+        },
+      ],
+      semaphores: [
+        {
+          id: "Semaphore",
+          posts: [75, 175, 275, 375],
+          waits: []
+        }
+      ],
+    },
+    {
+      id: "Reader 1",
+      timeSteps: 500,
+      locks: [],
+      criticalSections: [
+        {
+          id: "Read",
+          startAt: 30,
+          endAt: 60,
+        },
+        {
+          id: "Read",
+          startAt: 210,
+          endAt: 240,
+        },
+        {
+          id: "Read",
+          startAt: 360,
+          endAt: 390,
+        },
+      ],
+      semaphores: [
+        {
+          id: "Semaphore",
+          posts: [],
+          waits: [30, 210, 360]
+        }
+      ],
+    },
+
+    {
+      id: "Reader 2",
+      timeSteps: 500,
+      locks: [],
+      criticalSections: [
+        {
+          id: "Read",
+          startAt: 130,
+          endAt: 160,
+        },
+        {
+          id: "Read",
+          startAt: 310,
+          endAt: 340,
+        },
+      ],
+      semaphores: [
+        {
+          id: "Semaphore",
+          posts: [],
+          waits: [130, 310]
+        }
+      ],
+    },
+  ],
+  locks: [],
+  semaphores: [
+    {
+      id: "Semaphore",
+      initial: 0
+    }
+  ],
+};

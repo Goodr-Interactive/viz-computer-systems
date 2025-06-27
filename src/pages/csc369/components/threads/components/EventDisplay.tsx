@@ -12,7 +12,8 @@ const ACTIONS: Record<ThreadAction, string> = {
   [ThreadAction.LOCK_RELEASE]: "has released",
   [ThreadAction.LOCK_WAIT]: "is waiting on",
   [ThreadAction.SEM_POST]: "has posted to",
-  [ThreadAction.SEM_WAIT]: "has waited on",
+  [ThreadAction.SEM_WAIT]: "is waiting on",
+  [ThreadAction.SEM_PASS]: "has passed",
   [ThreadAction.CRITICAL_SECTION_ENTER]: "has entered",
   [ThreadAction.CRITICAL_SECTION_EXIT]: "has exited",
 };

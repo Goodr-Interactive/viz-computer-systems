@@ -62,6 +62,34 @@ export const ThreadTimeline: React.FunctionComponent<Props> = ({ thread, control
         />
       ))}
 
+      {thread.semaphores.map((sem, index) =>
+        sem.waits.map((wait, waitIndex) => (
+            <div
+            key={`${sem.id}-${index}-${waitIndex}-wait`}
+            className={`absolute h-[3px] w-full`}
+            style={{
+              top: getVerticalPosition(wait),
+              // @ts-expect-error tailwindcolors
+              backgroundColor: tailwindcolors[controller.colors[sem.id]][500],
+            }}
+          />
+        ))
+      )}
+
+      {thread.semaphores.map((sem, index) =>
+        sem.posts.map((post, postIndex) => (
+          <div
+            key={`${sem.id}-${index}-${postIndex}-post`}
+            className={`absolute h-[3px] w-full border-[1.5px] border-dashed`}
+            style={{
+              top: getVerticalPosition(post),
+              // @ts-expect-error tailwindcolors
+              borderColor: tailwindcolors[controller.colors[sem.id]][500],
+            }}
+          />
+        ))
+      )}
+
       <div
         className={"absolute h-[3px] w-full rounded-md bg-black"}
         style={{ top: getVerticalPosition(controller.threadState[thread.id].timeStep) }}

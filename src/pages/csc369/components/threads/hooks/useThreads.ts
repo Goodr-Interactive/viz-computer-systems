@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CRITICAL_SECTION_COLORS,
   LOCK_COLORS,
+  SEM_COLORS,
   ThreadAction,
   type Lock,
   type LockState,
@@ -44,7 +45,7 @@ export const useThreads = (
   );
 
   const [semaphoreState, setSemaphoreState] = useState<Record<string, SemaphoreState>>(
-    Object.fromEntries(semaphores.map((s) => [s.id, { heldBy: [], waiting: [] }]))
+    Object.fromEntries(semaphores.map((s) => [s.id, { count: s.initial, waiting: [] }]))
   );
 
   const [threadState, setThreadState] = useState<Record<string, ThreadState>>(
@@ -57,6 +58,7 @@ export const useThreads = (
 
   const colors: Record<string, string> = Object.fromEntries([
     ...locks.map(({ id }, index) => [id, LOCK_COLORS[index % LOCK_COLORS.length]]),
+    ...semaphores.map(({ id }, index) => [id, SEM_COLORS[index % SEM_COLORS.length]]),
     ...Array.from(criticalSectionIds).map((id, index) => [
       id,
       CRITICAL_SECTION_COLORS[index % CRITICAL_SECTION_COLORS.length],
@@ -72,6 +74,76 @@ export const useThreads = (
       Object.values(lockState).some((ts) => ts.waiting.includes(thread.id)) ||
       Object.values(semaphoreState).some((sem) => sem.waiting.includes(thread.id))
     );
+  };
+
+  const updateSemaphores = (thread: Thread, step: number) => {
+    const post = thread.semaphores.find(({ posts }) => posts.includes(step));
+
+    const wait = thread.semaphores.find(({ waits }) => waits.includes(step));
+
+    if (post) {
+      const id = post.id;
+      const wake = semaphoreState[id]?.waiting.at(0);
+      setSemaphoreState((s) => ({
+        ...s,
+        [id]: {
+          ...s[id],
+          count: (s[id]?.count ?? 0) + 1,
+          waiting: s[id]?.waiting.filter(waiting => waiting !== wake)
+        },
+      }));
+      setEvents((e) => [
+        ...e,
+        {
+          threadId: thread.id,
+          timeStep: step,
+          action: ThreadAction.SEM_POST,
+          resourceId: id,
+        },
+      ]);
+      const wakeThread = threads.find(thread => thread.id === wake);
+      wakeThread && setRunning(wakeThread);
+    }
+    if (wait) {
+      const id = wait.id;
+      if (semaphoreState[id]?.count <= 0) {
+        if (!semaphoreState[id]?.waiting.includes(thread.id)) {
+          setEvents((e) => [
+            ...e,
+            {
+              threadId: thread.id,
+              timeStep: step,
+              action: ThreadAction.SEM_WAIT,
+              resourceId: id,
+            },
+          ]);
+          setSemaphoreState((s) => ({
+            ...s,
+            [id]: {
+              count: (s[id]?.count ?? 0) - 1,
+              waiting: [...s[id].waiting, thread.id],
+            },
+          }));
+        }
+      } else {
+        setEvents((e) => [
+          ...e,
+          {
+            threadId: thread.id,
+            timeStep: step,
+            action: ThreadAction.SEM_PASS,
+            resourceId: id,
+          },
+        ]);
+        setSemaphoreState((s) => ({
+          ...s,
+          [id]: {
+            count: (s[id]?.count ?? 0) - 1,
+            waiting: (s[id]?.waiting ?? []).filter((waiting) => waiting !== thread.id),
+          },
+        }));
+      }
+    }
   };
 
   const updateLocks = (thread: Thread, step: number) => {
@@ -168,9 +240,10 @@ export const useThreads = (
     setThreadState((ts) => {
       const timeStep = ts[thread.id]?.timeStep;
       if (timeStep !== undefined) {
-        const step = timeStep + Number(!isWaiting(thread));
+        const step = Math.min(timeStep + Number(!isWaiting(thread)), thread.timeSteps);
 
         updateLocks(thread, step);
+        updateSemaphores(thread, step);
         updateCriticalSections(thread, step);
 
         return {
@@ -205,7 +278,7 @@ export const useThreads = (
     );
 
     setSemaphoreState(
-      Object.fromEntries(semaphores.map((s) => [s.id, { heldBy: [], waiting: [] }]))
+      Object.fromEntries(semaphores.map((s) => [s.id, { count: s.initial, waiting: [] }]))
     );
 
     setThreadState(Object.fromEntries(threads.map(({ id }) => [id, { timeStep: 0 }])));
@@ -231,5 +304,7 @@ export const useThreads = (
     running,
     colors,
     step,
+    lockState,
+    semaphoreState,
   };
 };

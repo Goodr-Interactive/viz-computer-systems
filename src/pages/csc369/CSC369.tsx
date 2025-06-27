@@ -10,7 +10,7 @@ export const CSC369: React.FunctionComponent = () => {
       <h1 className="scroll-m-20 text-3xl font-bold tracking-tight">CSC369 – Operating Systems</h1>
       <span>Select a topic to explore below.</span>
 
-      <div className="flex gap-[16px] max-w-[500px] flex-wrap justify-center">
+      <div className="flex max-w-[500px] flex-wrap justify-center gap-[16px]">
         {routes.map((route) => (
           <Button asChild variant="outline">
             <a href={route.path}>{route.title}</a>

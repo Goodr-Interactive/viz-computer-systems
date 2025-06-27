@@ -11,27 +11,20 @@ interface Props {
 }
 
 export const ThreadPlayer: React.FunctionComponent<Props> = ({ thread, controller }) => {
-
   const atStart = Object.values(controller.threadState).every(({ timeStep }) => timeStep === 0);
   const atEnd = controller.threadState[thread.id]?.timeStep === thread.timeSteps;
 
   return (
     <div className="flex h-full w-[250px] flex-col gap-[12px] rounded-lg border p-[12px]">
-      <div className="flex w-full items-center justify-between h-[24px]">
+      <div className="flex h-[24px] w-full items-center justify-between">
         <Label>{thread.id}</Label>
         {!atStart ? (
           atEnd ? (
-            <Badge variant={"secondary"}>
-              Exited
-            </Badge>
+            <Badge variant={"secondary"}>Exited</Badge>
           ) : thread.id === controller.running?.id ? (
-            <Badge>
-              Running
-            </Badge>
+            <Badge>Running</Badge>
           ) : (
-            <Badge variant={"outline"}>
-              Suspended
-            </Badge>
+            <Badge variant={"outline"}>Suspended</Badge>
           )
         ) : null}
       </div>

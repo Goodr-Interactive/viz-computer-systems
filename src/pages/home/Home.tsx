@@ -18,7 +18,7 @@ export const Home: React.FunctionComponent<Props> = ({ routes }) => {
   const [csc369, csc368] = partition(routes, (route) => route.path.includes("csc369"));
 
   return (
-    <div className="flex h-[100vh] w-full flex-col items-center gap-[24px] mt-[100px]">
+    <div className="mt-[100px] flex h-[100vh] w-full flex-col items-center gap-[24px]">
       <h1 className="scroll-m-20 text-3xl font-bold tracking-tight">
         Viz-Computer-Systems by Goodr Interactive
       </h1>

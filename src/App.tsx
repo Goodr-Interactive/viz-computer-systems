@@ -9,7 +9,14 @@ import { SimplePaging } from "./pages/csc369/SimplePaging";
 // computer architecture pages
 import { CSC368 } from "./pages/csc368/CSC368";
 import { Pipelining } from "./pages/csc368/pipelining";
-import { CV_READER_WRITER, DEADLOCK, MULTI_READER_WRITER, READER_WRITER, SIMPLE_MUTEX, Threads } from "./pages/csc369/components/threads";
+import {
+  CV_READER_WRITER,
+  DEADLOCK,
+  MULTI_READER_WRITER,
+  READER_WRITER,
+  SIMPLE_MUTEX,
+  Threads,
+} from "./pages/csc369/components/threads";
 
 export interface AppRoute {
   path: string;
@@ -47,19 +54,19 @@ export const ROUTES: AppRoute[] = [
     path: "/csc369/threads-reader-writer",
     title: "Threads – Reader & Writer with Semaphores",
     description: "",
-    element: <Threads {...READER_WRITER} />
+    element: <Threads {...READER_WRITER} />,
   },
   {
     path: "/csc369/threads-multi-reader-writer",
     title: "Threads – Multiple Reader & Single Writer",
     description: "",
-    element: <Threads {...MULTI_READER_WRITER} />
+    element: <Threads {...MULTI_READER_WRITER} />,
   },
   {
     path: "/csc369/threads-cv-reader-writer",
     title: "Threads – Reader & Writer with Condition Variables",
     description: "",
-    element: <Threads {...CV_READER_WRITER} />
+    element: <Threads {...CV_READER_WRITER} />,
   },
   {
     path: "/csc369/paging",
@@ -85,11 +92,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route key={"/"} element={<Home routes={ROUTES}/>} path="/"/>
+        <Route key={"/"} element={<Home routes={ROUTES} />} path="/" />
         {ROUTES.map(({ element, path }) => (
           <Route key={path} element={element} path={path} />
         ))}
-        
       </Routes>
     </BrowserRouter>
   );

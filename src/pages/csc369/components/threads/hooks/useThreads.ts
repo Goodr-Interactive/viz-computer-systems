@@ -157,7 +157,7 @@ export const useThreads = (
           resourceId: id,
           onComplete: () => {
             setRunning(thread);
-          }
+          },
         });
         setSemaphoreState((s) => ({
           ...s,

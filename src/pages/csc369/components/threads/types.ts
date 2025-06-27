@@ -27,17 +27,17 @@ export interface SemaphoreContext {
 }
 
 export interface ConditionVariable {
-    id: string;
+  id: string;
 }
 
 export interface ConditionVariableContext {
-    id: string;
-    signals: number[];
-    waits: number[];
+  id: string;
+  signals: number[];
+  waits: number[];
 }
 
 export interface ConditionVariableState {
-    waiting: Array<string>;
+  waiting: Array<string>;
 }
 
 export interface Thread {
@@ -77,7 +77,7 @@ export enum ThreadAction {
   SEM_PASS = "SEM_PASS",
   SEM_POST = "SEM_POST",
   CV_WAIT = "CV_WAIT",
-  CV_SIGNAL = "CV_SIGNAL"
+  CV_SIGNAL = "CV_SIGNAL",
 }
 
 export interface ThreadEvent {
@@ -106,7 +106,7 @@ export interface ThreadsController {
   events: ThreadEvent[];
   locks: Lock[];
   semaphores: Semaphore[];
-  conditionVariables: ConditionVariable[],
+  conditionVariables: ConditionVariable[];
   running?: Thread;
   threadState: Record<string, ThreadState>;
   colors: Record<string, string>;

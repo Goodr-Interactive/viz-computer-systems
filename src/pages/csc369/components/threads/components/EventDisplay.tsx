@@ -25,7 +25,7 @@ export const EventDisplay: React.FunctionComponent<Props> = ({ event, controller
     <div className="flex flex-wrap items-center gap-[6px]">
       <span className="text-xs font-bold">{event.threadId} </span>
       <span className="text-xs">{ACTIONS[event.action]}</span>
-      
+
       <span
         className="text-xs"
         // @ts-expect-error tailwindcolors

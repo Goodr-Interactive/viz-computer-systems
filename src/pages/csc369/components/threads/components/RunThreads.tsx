@@ -27,23 +27,24 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
         {controller.blockingEvent ? (
           <Button variant={"outline"} onClick={controller.unblockEvent}>
             <div className="flex items-center gap-[3px]">
-            <span className="text-xs font-bold">{controller.blockingEvent.threadId} </span>
-            <span className="text-xs">{ACTIONS[controller.blockingEvent.action]}</span>
+              <span className="text-xs font-bold">{controller.blockingEvent.threadId} </span>
+              <span className="text-xs">{ACTIONS[controller.blockingEvent.action]}</span>
 
-            <span
-              className="text-xs"
-              style={{
-                // @ts-expect-error tailwindcolors
-                color: tailwindcolors[controller.colors[controller.blockingEvent.resourceId]][500],
-              }}
-            >
-              {controller.blockingEvent.resourceId}
-            </span>
-            <span className="text-muted-foreground text-xs">
-              on Line {controller.blockingEvent.timeStep}
-            </span>
+              <span
+                className="text-xs"
+                style={{
+                  
+                  color:
+                  // @ts-expect-error tailwindcolors
+                    tailwindcolors[controller.colors[controller.blockingEvent.resourceId]][500],
+                }}
+              >
+                {controller.blockingEvent.resourceId}
+              </span>
+              <span className="text-muted-foreground text-xs">
+                on Line {controller.blockingEvent.timeStep}
+              </span>
             </div>
-            
           </Button>
         ) : (
           controller.threads.map((thread) => (

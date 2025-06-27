@@ -21,7 +21,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
       <h1 className="text-xl font-medium tracking-tight">Resources</h1>
       {controller.locks.length ? (
         <div className="flex flex-col">
-          <span className="font-medium text-lg">Locks</span>
+          <span className="text-lg font-medium">Locks</span>
           <Table>
             <TableHeader>
               <TableRow>
@@ -33,12 +33,18 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
             <TableBody>
               {controller.locks.map((lock) => (
                 <TableRow key={lock.id}>
-                  <TableCell className="flex gap-[4px] items-center">
-                     {/** @ts-expect-error tailwind */}
-                    <Lock size={16} color={tailwindcolors[controller.colors[lock.id]][500]}/> {lock.id}
-                 </TableCell>
+                  <TableCell className="flex items-center gap-[4px]">
+                    {/** @ts-expect-error tailwind */}
+                    <Lock size={16} color={tailwindcolors[controller.colors[lock.id]][500]} />{" "}
+                    {lock.id}
+                  </TableCell>
                   <TableCell>{controller.lockState[lock.id]?.heldBy ?? "None"}</TableCell>
-                  <TableCell>{(controller.lockState[lock.id]?.waiting.length ? controller.lockState[lock.id].waiting : ["None"]).join(", ")}</TableCell>
+                  <TableCell>
+                    {(controller.lockState[lock.id]?.waiting.length
+                      ? controller.lockState[lock.id].waiting
+                      : ["None"]
+                    ).join(", ")}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -59,13 +65,17 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
             <TableBody>
               {controller.semaphores.map((sem) => (
                 <TableRow key={sem.id}>
-                  <TableCell className="font-medium flex gap-[4px] items-center">
+                  <TableCell className="flex items-center gap-[4px] font-medium">
                     {/** @ts-expect-error tailwind */}
-                    <Flag size={16} color={tailwindcolors[controller.colors[sem.id]][500]}/> {sem.id}
-                </TableCell>
+                    <Flag size={16} color={tailwindcolors[controller.colors[sem.id]][500]} />{" "}
+                    {sem.id}
+                  </TableCell>
                   <TableCell>{controller.semaphoreState[sem.id]?.count ?? sem.initial}</TableCell>
                   <TableCell>
-                  {(controller.semaphoreState[sem.id]?.waiting.length ? controller.semaphoreState[sem.id].waiting : ["None"]).join(", ")}
+                    {(controller.semaphoreState[sem.id]?.waiting.length
+                      ? controller.semaphoreState[sem.id].waiting
+                      : ["None"]
+                    ).join(", ")}
                   </TableCell>
                 </TableRow>
               ))}
@@ -86,12 +96,20 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
             <TableBody>
               {controller.conditionVariables.map((cv) => (
                 <TableRow key={cv.id}>
-                  <TableCell className="font-medium flex gap-[4px] items-center">
-                    {/** @ts-expect-error tailwind */}
-                    <LayersOne size={16} color={tailwindcolors[controller.colors[cv.id]][500]}/> {cv.id}
-                </TableCell>
+                  <TableCell className="flex items-center gap-[4px] font-medium">
+                    
+                    <LayersOne
+                      size={16}
+                      //@ts-expect-error tailwind
+                      color={tailwindcolors[controller.colors[cv.id]][500]}
+                    />{" "}
+                    {cv.id}
+                  </TableCell>
                   <TableCell>
-                  {(controller.conditionVariableState[cv.id]?.waiting.length ? controller.conditionVariableState[cv.id].waiting : ["None"]).join(", ")}
+                    {(controller.conditionVariableState[cv.id]?.waiting.length
+                      ? controller.conditionVariableState[cv.id].waiting
+                      : ["None"]
+                    ).join(", ")}
                   </TableCell>
                 </TableRow>
               ))}

@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
+
+// Cache configuration for L1
+const L1_CACHE_CONFIG = {
+  size: 32, // 32 bytes
+  blockSize: 8, // 8 bytes per block (2 words, 2 blocks per cache line)
+  associativity: 2, // 2-way set associative
+  sets: 2, // 32 bytes / (8 bytes/block * 2 ways) = 2 sets
+};
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -29,14 +37,6 @@ interface MemoryInstruction {
   description: string;
 }
 
-// Cache configuration for L1
-const L1_CACHE_CONFIG = {
-  size: 32, // 32 bytes
-  blockSize: 4, // 4 bytes per block (1 word)
-  associativity: 2, // 2-way set associative
-  sets: 4, // 32 bytes / (4 bytes/block * 2 ways) = 4 sets
-};
-
 // Generate 10 memory instructions with different access patterns
 const generateInstructions = (pattern: keyof typeof ACCESS_PATTERNS): MemoryInstruction[] => {
   const instructions: MemoryInstruction[] = [];
@@ -66,19 +66,22 @@ const generateInstructions = (pattern: keyof typeof ACCESS_PATTERNS): MemoryInst
       });
     }
   } else if (pattern === "spatial") {
-    // Spatial locality: access consecutive addresses with some gaps
+    // Spatial locality: access consecutive addresses with some repetition to show spatial benefits
     const baseAddr = 0x2000;
     for (let i = 0; i < 10; i++) {
       let addr;
       if (i < 4) {
-        // Sequential access
+        // Sequential access to nearby addresses
         addr = baseAddr + i * 4;
-      } else if (i < 7) {
-        // Jump to different area but still sequential
-        addr = baseAddr + 0x100 + (i - 4) * 4;
+      } else if (i < 6) {
+        // Repeat some earlier addresses to show spatial locality benefit
+        addr = baseAddr + (i - 4) * 4; // Repeat 0x2000, 0x2004
+      } else if (i < 8) {
+        // Continue sequential pattern
+        addr = baseAddr + (i - 4) * 4; // 0x2008, 0x200C
       } else {
-        // Some scattered accesses
-        addr = baseAddr + i * 8;
+        // Access nearby addresses again
+        addr = baseAddr + (i - 8) * 4; // Repeat 0x2000, 0x2004
       }
 
       instructions.push({
@@ -209,8 +212,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
   // Cache simulation functions
   const getAddressParts = (address: number) => {
-    const blockOffset = address & 0x3; // Last 2 bits (4-byte blocks)
-    const setIndex = (address >> 2) & 0x3; // Next 2 bits (4 sets)
+    const blockOffset = address & 0x7; // Last 3 bits (8-byte blocks)
+    const setIndex = (address >> 3) & 0x1; // Next 1 bit (2 sets)
     const tag = address >> 4; // Remaining bits
     return { blockOffset, setIndex, tag };
   };
@@ -522,7 +525,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         className="text-xs"
                       />
                       <BinaryBlock
-                        blocks={2}
+                        blocks={1}
                         color="bg-yellow-100"
                         borderColor="border-yellow-300"
                         showLeftBorder={false}
@@ -530,7 +533,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         className="text-xs"
                       />
                       <BinaryBlock
-                        blocks={2}
+                        blocks={3}
                         color="bg-green-100"
                         borderColor="border-green-300"
                         showLeftBorder={false}
@@ -550,7 +553,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
   const renderCacheVisualization = () => (
     <div className="space-y-4">
-      <h4 className="text-lg font-semibold">L1 Cache State (2-way, 4 sets)</h4>
+      <h4 className="text-lg font-semibold">L1 Cache State (2-way, 2 sets)</h4>
       <div className="grid grid-cols-1 gap-2">
         {cacheState.map((set, setIndex) => (
           <div key={setIndex} className="rounded-lg border p-3">

@@ -304,15 +304,21 @@ export const CacheHierarchyVisualization: React.FC = () => {
         },
       ]);
 
-      // Update hit/miss statistics
+      // Update hit/miss statistics for L1 and L2
       setHitMissData((prev) => ({
         ...prev,
         l1: {
           hits: prev.l1.hits + (result.hit ? 1 : 0),
           misses: prev.l1.misses + (result.hit ? 0 : 1),
         },
+        l2: {
+          // L2 is accessed only on L1 miss, and since we're simulating L1-only, 
+          // all L1 misses result in L2 misses (go to RAM)
+          hits: prev.l2.hits, // No L2 hits in this simple simulation
+          misses: prev.l2.misses + (result.hit ? 0 : 1), // L1 miss = L2 miss
+        },
         ram: {
-          hits: prev.ram.hits + (result.hit ? 0 : 1),
+          hits: prev.ram.hits + (result.hit ? 0 : 1), // RAM access on L1 miss
           misses: prev.ram.misses,
         },
       }));
@@ -326,6 +332,17 @@ export const CacheHierarchyVisualization: React.FC = () => {
         totalLatency: prev.totalLatency + result.latency,
         subsequentAccessLatency: result.latency,
       }));
+
+      // Calculate and update AMAT based on actual simulation results
+      const newTotalAccesses = currentInstructionIndexRef.current + 1;
+      const newCacheHits = hitMissData.l1.hits + (result.hit ? 1 : 0);
+      
+      if (newTotalAccesses > 0) {
+        const l1HitRate = newCacheHits / newTotalAccesses;
+        const l1MissRate = 1 - l1HitRate;
+        const calculatedAmat = latencyConfig.l1 + l1MissRate * latencyConfig.ram;
+        setAmat(calculatedAmat);
+      }
 
       // Highlight the accessed level
       setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "ram"]));
@@ -353,19 +370,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
     totalLatency: 0, // Cumulative latency across all accesses
   });
 
-  // Deterministic hit level sequences for each access pattern
-  const DETERMINISTIC_HIT_LEVELS: Record<
-    keyof typeof ACCESS_PATTERNS,
-    Array<keyof typeof latencyConfig>
-  > = {
-    temporal: ["ram", "l1", "l1", "l1", "l1", "l1", "l1", "l1", "l2", "l1"], // mostly L1 hits (70%), some L2 (20%), rare RAM (10%)
-    spatial: ["ram", "l1", "l2", "l1", "l2", "l1", "l2", "l1", "l2", "ram"], // mix of L1/L2 (40% each), some RAM (20%)
-    noLocality: ["ram", "ram", "ram", "ram", "ram", "ram", "ram", "ram", "ram", "ram"], // mostly RAM (70%), some L2 (10%), rare L1 (20%)
-  };
-
-  // DEBUG: Log the deterministic patterns
-  console.log("DETERMINISTIC_HIT_LEVELS:", DETERMINISTIC_HIT_LEVELS);
-
   // Reset simulation when access pattern changes to avoid stale data
   useEffect(() => {
     resetSimulation();
@@ -373,26 +377,9 @@ export const CacheHierarchyVisualization: React.FC = () => {
     // Generate new instructions for the selected pattern
     const newInstructions = generateInstructions(selectedPattern);
     setMemoryInstructions(newInstructions);
-
-    // Immediately calculate AMAT for the new pattern
-    const hitLevels = DETERMINISTIC_HIT_LEVELS[selectedPattern];
-    const hitCounts = { l1: 0, l2: 0, ram: 0 };
-    hitLevels.forEach((level) => {
-      hitCounts[level]++;
-    });
-
-    const totalPatternHits = hitLevels.length;
-    const l1HitRate = hitCounts.l1 / totalPatternHits;
-    const l2HitRate = hitCounts.l2 / totalPatternHits;
-    const ramHitRate = hitCounts.ram / totalPatternHits;
-
-    const l1MissRate = 1 - l1HitRate;
-    const l2MissRate = l2HitRate > 0 ? ramHitRate / (l2HitRate + ramHitRate) : 1;
-
-    const calculatedAmat =
-      latencyConfig.l1 + l1MissRate * (latencyConfig.l2 + l2MissRate * latencyConfig.ram);
-
-    setAmat(calculatedAmat);
+    
+    // AMAT will be calculated dynamically as the simulation runs
+    setAmat(null);
   }, [selectedPattern, latencyConfig]);
 
   const startSimulation = () => {
@@ -811,15 +798,13 @@ export const CacheHierarchyVisualization: React.FC = () => {
   };
 
   const renderCacheStats = () => {
-    // Calculate actual hit rates from the deterministic pattern
-    const hitLevels = DETERMINISTIC_HIT_LEVELS[selectedPattern];
-    const totalHits = hitLevels.length;
-    const hitCounts = { l1: 0, l2: 0, ram: 0 };
-
-    // Count hits at each level in the deterministic pattern
-    hitLevels.forEach((level) => {
-      hitCounts[level]++;
-    });
+    // Calculate actual hit rates from the real simulation results
+    // In this simulation: L1 hit = data found in L1, L1 miss = check L2, L2 miss = go to RAM
+    const actualHitCounts = {
+      l1: cacheStats.cacheHits, // Actual L1 hits
+      l2: 0, // In this simplified simulation, we don't simulate L2 storage, so no L2 hits
+      ram: cacheStats.cacheMisses, // L1 misses that result in RAM access (via L2 miss)
+    };
 
     // Calculate average latency
     const averageLatency =
@@ -836,17 +821,17 @@ export const CacheHierarchyVisualization: React.FC = () => {
             <span className="text-lg font-semibold">{cacheStats.totalAccesses}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-sm font-medium">Cache Hits (L1/L2)</span>
+            <span className="text-muted-foreground text-sm font-medium">L1 Cache Hits</span>
             <span className="text-lg font-semibold text-green-600">{cacheStats.cacheHits}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-sm font-medium">Cache Misses (L1)</span>
+            <span className="text-muted-foreground text-sm font-medium">L1 Cache Misses</span>
             <span className="text-lg font-semibold text-red-600">{cacheStats.cacheMisses}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-sm font-medium">RAM Accesses</span>
+            <span className="text-muted-foreground text-sm font-medium">L2 Misses → RAM</span>
             <span className="text-lg font-semibold text-orange-600">
-              {cacheStats.totalAccesses - cacheStats.cacheHits}
+              {cacheStats.cacheMisses}
             </span>
           </div>
         </div>
@@ -882,7 +867,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
         {/* Pattern Distribution */}
         <div className="border-t pt-4">
           <h5 className="mb-3 text-center text-sm font-semibold">
-            Current Pattern (
+            Actual Simulation Results (
             {selectedPattern === "temporal"
               ? "Temporal"
               : selectedPattern === "spatial"
@@ -891,8 +876,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
             ) Hit Distribution
           </h5>
           <div className="grid grid-cols-3 gap-2 text-center">
-            {Object.entries(hitCounts).map(([level, count]) => {
-              const hitRate = (count / totalHits) * 100;
+            {Object.entries(actualHitCounts).map(([level, count]) => {
+              const hitRate = cacheStats.totalAccesses > 0 ? (count / cacheStats.totalAccesses) * 100 : 0;
               return (
                 <div key={level} className="flex flex-col rounded bg-gray-50 px-2 py-2">
                   <span className="text-muted-foreground text-xs font-medium">
@@ -900,7 +885,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                   </span>
                   <span className="text-sm font-semibold">{hitRate.toFixed(1)}%</span>
                   <span className="text-muted-foreground text-xs">
-                    ({count}/{totalHits})
+                    ({count}/{cacheStats.totalAccesses})
                   </span>
                 </div>
               );

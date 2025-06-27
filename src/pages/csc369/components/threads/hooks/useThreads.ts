@@ -80,7 +80,7 @@ export const useThreads = (
   ]);
 
   const [events, setEvents] = useState<ThreadEvent[]>([]);
-
+  const [blockingEvent, setBlockingEvent] = useState<ThreadEvent>();
   const [running, setRunning] = useState<Thread>();
 
   const isWaiting = (thread: Thread): boolean => {
@@ -89,6 +89,19 @@ export const useThreads = (
       Object.values(semaphoreState).some((sem) => sem.waiting.includes(thread.id)) ||
       Object.values(conditionVariableState).some((cv) => cv.waiting.includes(thread.id))
     );
+  };
+
+  const addEvent = (event: ThreadEvent) => {
+    setEvents((e) => [...e, event]);
+    if (event.onComplete) {
+      setBlockingEvent(event);
+      setRunning(undefined);
+    }
+  };
+
+  const unblockEvent = () => {
+    blockingEvent?.onComplete?.();
+    setBlockingEvent(undefined);
   };
 
   const updateSemaphores = (thread: Thread, step: number) => {
@@ -107,31 +120,27 @@ export const useThreads = (
           waiting: s[id]?.waiting.filter((waiting) => waiting !== wake),
         },
       }));
-      setEvents((e) => [
-        ...e,
-        {
-          threadId: thread.id,
-          timeStep: step,
-          action: ThreadAction.SEM_POST,
-          resourceId: id,
+      addEvent({
+        threadId: thread.id,
+        timeStep: step,
+        action: ThreadAction.SEM_POST,
+        resourceId: id,
+        onComplete: () => {
+          const wakeThread = threads.find((thread) => thread.id === wake);
+          setRunning(wakeThread ?? thread);
         },
-      ]);
-      const wakeThread = threads.find((thread) => thread.id === wake);
-      wakeThread && setRunning(wakeThread);
+      });
     }
     if (wait) {
       const id = wait.id;
       if (semaphoreState[id]?.count <= 0) {
         if (!semaphoreState[id]?.waiting.includes(thread.id)) {
-          setEvents((e) => [
-            ...e,
-            {
-              threadId: thread.id,
-              timeStep: step,
-              action: ThreadAction.SEM_WAIT,
-              resourceId: id,
-            },
-          ]);
+          addEvent({
+            threadId: thread.id,
+            timeStep: step,
+            action: ThreadAction.SEM_WAIT,
+            resourceId: id,
+          });
           setSemaphoreState((s) => ({
             ...s,
             [id]: {
@@ -141,15 +150,15 @@ export const useThreads = (
           }));
         }
       } else {
-        setEvents((e) => [
-          ...e,
-          {
-            threadId: thread.id,
-            timeStep: step,
-            action: ThreadAction.SEM_PASS,
-            resourceId: id,
-          },
-        ]);
+        addEvent({
+          threadId: thread.id,
+          timeStep: step,
+          action: ThreadAction.SEM_PASS,
+          resourceId: id,
+          onComplete: () => {
+            setRunning(thread);
+          }
+        });
         setSemaphoreState((s) => ({
           ...s,
           [id]: {
@@ -175,30 +184,26 @@ export const useThreads = (
           waiting: s[id]?.waiting.filter((waiting) => waiting !== wake),
         },
       }));
-      setEvents((e) => [
-        ...e,
-        {
-          threadId: thread.id,
-          timeStep: step,
-          action: ThreadAction.CV_SIGNAL,
-          resourceId: id,
+      addEvent({
+        threadId: thread.id,
+        timeStep: step,
+        action: ThreadAction.CV_SIGNAL,
+        resourceId: id,
+        onComplete: () => {
+          const wakeThread = threads.find((thread) => thread.id === wake);
+          setRunning(wakeThread ?? thread);
         },
-      ]);
-      const wakeThread = threads.find((thread) => thread.id === wake);
-      wakeThread && setRunning(wakeThread);
+      });
     }
     if (wait) {
       const id = wait.id;
       if (!conditionVariableState[id]?.waiting.includes(thread.id)) {
-        setEvents((e) => [
-          ...e,
-          {
-            threadId: thread.id,
-            timeStep: step,
-            action: ThreadAction.CV_WAIT,
-            resourceId: id,
-          },
-        ]);
+        addEvent({
+          threadId: thread.id,
+          timeStep: step,
+          action: ThreadAction.CV_WAIT,
+          resourceId: id,
+        });
         setConditionVariableState((s) => ({
           ...s,
           [id]: {
@@ -213,33 +218,30 @@ export const useThreads = (
     const acquire = thread.locks?.find((lock) => lock.acquireAt === step);
     if (acquire) {
       if (lockState[acquire.id].heldBy === undefined) {
-        setEvents((e) => [
-          ...e,
-          {
-            threadId: thread.id,
-            timeStep: step,
-            action: ThreadAction.LOCK_ACQUIRE,
-            resourceId: acquire.id,
+        addEvent({
+          threadId: thread.id,
+          timeStep: step,
+          action: ThreadAction.LOCK_ACQUIRE,
+          resourceId: acquire.id,
+          onComplete: () => {
+            setLockState((ls) => ({
+              ...ls,
+              [acquire.id]: {
+                ...(lockState[acquire.id] ?? { waiting: [] }),
+                heldBy: thread.id,
+                waiting: lockState[acquire.id]?.waiting.filter((id) => id !== thread.id) ?? [],
+              },
+            }));
+            setRunning(thread);
           },
-        ]);
-        setLockState((ls) => ({
-          ...ls,
-          [acquire.id]: {
-            ...(lockState[acquire.id] ?? { waiting: [] }),
-            heldBy: thread.id,
-            waiting: lockState[acquire.id]?.waiting.filter((id) => id !== thread.id) ?? [],
-          },
-        }));
+        });
       } else if (!lockState[acquire.id].waiting.includes(thread.id)) {
-        setEvents((e) => [
-          ...e,
-          {
-            threadId: thread.id,
-            timeStep: step,
-            action: ThreadAction.LOCK_WAIT,
-            resourceId: acquire.id,
-          },
-        ]);
+        addEvent({
+          threadId: thread.id,
+          timeStep: step,
+          action: ThreadAction.LOCK_WAIT,
+          resourceId: acquire.id,
+        });
         setLockState((ls) => ({
           ...ls,
           [acquire.id]: {
@@ -252,22 +254,22 @@ export const useThreads = (
     const release = thread.locks?.find((lock) => lock.releaseAt === step);
     if (release) {
       if (lockState[release.id].heldBy === thread.id) {
-        setEvents((e) => [
-          ...e,
-          {
-            threadId: thread.id,
-            timeStep: step,
-            action: ThreadAction.LOCK_RELEASE,
-            resourceId: release.id,
+        addEvent({
+          threadId: thread.id,
+          timeStep: step,
+          action: ThreadAction.LOCK_RELEASE,
+          resourceId: release.id,
+          onComplete: () => {
+            setLockState((ls) => ({
+              ...ls,
+              [release.id]: {
+                ...(lockState[release.id] ?? { waiting: [] }),
+                heldBy: undefined,
+              },
+            }));
+            setRunning(thread);
           },
-        ]);
-        setLockState((ls) => ({
-          ...ls,
-          [release.id]: {
-            ...(lockState[release.id] ?? { waiting: [] }),
-            heldBy: undefined,
-          },
-        }));
+        });
       }
     }
   };
@@ -275,27 +277,21 @@ export const useThreads = (
   const updateCriticalSections = (thread: Thread, step: number) => {
     const entered = thread.criticalSections?.find((cs) => cs.startAt + 1 === step);
     if (entered) {
-      setEvents((e) => [
-        ...e,
-        {
-          threadId: thread.id,
-          timeStep: step,
-          action: ThreadAction.CRITICAL_SECTION_ENTER,
-          resourceId: entered.id,
-        },
-      ]);
+      addEvent({
+        threadId: thread.id,
+        timeStep: step,
+        action: ThreadAction.CRITICAL_SECTION_ENTER,
+        resourceId: entered.id,
+      });
     }
     const exited = thread.criticalSections?.find((cs) => cs.endAt - 1 === step);
     if (exited) {
-      setEvents((e) => [
-        ...e,
-        {
-          threadId: thread.id,
-          timeStep: step,
-          action: ThreadAction.CRITICAL_SECTION_EXIT,
-          resourceId: exited.id,
-        },
-      ]);
+      addEvent({
+        threadId: thread.id,
+        timeStep: step,
+        action: ThreadAction.CRITICAL_SECTION_EXIT,
+        resourceId: exited.id,
+      });
     }
   };
 
@@ -351,8 +347,9 @@ export const useThreads = (
 
     setThreadState(Object.fromEntries(threads.map(({ id }) => [id, { timeStep: 0 }])));
 
-
     setEvents([]);
+    setBlockingEvent(undefined);
+    setRunning(undefined);
   };
 
   const mutualExclusionViolations: MutualExclusionViolation[] = useMemo(() => {
@@ -376,6 +373,8 @@ export const useThreads = (
     lockState,
     semaphoreState,
     conditionVariables,
-    conditionVariableState
+    conditionVariableState,
+    blockingEvent,
+    unblockEvent,
   };
 };

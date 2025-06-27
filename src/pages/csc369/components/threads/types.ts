@@ -85,6 +85,7 @@ export interface ThreadEvent {
   action: ThreadAction;
   timeStep: number;
   resourceId: string;
+  onComplete?: () => void;
 }
 
 export const LOCK_COLORS = ["green", "purple", "orange"];
@@ -113,4 +114,6 @@ export interface ThreadsController {
   lockState: Record<string, LockState>;
   semaphoreState: Record<string, SemaphoreState>;
   conditionVariableState: Record<string, ConditionVariableState>;
+  blockingEvent?: ThreadEvent;
+  unblockEvent: () => void;
 }

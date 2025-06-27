@@ -17,7 +17,7 @@ export const ThreadPlayer: React.FunctionComponent<Props> = ({ thread, controlle
 
   return (
     <div className="flex h-full w-[250px] flex-col gap-[12px] rounded-lg border p-[12px]">
-      <div className="flex w-full items-center justify-between">
+      <div className="flex w-full items-center justify-between h-[24px]">
         <Label>{thread.id}</Label>
         {!atStart ? (
           atEnd ? (

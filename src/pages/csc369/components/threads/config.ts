@@ -32,7 +32,6 @@ export const SIMPLE_MUTEX: ThreadsProps = {
           endAt: 700,
         },
       ],
-      semaphores: [],
     },
     {
       id: "Thread 2",
@@ -61,7 +60,6 @@ export const SIMPLE_MUTEX: ThreadsProps = {
           endAt: 600,
         },
       ],
-      semaphores: [],
     },
   ],
   locks: [
@@ -72,7 +70,6 @@ export const SIMPLE_MUTEX: ThreadsProps = {
       id: "Lock 2",
     },
   ],
-  semaphores: [],
 };
 
 export const DEADLOCK: ThreadsProps = {
@@ -107,7 +104,6 @@ export const DEADLOCK: ThreadsProps = {
           endAt: 600,
         },
       ],
-      semaphores: [],
     },
     {
       id: "Thread 2",
@@ -136,7 +132,6 @@ export const DEADLOCK: ThreadsProps = {
           endAt: 700,
         },
       ],
-      semaphores: [],
     },
   ],
   locks: [
@@ -147,18 +142,15 @@ export const DEADLOCK: ThreadsProps = {
       id: "Lock 2",
     },
   ],
-  semaphores: [],
 };
 
 export const READER_WRITER: ThreadsProps = {
-  title: "Reader & Writer",
-  description:
-    "The following threads example uses Semaphores to manage access to a message queue.",
+  title: "Reader & Writer – Semaphores",
+  description: "The following threads example uses Semaphores to manage access to a message queue.",
   threads: [
     {
       id: "Writer",
       timeSteps: 500,
-      locks: [],
       criticalSections: [
         {
           id: "Write",
@@ -180,14 +172,13 @@ export const READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [100, 250, 400],
-          waits: []
-        }
+          waits: [],
+        },
       ],
     },
     {
       id: "Reader",
       timeSteps: 500,
-      locks: [],
       criticalSections: [
         {
           id: "Read",
@@ -209,29 +200,26 @@ export const READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [],
-          waits: [40, 210, 340]
-        }
+          waits: [40, 210, 340],
+        },
       ],
     },
   ],
-  locks: [],
   semaphores: [
     {
       id: "Semaphore",
-      initial: 0
-    }
+      initial: 0,
+    },
   ],
 };
 
 export const MULTI_READER_WRITER: ThreadsProps = {
   title: "Multiple Reader & Single Writer",
-  description:
-    "The following threads example uses Semaphores to manage access to a message queue.",
+  description: "The following threads example uses Semaphores to manage access to a message queue.",
   threads: [
     {
       id: "Writer",
       timeSteps: 500,
-      locks: [],
       criticalSections: [
         {
           id: "Write",
@@ -258,14 +246,13 @@ export const MULTI_READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [75, 175, 275, 375],
-          waits: []
-        }
+          waits: [],
+        },
       ],
     },
     {
       id: "Reader 1",
       timeSteps: 500,
-      locks: [],
       criticalSections: [
         {
           id: "Read",
@@ -287,15 +274,13 @@ export const MULTI_READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [],
-          waits: [30, 210, 360]
-        }
+          waits: [30, 210, 360],
+        },
       ],
     },
-
     {
       id: "Reader 2",
       timeSteps: 500,
-      locks: [],
       criticalSections: [
         {
           id: "Read",
@@ -312,16 +297,83 @@ export const MULTI_READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [],
-          waits: [130, 310]
-        }
+          waits: [130, 310],
+        },
       ],
     },
   ],
-  locks: [],
   semaphores: [
     {
       id: "Semaphore",
-      initial: 0
-    }
+      initial: 0,
+    },
+  ],
+};
+
+export const CV_READER_WRITER: ThreadsProps = {
+  title: "Reader & Writer – Condition Variables",
+  description: "The following threads example uses Semaphores to manage access to a message queue.",
+  threads: [
+    {
+      id: "Writer",
+      timeSteps: 500,
+      criticalSections: [
+        {
+          id: "Write",
+          startAt: 50,
+          endAt: 100,
+        },
+        {
+          id: "Write",
+          startAt: 200,
+          endAt: 250,
+        },
+        {
+          id: "Write",
+          startAt: 350,
+          endAt: 400,
+        },
+      ],
+      conditionVariables: [
+        {
+          id: "Condition Variable",
+          signals: [100, 250, 400],
+          waits: [],
+        },
+      ],
+    },
+    {
+      id: "Reader",
+      timeSteps: 500,
+      criticalSections: [
+        {
+          id: "Read",
+          startAt: 40,
+          endAt: 90,
+        },
+        {
+          id: "Read",
+          startAt: 210,
+          endAt: 260,
+        },
+        {
+          id: "Read",
+          startAt: 340,
+          endAt: 390,
+        },
+      ],
+      conditionVariables: [
+        {
+          id: "Condition Variable",
+          signals: [],
+          waits: [40, 210, 340],
+        },
+      ],
+    },
+  ],
+  conditionVariables: [
+    {
+      id: "Condition Variable",
+    },
   ],
 };

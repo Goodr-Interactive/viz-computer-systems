@@ -19,7 +19,7 @@ export const ThreadTimeline: React.FunctionComponent<Props> = ({ thread, control
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xs bg-gray-200">
-      {thread.criticalSections.map((cs, index) => (
+      {(thread.criticalSections ?? []).map((cs, index) => (
         <div
           key={`${cs.id}-${index}`}
           className={`absolute flex w-full items-center justify-center text-xs`}
@@ -38,7 +38,7 @@ export const ThreadTimeline: React.FunctionComponent<Props> = ({ thread, control
       {/* {thread.semaphores.map((sem) => (
         <></>
       ))} */}
-      {thread.locks.map((lock, index) => (
+      {(thread.locks ?? []).map((lock, index) => (
         <div
           key={`${lock.id}-${index}-acquire`}
           className={`absolute h-[3px] w-full`}
@@ -50,7 +50,7 @@ export const ThreadTimeline: React.FunctionComponent<Props> = ({ thread, control
         />
       ))}
 
-      {thread.locks.map((lock, index) => (
+      {(thread.locks ?? []).map((lock, index) => (
         <div
           key={`${lock.id}-${index}-release`}
           className={`absolute h-[3px] w-full border-[1.5px] border-dashed`}
@@ -62,9 +62,9 @@ export const ThreadTimeline: React.FunctionComponent<Props> = ({ thread, control
         />
       ))}
 
-      {thread.semaphores.map((sem, index) =>
+      {(thread.semaphores ?? []).map((sem, index) =>
         sem.waits.map((wait, waitIndex) => (
-            <div
+          <div
             key={`${sem.id}-${index}-${waitIndex}-wait`}
             className={`absolute h-[3px] w-full`}
             style={{
@@ -76,7 +76,7 @@ export const ThreadTimeline: React.FunctionComponent<Props> = ({ thread, control
         ))
       )}
 
-      {thread.semaphores.map((sem, index) =>
+      {(thread.semaphores ?? []).map((sem, index) =>
         sem.posts.map((post, postIndex) => (
           <div
             key={`${sem.id}-${index}-${postIndex}-post`}
@@ -85,6 +85,34 @@ export const ThreadTimeline: React.FunctionComponent<Props> = ({ thread, control
               top: getVerticalPosition(post),
               // @ts-expect-error tailwindcolors
               borderColor: tailwindcolors[controller.colors[sem.id]][500],
+            }}
+          />
+        ))
+      )}
+
+      {(thread.conditionVariables ?? []).map((cv, index) =>
+        cv.waits.map((wait, waitIndex) => (
+          <div
+            key={`${cv.id}-${index}-${waitIndex}-wait`}
+            className={`absolute h-[3px] w-full`}
+            style={{
+              top: getVerticalPosition(wait),
+              // @ts-expect-error tailwindcolors
+              backgroundColor: tailwindcolors[controller.colors[cv.id]][500],
+            }}
+          />
+        ))
+      )}
+
+      {(thread.conditionVariables ?? []).map((cv, index) =>
+        cv.signals.map((sig, sigIndex) => (
+          <div
+            key={`${cv.id}-${index}-${sigIndex}-signal`}
+            className={`absolute h-[3px] w-full border-[1.5px] border-dashed`}
+            style={{
+              top: getVerticalPosition(sig),
+              // @ts-expect-error tailwindcolors
+              borderColor: tailwindcolors[controller.colors[cv.id]][500],
             }}
           />
         ))

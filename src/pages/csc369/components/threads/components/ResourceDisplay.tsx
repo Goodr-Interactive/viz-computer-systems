@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Lock, Flag } from "@mynaui/icons-react";
+import { Lock, Flag, LayersOne } from "@mynaui/icons-react";
 import tailwindcolors from "tailwindcss/colors";
 
 interface Props {
@@ -32,7 +32,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
             </TableHeader>
             <TableBody>
               {controller.locks.map((lock) => (
-                <TableRow>
+                <TableRow key={lock.id}>
                   <TableCell className="flex gap-[4px] items-center">
                      {/** @ts-expect-error tailwind */}
                     <Lock size={16} color={tailwindcolors[controller.colors[lock.id]][500]}/> {lock.id}
@@ -58,14 +58,40 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
             </TableHeader>
             <TableBody>
               {controller.semaphores.map((sem) => (
-                <TableRow>
+                <TableRow key={sem.id}>
                   <TableCell className="font-medium flex gap-[4px] items-center">
                     {/** @ts-expect-error tailwind */}
-                    <Flag fill={tailwindcolors[controller.colors[sem.id]][500]} size={16} color={tailwindcolors[controller.colors[sem.id]][500]}/> {sem.id}
+                    <Flag size={16} color={tailwindcolors[controller.colors[sem.id]][500]}/> {sem.id}
                 </TableCell>
                   <TableCell>{controller.semaphoreState[sem.id]?.count ?? sem.initial}</TableCell>
                   <TableCell>
                   {(controller.semaphoreState[sem.id]?.waiting.length ? controller.semaphoreState[sem.id].waiting : ["None"]).join(", ")}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </>
+      ) : null}
+      {controller.conditionVariables.length ? (
+        <>
+          <span>Condition Variables</span>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]"></TableHead>
+                <TableHead>Waiting</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {controller.conditionVariables.map((cv) => (
+                <TableRow key={cv.id}>
+                  <TableCell className="font-medium flex gap-[4px] items-center">
+                    {/** @ts-expect-error tailwind */}
+                    <LayersOne size={16} color={tailwindcolors[controller.colors[cv.id]][500]}/> {cv.id}
+                </TableCell>
+                  <TableCell>
+                  {(controller.conditionVariableState[cv.id]?.waiting.length ? controller.conditionVariableState[cv.id].waiting : ["None"]).join(", ")}
                   </TableCell>
                 </TableRow>
               ))}

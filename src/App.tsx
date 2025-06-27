@@ -9,7 +9,7 @@ import { SimplePaging } from "./pages/csc369/SimplePaging";
 // computer architecture pages
 import { CSC368 } from "./pages/csc368/CSC368";
 import { Pipelining } from "./pages/csc368/pipelining";
-import { DEADLOCK, MULTI_READER_WRITER, READER_WRITER, SIMPLE_MUTEX, Threads } from "./pages/csc369/components/threads";
+import { CV_READER_WRITER, DEADLOCK, MULTI_READER_WRITER, READER_WRITER, SIMPLE_MUTEX, Threads } from "./pages/csc369/components/threads";
 
 export interface AppRoute {
   path: string;
@@ -45,7 +45,7 @@ export const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc369/threads-reader-writer",
-    title: "Threads – Reader & Writer",
+    title: "Threads – Reader & Writer with Semaphores",
     description: "",
     element: <Threads {...READER_WRITER} />
   },
@@ -54,6 +54,12 @@ export const ROUTES: AppRoute[] = [
     title: "Threads – Multiple Reader & Single Writer",
     description: "",
     element: <Threads {...MULTI_READER_WRITER} />
+  },
+  {
+    path: "/csc369/threads-cv-reader-writer",
+    title: "Threads – Reader & Writer with Condition Variables",
+    description: "",
+    element: <Threads {...CV_READER_WRITER} />
   },
   {
     path: "/csc369/paging",

@@ -1,6 +1,6 @@
 import React from "react";
 import type { Thread, ThreadsController } from "../types";
-import { Lock, LockOpen, Flag } from "@mynaui/icons-react";
+import { Lock, LockOpen, Flag, LayersOne } from "@mynaui/icons-react";
 import tailwindcolors from "tailwindcss/colors";
 
 interface Props {
@@ -18,7 +18,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
       {/* {thread.semaphores.map((sem) => (
         <></>
       ))} */}
-      {thread.locks.map((lock, index) => (
+      {(thread.locks ?? []).map((lock, index) => (
         <Lock
           strokeWidth={2}
           className={`absolute`}
@@ -32,7 +32,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
         />
       ))}
 
-      {thread.locks.map((lock, index) => (
+      {(thread.locks ?? []).map((lock, index) => (
         <LockOpen
           strokeWidth={2}
           className={`absolute`}
@@ -46,7 +46,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
         />
       ))}
 
-      {thread.semaphores.map((sem, index) =>
+      {(thread.semaphores ?? []).map((sem, index) =>
         sem.posts.map((post, postIndex) => (
           <Flag
             strokeWidth={2}
@@ -61,7 +61,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
           />
         ))
       )}
-      {thread.semaphores.map((sem, index) =>
+      {(thread.semaphores ?? []).map((sem, index) =>
         sem.waits.map((wait, waitIndex) => (
           <Flag
             strokeWidth={2}
@@ -75,6 +75,39 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
             fill={tailwindcolors[controller.colors[sem.id]][500]}
             size={16}
             key={`${sem.id}-${index}-${waitIndex}-wait`}
+          />
+        ))
+      )}
+
+      {(thread.conditionVariables ?? []).map((cv, index) =>
+        cv.signals.map((sig, sigIndex) => (
+          <LayersOne
+            strokeWidth={2}
+            className={`absolute`}
+            style={{
+              top: getVerticalPosition(sig),
+            }}
+            // @ts-expect-error tailwindcolors
+            color={tailwindcolors[controller.colors[cv.id]][500]}
+            size={16}
+            key={`${cv.id}-${index}-${sigIndex}-signal`}
+          />
+        ))
+      )}
+      {(thread.conditionVariables ?? []).map((cv, index) =>
+        cv.waits.map((wait, waitIndex) => (
+          <LayersOne
+            strokeWidth={2}
+            className={`absolute`}
+            style={{
+              top: getVerticalPosition(wait),
+            }}
+            // @ts-expect-error tailwindcolors
+            color={tailwindcolors[controller.colors[cv.id]][500]}
+            // @ts-expect-error tailwindcolors
+            fill={tailwindcolors[controller.colors[cv.id]][500]}
+            size={16}
+            key={`${cv.id}-${index}-${waitIndex}-wait`}
           />
         ))
       )}

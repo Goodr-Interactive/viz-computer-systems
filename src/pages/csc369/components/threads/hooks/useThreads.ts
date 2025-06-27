@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CRITICAL_SECTION_COLORS,
+  CV_COLORS,
   LOCK_COLORS,
   SEM_COLORS,
   ThreadAction,
+  type ConditionVariable,
+  type ConditionVariableState,
   type Lock,
   type LockState,
   type MutualExclusionViolation,
@@ -18,19 +21,25 @@ import {
 export const useThreads = (
   threads: Thread[],
   locks: Lock[],
-  semaphores: Semaphore[]
+  semaphores: Semaphore[],
+  conditionVariables: ConditionVariable[]
 ): ThreadsController => {
   const accessedResourceIds = useMemo(
     () =>
       threads.flatMap((thread) => [
-        ...thread.locks.map(({ id }) => id),
-        ...thread.semaphores.map(({ id }) => id),
+        ...(thread.locks?.map(({ id }) => id) ?? []),
+        ...(thread.semaphores?.map(({ id }) => id) ?? []),
+        ...(thread.conditionVariables?.map(({ id }) => id) ?? []),
       ]),
     [threads]
   );
 
   const resourceIds = useMemo(
-    () => [...locks.map(({ id }) => id), ...semaphores.map(({ id }) => id)],
+    () => [
+      ...locks.map(({ id }) => id),
+      ...semaphores.map(({ id }) => id),
+      ...conditionVariables.map(({ id }) => id),
+    ],
     [locks, semaphores]
   );
 
@@ -52,13 +61,18 @@ export const useThreads = (
     Object.fromEntries(threads.map(({ id }) => [id, { timeStep: 0 }]))
   );
 
+  const [conditionVariableState, setConditionVariableState] = useState<
+    Record<string, ConditionVariableState>
+  >(Object.fromEntries(conditionVariables.map(({ id }) => [id, { waiting: [] }])));
+
   const criticalSectionIds = new Set(
-    threads.flatMap(({ criticalSections }) => criticalSections.map(({ id }) => id))
+    threads.flatMap(({ criticalSections }) => criticalSections?.map(({ id }) => id) ?? [])
   );
 
   const colors: Record<string, string> = Object.fromEntries([
     ...locks.map(({ id }, index) => [id, LOCK_COLORS[index % LOCK_COLORS.length]]),
     ...semaphores.map(({ id }, index) => [id, SEM_COLORS[index % SEM_COLORS.length]]),
+    ...conditionVariables.map(({ id }, index) => [id, CV_COLORS[index % CV_COLORS.length]]),
     ...Array.from(criticalSectionIds).map((id, index) => [
       id,
       CRITICAL_SECTION_COLORS[index % CRITICAL_SECTION_COLORS.length],
@@ -72,14 +86,15 @@ export const useThreads = (
   const isWaiting = (thread: Thread): boolean => {
     return (
       Object.values(lockState).some((ts) => ts.waiting.includes(thread.id)) ||
-      Object.values(semaphoreState).some((sem) => sem.waiting.includes(thread.id))
+      Object.values(semaphoreState).some((sem) => sem.waiting.includes(thread.id)) ||
+      Object.values(conditionVariableState).some((cv) => cv.waiting.includes(thread.id))
     );
   };
 
   const updateSemaphores = (thread: Thread, step: number) => {
-    const post = thread.semaphores.find(({ posts }) => posts.includes(step));
+    const post = thread.semaphores?.find(({ posts }) => posts.includes(step));
 
-    const wait = thread.semaphores.find(({ waits }) => waits.includes(step));
+    const wait = thread.semaphores?.find(({ waits }) => waits.includes(step));
 
     if (post) {
       const id = post.id;
@@ -89,7 +104,7 @@ export const useThreads = (
         [id]: {
           ...s[id],
           count: (s[id]?.count ?? 0) + 1,
-          waiting: s[id]?.waiting.filter(waiting => waiting !== wake)
+          waiting: s[id]?.waiting.filter((waiting) => waiting !== wake),
         },
       }));
       setEvents((e) => [
@@ -101,7 +116,7 @@ export const useThreads = (
           resourceId: id,
         },
       ]);
-      const wakeThread = threads.find(thread => thread.id === wake);
+      const wakeThread = threads.find((thread) => thread.id === wake);
       wakeThread && setRunning(wakeThread);
     }
     if (wait) {
@@ -146,8 +161,56 @@ export const useThreads = (
     }
   };
 
+  const updateConditionVariables = (thread: Thread, step: number) => {
+    const signal = thread.conditionVariables?.find(({ signals }) => signals.includes(step));
+
+    const wait = thread.conditionVariables?.find(({ waits }) => waits.includes(step));
+
+    if (signal) {
+      const id = signal.id;
+      const wake = conditionVariableState[id]?.waiting.at(0);
+      setConditionVariableState((s) => ({
+        ...s,
+        [id]: {
+          waiting: s[id]?.waiting.filter((waiting) => waiting !== wake),
+        },
+      }));
+      setEvents((e) => [
+        ...e,
+        {
+          threadId: thread.id,
+          timeStep: step,
+          action: ThreadAction.CV_SIGNAL,
+          resourceId: id,
+        },
+      ]);
+      const wakeThread = threads.find((thread) => thread.id === wake);
+      wakeThread && setRunning(wakeThread);
+    }
+    if (wait) {
+      const id = wait.id;
+      if (!conditionVariableState[id]?.waiting.includes(thread.id)) {
+        setEvents((e) => [
+          ...e,
+          {
+            threadId: thread.id,
+            timeStep: step,
+            action: ThreadAction.CV_WAIT,
+            resourceId: id,
+          },
+        ]);
+        setConditionVariableState((s) => ({
+          ...s,
+          [id]: {
+            waiting: [...s[id].waiting, thread.id],
+          },
+        }));
+      }
+    }
+  };
+
   const updateLocks = (thread: Thread, step: number) => {
-    const acquire = thread.locks.find((lock) => lock.acquireAt === step);
+    const acquire = thread.locks?.find((lock) => lock.acquireAt === step);
     if (acquire) {
       if (lockState[acquire.id].heldBy === undefined) {
         setEvents((e) => [
@@ -186,7 +249,7 @@ export const useThreads = (
         }));
       }
     }
-    const release = thread.locks.find((lock) => lock.releaseAt === step);
+    const release = thread.locks?.find((lock) => lock.releaseAt === step);
     if (release) {
       if (lockState[release.id].heldBy === thread.id) {
         setEvents((e) => [
@@ -210,7 +273,7 @@ export const useThreads = (
   };
 
   const updateCriticalSections = (thread: Thread, step: number) => {
-    const entered = thread.criticalSections.find((cs) => cs.startAt + 1 === step);
+    const entered = thread.criticalSections?.find((cs) => cs.startAt + 1 === step);
     if (entered) {
       setEvents((e) => [
         ...e,
@@ -222,7 +285,7 @@ export const useThreads = (
         },
       ]);
     }
-    const exited = thread.criticalSections.find((cs) => cs.endAt - 1 === step);
+    const exited = thread.criticalSections?.find((cs) => cs.endAt - 1 === step);
     if (exited) {
       setEvents((e) => [
         ...e,
@@ -243,6 +306,7 @@ export const useThreads = (
         const step = Math.min(timeStep + Number(!isWaiting(thread)), thread.timeSteps);
 
         updateLocks(thread, step);
+        updateConditionVariables(thread, step);
         updateSemaphores(thread, step);
         updateCriticalSections(thread, step);
 
@@ -270,7 +334,7 @@ export const useThreads = (
       const interval = setInterval(() => update(running), 100 / playbackSpeed);
       return () => clearInterval(interval);
     }
-  }, [running, playbackSpeed, lockState, semaphoreState]);
+  }, [running, playbackSpeed, lockState, semaphoreState, conditionVariableState]);
 
   const reset = () => {
     setLockState(
@@ -281,7 +345,12 @@ export const useThreads = (
       Object.fromEntries(semaphores.map((s) => [s.id, { count: s.initial, waiting: [] }]))
     );
 
+    setConditionVariableState(
+      Object.fromEntries(conditionVariables.map((cv) => [cv.id, { waiting: [] }]))
+    );
+
     setThreadState(Object.fromEntries(threads.map(({ id }) => [id, { timeStep: 0 }])));
+
 
     setEvents([]);
   };
@@ -306,5 +375,7 @@ export const useThreads = (
     step,
     lockState,
     semaphoreState,
+    conditionVariables,
+    conditionVariableState
   };
 };

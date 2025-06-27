@@ -1,5 +1,5 @@
 import React from "react";
-import type { Semaphore, Thread, Lock } from "./types";
+import type { Semaphore, Thread, Lock, ConditionVariable } from "./types";
 import { useThreads } from "./hooks";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Controls, EventsList, Legend, RunThreads, ThreadsDisplay } from "./components";
@@ -9,8 +9,9 @@ export interface ThreadsProps {
   title: string;
   description: string;
   threads: Thread[];
-  locks: Lock[];
-  semaphores: Semaphore[];
+  locks?: Lock[];
+  semaphores?: Semaphore[];
+  conditionVariables?: ConditionVariable[];
 }
 
 export const Threads: React.FunctionComponent<ThreadsProps> = ({
@@ -19,8 +20,9 @@ export const Threads: React.FunctionComponent<ThreadsProps> = ({
   threads,
   locks,
   semaphores,
+  conditionVariables,
 }) => {
-  const controller = useThreads(threads, locks, semaphores);
+  const controller = useThreads(threads, locks ?? [], semaphores ?? [], conditionVariables ?? []);
 
   return (
     <div className="flex h-[100vh] w-full flex-col px-[56px] pt-[24px] pb-[56px]">

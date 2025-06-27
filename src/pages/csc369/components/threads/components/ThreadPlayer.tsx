@@ -3,6 +3,7 @@ import type { Thread, ThreadsController } from "../types";
 import { ThreadTimeline } from "./ThreadTimeline";
 import { Label } from "@/components/ui/label";
 import { ResourceTimeline } from "./ResourceTimeline";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   thread: Thread;
@@ -10,14 +11,36 @@ interface Props {
 }
 
 export const ThreadPlayer: React.FunctionComponent<Props> = ({ thread, controller }) => {
+
+  const atStart = Object.values(controller.threadState).every(({ timeStep }) => timeStep === 0);
+  const atEnd = controller.threadState[thread.id]?.timeStep === thread.timeSteps;
+
   return (
     <div className="flex h-full w-[250px] flex-col gap-[12px] rounded-lg border p-[12px]">
-      <Label>{thread.id}</Label>
-      <div className="flex gap-[4px] h-full">
-        <ThreadTimeline thread={thread} controller={controller} />
-        <ResourceTimeline thread={thread} controller={controller}/>
+      <div className="flex w-full items-center justify-between">
+        <Label>{thread.id}</Label>
+        {!atStart ? (
+          atEnd ? (
+            <Badge variant={"secondary"}>
+              Exited
+            </Badge>
+          ) : thread.id === controller.running?.id ? (
+            <Badge>
+              Running
+            </Badge>
+          ) : (
+            <Badge variant={"outline"}>
+              Suspended
+            </Badge>
+          )
+        ) : null}
       </div>
-      
+
+      <div className="flex h-full gap-[4px]">
+        <ThreadTimeline thread={thread} controller={controller} />
+        <ResourceTimeline thread={thread} controller={controller} />
+      </div>
+
       <span className="text-muted-foreground text-xs font-light">
         {thread.id} is executing line {controller.threadState[thread.id].timeStep}
       </span>

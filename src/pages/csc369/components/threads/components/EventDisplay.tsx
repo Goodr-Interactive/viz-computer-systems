@@ -12,10 +12,12 @@ const ACTIONS: Record<ThreadAction, string> = {
   [ThreadAction.LOCK_RELEASE]: "has released",
   [ThreadAction.LOCK_WAIT]: "is waiting on",
   [ThreadAction.SEM_POST]: "has posted to",
-  [ThreadAction.SEM_WAIT]: "is waiting on",
+  [ThreadAction.SEM_WAIT]: "is waiting for",
   [ThreadAction.SEM_PASS]: "has passed",
   [ThreadAction.CRITICAL_SECTION_ENTER]: "has entered",
   [ThreadAction.CRITICAL_SECTION_EXIT]: "has exited",
+  [ThreadAction.CV_WAIT]: "is waiting for",
+  [ThreadAction.CV_SIGNAL]: "signalled to",
 };
 
 export const EventDisplay: React.FunctionComponent<Props> = ({ event, controller }) => {

@@ -196,9 +196,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
     latency: number;
   }>>([]);
 
-  // Use ref to track current access count synchronously
-  const currentAccessCount = useRef(0);
-
   // Cache simulation functions
   const getAddressParts = (address: number) => {
     const blockOffset = address & 0x3; // Last 2 bits (4-byte blocks)
@@ -265,7 +262,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   };
 
   const executeNextInstruction = () => {
-    if (currentInstructionIndexRef.current >= memoryInstructions.length) {
+    if (currentInstructionIndexRef.current >= memoryInstructions.length - 1) {
       console.log("All instructions executed, stopping simulation.");
       setIsSimulating(false);
       stopSimulation();
@@ -312,7 +309,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
     // Update both the ref and state synchronously
     currentInstructionIndexRef.current += 1;
     setCurrentInstructionIndex(currentInstructionIndexRef.current);
-    currentAccessCount.current += 1;
   };
 
   // State to track which stages should be highlighted during access
@@ -397,7 +393,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
     }
 
     // Reset the ref counter
-    currentAccessCount.current = 0;
     currentInstructionIndexRef.current = 0;
     setCurrentInstructionIndex(0);
 

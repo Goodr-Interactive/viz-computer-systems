@@ -8,7 +8,12 @@ export const FileSystemExample: React.FC = () => {
 
   useEffect(() => {
     // Initialize filesystem from config
-    const fs = new FileSystem(FILE_SYSTEM_CONFIG.dataBlocks, FILE_SYSTEM_CONFIG.totalInodes);
+    const fs = new FileSystem(
+      FILE_SYSTEM_CONFIG.dataBlocks,
+      FILE_SYSTEM_CONFIG.totalInodes,
+      FILE_SYSTEM_CONFIG.blockSize,
+      FILE_SYSTEM_CONFIG.inodeSize
+    );
 
     // Create all files from config
     FILE_SYSTEM_CONFIG.files.forEach((fileConfig) => {

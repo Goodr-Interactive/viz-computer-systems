@@ -38,6 +38,7 @@ export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({ fileSystem }) 
             FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)];
           setRandomPath(randomFile.path);
         }}
+        variant="outline"
       >
         Get New File
       </Button>

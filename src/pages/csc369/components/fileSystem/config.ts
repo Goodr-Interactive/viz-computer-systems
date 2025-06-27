@@ -32,6 +32,8 @@ export interface FileSystemConfig {
   dataBlocks: number;
   totalInodes: number;
   files: FileConfig[];
+  blockSize: number;
+  inodeSize: number;
 }
 
 export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
@@ -39,7 +41,9 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
   // Each block can hold 32 inodes (4096/128 = 32 inodes per block)
   // So 5 blocks = 160 inodes total
   dataBlocks: 64,
-  totalInodes: 160,
+  totalInodes: 80,
+  blockSize: 4096,
+  inodeSize: 256,
 
   files: [
     {
@@ -74,12 +78,6 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
     },
     {
       path: "virtualization/paging/page_replacement.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "concurrency/parallel/numa_awareness.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
@@ -296,4 +294,35 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
       content: generateFoodText(),
     },
   ],
+};
+
+// Utility functions for link comparison
+export interface LinkScenario {
+  targetFile: string;
+  linkPath: string;
+  linkDirectory: string;
+  linkFileName: string;
+}
+
+export const generateRandomLinkScenario = (): LinkScenario => {
+  // Get all available files from the config
+  const availableFiles = FILE_SYSTEM_CONFIG.files;
+
+  // Pick a random file to link to
+  const targetFile = availableFiles[Math.floor(faker.number.float() * availableFiles.length)];
+
+  // Pick one of the three main directories for the link
+  const mainDirectories = ["/concurrency", "/virtualization", "/persistence"];
+  const linkDirectory = mainDirectories[Math.floor(faker.number.float() * mainDirectories.length)];
+
+  // Always name the link file "copy.txt"
+  const linkFileName = "copy.txt";
+  const linkPath = `${linkDirectory}/${linkFileName}`;
+
+  return {
+    targetFile: "/" + targetFile.path,
+    linkPath,
+    linkDirectory,
+    linkFileName,
+  };
 };

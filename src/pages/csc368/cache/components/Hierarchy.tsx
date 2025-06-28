@@ -932,7 +932,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
               </Button>
             </div>
             <div className="mt-4 text-sm text-gray-600">
-              Instruction {currentInstructionIndex + 1} of {memoryInstructions.length}
+              Instruction {Math.min(currentInstructionIndex, memoryInstructions.length)} of {memoryInstructions.length}
             </div>
           </CardContent>
         </Card>

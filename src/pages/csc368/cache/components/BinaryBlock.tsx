@@ -47,6 +47,10 @@ export interface BinaryBlockProps {
    * Optional click handler for the entire block group
    */
   onClick?: () => void;
+  /**
+   * Binary string to display inside the blocks (one character per block)
+   */
+  binaryValue?: string;
 }
 
 export const BinaryBlock: React.FC<BinaryBlockProps> = ({
@@ -61,6 +65,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
   showBitNumbers = true,
   className,
   onClick,
+  binaryValue,
 }) => {
   const blockArray = Array.from({ length: blocks }, (_, i) => i);
 
@@ -89,14 +94,20 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
           <div key={index}>
             <div
               className={cn(
-                "h-8 w-8 border-y border-r transition-colors",
+                "flex h-8 w-8 items-center justify-center border-y border-r transition-colors",
                 index === 0 && showLeftBorder && "border-l",
                 color,
                 borderColor,
                 hoverColor
               )}
               aria-label={`Block ${index}`}
-            />
+            >
+              {binaryValue && (
+                <span className="text-xs font-mono font-semibold">
+                  {binaryValue[index] || '0'}
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>

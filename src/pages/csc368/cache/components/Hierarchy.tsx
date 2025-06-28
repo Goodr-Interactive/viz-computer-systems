@@ -212,10 +212,12 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
   // Cache simulation functions
   const getAddressParts = (address: number) => {
-    const blockOffset = address & 0x7; // Last 3 bits (8-byte blocks)
+    const byteOffset = address & 0x7; // Last 3 bits (8-byte blocks)
+    const wordOffset = (address >> 2) & 0x1; // Bit 2: which word in the block (0 or 1)
+    const byteInWord = address & 0x3; // Bits 0-1: which byte in the word (0-3)
     const setIndex = (address >> 3) & 0x1; // Next 1 bit (2 sets)
     const tag = address >> 4; // Remaining bits
-    return { blockOffset, setIndex, tag };
+    return { byteOffset, wordOffset, byteInWord, setIndex, tag };
   };
 
   const simulateL1Access = (
@@ -513,7 +515,14 @@ export const CacheHierarchyVisualization: React.FC = () => {
               <div className="mb-1 text-xs text-gray-600">Address Breakdown:</div>
               <div className="flex items-center space-x-0">
                 {(() => {
-                  const { tag, setIndex, blockOffset } = getAddressParts(instruction.address);
+                  const { tag, setIndex, wordOffset, byteInWord } = getAddressParts(instruction.address);
+                  
+                  // Convert values to binary strings with proper padding
+                  const tagBinary = tag.toString(2).padStart(12, '0');
+                  const setIndexBinary = setIndex.toString(2).padStart(1, '0');
+                  const wordOffsetBinary = wordOffset.toString(2).padStart(1, '0');
+                  const byteInWordBinary = byteInWord.toString(2).padStart(2, '0');
+                  
                   return (
                     <>
                       <BinaryBlock
@@ -523,6 +532,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         showLeftBorder={true}
                         label={`Tag: 0x${tag.toString(16).toUpperCase()}`}
                         className="text-xs"
+                        binaryValue={tagBinary}
                       />
                       <BinaryBlock
                         blocks={1}
@@ -531,14 +541,25 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         showLeftBorder={false}
                         label={`Set: ${setIndex}`}
                         className="text-xs"
+                        binaryValue={setIndexBinary}
                       />
                       <BinaryBlock
-                        blocks={3}
+                        blocks={1}
+                        color="bg-purple-100"
+                        borderColor="border-purple-300"
+                        showLeftBorder={false}
+                        label={`Word: ${wordOffset}`}
+                        className="text-xs"
+                        binaryValue={wordOffsetBinary}
+                      />
+                      <BinaryBlock
+                        blocks={2}
                         color="bg-green-100"
                         borderColor="border-green-300"
                         showLeftBorder={false}
-                        label={`Offset: ${blockOffset}`}
+                        label={`Byte: ${byteInWord}`}
                         className="text-xs"
+                        binaryValue={byteInWordBinary}
                       />
                     </>
                   );

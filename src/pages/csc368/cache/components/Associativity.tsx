@@ -15,6 +15,7 @@ import AssociativitySvg from "@/assets/associativity-direct-2-words.svg";
 import FourWaySetAssociativeSvg from "@/assets/associativity-direct-4-ways.svg";
 import TwoWaySetAssociativeSvg from "@/assets/associativity-direct-2-ways.svg";
 import FullyAssociativeSvg from "@/assets/associativity-direct-8-ways.svg";
+import DirectMapped1WordSvg from "@/assets/associativity-direct-mapped.svg";
 
 interface CacheConfig {
   ways: number;
@@ -294,7 +295,7 @@ function HardwareComplexity({ config }: HardwareComplexityProps) {
     const svgMap: Record<string, string> = {
       "1-way-2-word": AssociativitySvg, // Currently available: direct-mapped with 2 words
       // Add placeholders for future SVGs:
-      // "1-way-1-word": DirectMapped1WordSvg,
+      "1-way-1-word": DirectMapped1WordSvg,
       "2-way-1-word": TwoWaySetAssociativeSvg,
       "4-way-1-word": FourWaySetAssociativeSvg,
       "8-way-1-word": FullyAssociativeSvg,

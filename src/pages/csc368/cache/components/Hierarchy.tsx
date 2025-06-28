@@ -464,12 +464,12 @@ export const CacheHierarchyVisualization: React.FC = () => {
         {memoryInstructions.map((instruction, index) => (
           <div
             key={instruction.id}
-            className={`rounded-lg border-2 p-3 transition-all ${
+            className={`rounded-lg border-2 p-3 transition-all cursor-pointer ${
               index === currentInstructionIndex
-                ? "border-blue-500 bg-blue-50"
+                ? "border-blue-500 bg-blue-50 hover:bg-blue-100"
                 : index < currentInstructionIndex
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-300 bg-gray-50"
+                  ? "border-green-500 bg-green-50 hover:bg-green-100"
+                  : "border-gray-300 bg-gray-50 hover:bg-gray-100"
             }`}
           >
             <div className="flex items-center justify-between">
@@ -524,13 +524,19 @@ export const CacheHierarchyVisualization: React.FC = () => {
                   const byteInWordBinary = byteInWord.toString(2).padStart(2, '0');
                   
                   return (
-                    <>
+                    <div className="flex items-end">
                       <BinaryBlock
                         blocks={12}
                         color="bg-blue-100"
                         borderColor="border-blue-300"
+                        hoverColor="group-hover:bg-blue-200"
                         showLeftBorder={true}
-                        label={`Tag: 0x${tag.toString(16).toUpperCase()}`}
+                        label={
+                          <div className="text-center">
+                            <div>Tag</div>
+                            <div>0x{tag.toString(16).toUpperCase()}</div>
+                          </div>
+                        }
                         className="text-xs"
                         binaryValue={tagBinary}
                       />
@@ -538,8 +544,14 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         blocks={1}
                         color="bg-yellow-100"
                         borderColor="border-yellow-300"
+                        hoverColor="group-hover:bg-yellow-200"
                         showLeftBorder={false}
-                        label={`Set: ${setIndex}`}
+                        label={
+                          <div className="text-center">
+                            <div>Set</div>
+                            <div>{setIndex}</div>
+                          </div>
+                        }
                         className="text-xs"
                         binaryValue={setIndexBinary}
                       />
@@ -547,8 +559,14 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         blocks={1}
                         color="bg-purple-100"
                         borderColor="border-purple-300"
+                        hoverColor="group-hover:bg-purple-200"
                         showLeftBorder={false}
-                        label={`Word: ${wordOffset}`}
+                        label={
+                          <div className="text-center">
+                            <div>Word</div>
+                            <div>{wordOffset}</div>
+                          </div>
+                        }
                         className="text-xs"
                         binaryValue={wordOffsetBinary}
                       />
@@ -556,12 +574,18 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         blocks={2}
                         color="bg-green-100"
                         borderColor="border-green-300"
+                        hoverColor="group-hover:bg-green-200"
                         showLeftBorder={false}
-                        label={`Byte: ${byteInWord}`}
+                        label={
+                          <div className="text-center">
+                            <div>Byte</div>
+                            <div>{byteInWord}</div>
+                          </div>
+                        }
                         className="text-xs"
                         binaryValue={byteInWordBinary}
                       />
-                    </>
+                    </div>
                   );
                 })()}
               </div>
@@ -573,45 +597,129 @@ export const CacheHierarchyVisualization: React.FC = () => {
   );
 
   const renderCacheVisualization = () => (
-    <div className="space-y-4">
-      <h4 className="text-lg font-semibold">L1 Cache State (2-way, 2 sets)</h4>
-      <div className="grid grid-cols-1 gap-2">
-        {cacheState.map((set, setIndex) => (
-          <div key={setIndex} className="rounded-lg border p-3">
-            <div className="mb-2 text-sm font-medium">Set {setIndex}</div>
-            <div className="grid grid-cols-2 gap-2">
-              {set.blocks.map((block, wayIndex) => (
-                <div
-                  key={wayIndex}
-                  className={`rounded border-2 p-2 text-center text-sm ${
-                    block.valid ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50"
-                  }`}
-                >
-                  <div className="font-medium">Way {wayIndex}</div>
-                  {block.valid ? (
-                    <>
-                      <div className="text-xs text-gray-600">
-                        Tag: 0x{block.tag.toString(16).toUpperCase()}
+    <TooltipProvider>
+      <div className="space-y-4">
+        <h4 className="text-lg font-semibold">L1 Cache State (2-way, 2 sets)</h4>
+        <div className="grid grid-cols-1 gap-2">
+          {cacheState.map((set, setIndex) => (
+            <div key={setIndex} className="rounded-lg border p-3">
+              <div className="mb-2 text-sm font-medium">Set {setIndex}</div>
+              <div className="grid grid-cols-2 gap-2">
+                {set.blocks.map((block, wayIndex) => (
+                  <Dialog key={wayIndex}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <div
+                            className={`cursor-pointer rounded border-2 p-2 text-center text-sm transition-colors ${
+                              block.valid 
+                                ? "border-green-500 bg-green-50 hover:bg-green-100" 
+                                : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                            }`}
+                          >
+                            <div className="font-medium">Way {wayIndex}</div>
+                            {block.valid ? (
+                              <>
+                                <div className="text-xs text-gray-600">
+                                  Tag: 0x{block.tag.toString(16).toUpperCase()}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Data: 0x{block.data.toString(16).toUpperCase()}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-xs text-gray-500">Empty</div>
+                            )}
+                          </div>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Click to view detailed cache block information</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Cache Block Details - Set {setIndex}, Way {wayIndex}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Block Status</div>
+                            <div className={`inline-block rounded px-2 py-1 text-xs font-medium ${
+                              block.valid 
+                                ? "bg-green-100 text-green-800" 
+                                : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {block.valid ? "VALID" : "INVALID"}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Cache Set</div>
+                            <div className="text-sm text-gray-600">Set {setIndex}</div>
+                          </div>
+                        </div>
+                        
+                        {block.valid ? (
+                          <>
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium">Tag Information</div>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <div>Hex: 0x{block.tag.toString(16).toUpperCase()}</div>
+                                <div>Decimal: {block.tag}</div>
+                                <div>Binary: {block.tag.toString(2).padStart(12, '0')}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium">Stored Data</div>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <div>Hex: 0x{block.data.toString(16).toUpperCase()}</div>
+                                <div>Decimal: {block.data}</div>
+                                <div>Binary: {block.data.toString(2).padStart(32, '0')}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium">Access Information</div>
+                              <div className="text-sm text-gray-600">
+                                Last accessed: {new Date(block.lastAccessed).toLocaleTimeString()}
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium">Memory Address Range</div>
+                              <div className="text-sm text-gray-600">
+                                This block caches data from memory addresses where:
+                                <br />• Tag = 0x{block.tag.toString(16).toUpperCase()}
+                                <br />• Set = {setIndex}
+                                <br />• Block size = {L1_CACHE_CONFIG.blockSize} bytes
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Empty Block</div>
+                            <div className="text-sm text-gray-600">
+                              This cache block is currently empty and available for new data.
+                              When a memory access results in a cache miss for this set,
+                              new data may be loaded into this block.
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-600">
-                        Data: 0x{block.data.toString(16).toUpperCase()}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-xs text-gray-500">Empty</div>
-                  )}
-                </div>
-              ))}
+                    </DialogContent>
+                  </Dialog>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 
   const renderHierarchy = () => (
-    <TooltipProvider>
-      <div className="flex flex-col items-center space-y-2">
+    <div className="flex flex-col items-center space-y-2">
         <div className="flex items-center space-x-2">
           <Card
             className={`text-center border-${stageSizesConfig.processorChip.borderStyle} border-${stageSizesConfig.processorChip.borderColor}`}
@@ -756,7 +864,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
           </Dialog>{" "}
         </div>
       </div>
-    </TooltipProvider>
   );
 
   const renderConfiguration = () => (
@@ -921,14 +1028,15 @@ export const CacheHierarchyVisualization: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Cache Hierarchy Visualization</CardTitle>
-          </CardHeader>
-          <CardContent>{renderHierarchy()}</CardContent>
-        </Card>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cache Hierarchy Visualization</CardTitle>
+            </CardHeader>
+            <CardContent>{renderHierarchy()}</CardContent>
+          </Card>
 
         <Card>
           <CardHeader>
@@ -1012,5 +1120,6 @@ export const CacheHierarchyVisualization: React.FC = () => {
         </Card>
       )}
     </div>
+    </TooltipProvider>
   );
 };

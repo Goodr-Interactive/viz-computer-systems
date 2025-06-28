@@ -317,7 +317,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
           misses: prev.l1.misses + (result.hit ? 0 : 1),
         },
         l2: {
-          // L2 is accessed only on L1 miss, and since we're simulating L1-only, 
+          // L2 is accessed only on L1 miss, and since we're simulating L1-only,
           // all L1 misses result in L2 misses (go to RAM)
           hits: prev.l2.hits, // No L2 hits in this simple simulation
           misses: prev.l2.misses + (result.hit ? 0 : 1), // L1 miss = L2 miss
@@ -341,7 +341,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
       // Calculate and update AMAT based on actual simulation results
       const newTotalAccesses = currentInstructionIndexRef.current + 1;
       const newCacheHits = hitMissData.l1.hits + (result.hit ? 1 : 0);
-      
+
       if (newTotalAccesses > 0) {
         const l1HitRate = newCacheHits / newTotalAccesses;
         const l1MissRate = 1 - l1HitRate;
@@ -382,7 +382,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
     // Generate new instructions for the selected pattern
     const newInstructions = generateInstructions(selectedPattern);
     setMemoryInstructions(newInstructions);
-    
+
     // AMAT will be calculated dynamically as the simulation runs
     setAmat(null);
   }, [selectedPattern, latencyConfig]);
@@ -464,7 +464,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
         {memoryInstructions.map((instruction, index) => (
           <div
             key={instruction.id}
-            className={`rounded-lg border-2 p-3 transition-all cursor-pointer ${
+            className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
               index === currentInstructionIndex
                 ? "border-blue-500 bg-blue-50 hover:bg-blue-100"
                 : index < currentInstructionIndex
@@ -515,14 +515,16 @@ export const CacheHierarchyVisualization: React.FC = () => {
               <div className="mb-1 text-xs text-gray-600">Address Breakdown:</div>
               <div className="flex items-center space-x-0">
                 {(() => {
-                  const { tag, setIndex, wordOffset, byteInWord } = getAddressParts(instruction.address);
-                  
+                  const { tag, setIndex, wordOffset, byteInWord } = getAddressParts(
+                    instruction.address
+                  );
+
                   // Convert values to binary strings with proper padding
-                  const tagBinary = tag.toString(2).padStart(12, '0');
-                  const setIndexBinary = setIndex.toString(2).padStart(1, '0');
-                  const wordOffsetBinary = wordOffset.toString(2).padStart(1, '0');
-                  const byteInWordBinary = byteInWord.toString(2).padStart(2, '0');
-                  
+                  const tagBinary = tag.toString(2).padStart(12, "0");
+                  const setIndexBinary = setIndex.toString(2).padStart(1, "0");
+                  const wordOffsetBinary = wordOffset.toString(2).padStart(1, "0");
+                  const byteInWordBinary = byteInWord.toString(2).padStart(2, "0");
+
                   return (
                     <div className="flex items-end">
                       <BinaryBlock
@@ -612,8 +614,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
                         <DialogTrigger asChild>
                           <div
                             className={`cursor-pointer rounded border-2 p-2 text-center text-sm transition-colors ${
-                              block.valid 
-                                ? "border-green-500 bg-green-50 hover:bg-green-100" 
+                              block.valid
+                                ? "border-green-500 bg-green-50 hover:bg-green-100"
                                 : "border-gray-300 bg-gray-50 hover:bg-gray-100"
                             }`}
                           >
@@ -639,17 +641,21 @@ export const CacheHierarchyVisualization: React.FC = () => {
                     </Tooltip>
                     <DialogContent className="max-w-md">
                       <DialogHeader>
-                        <DialogTitle>Cache Block Details - Set {setIndex}, Way {wayIndex}</DialogTitle>
+                        <DialogTitle>
+                          Cache Block Details - Set {setIndex}, Way {wayIndex}
+                        </DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <div className="text-sm font-medium">Block Status</div>
-                            <div className={`inline-block rounded px-2 py-1 text-xs font-medium ${
-                              block.valid 
-                                ? "bg-green-100 text-green-800" 
-                                : "bg-gray-100 text-gray-600"
-                            }`}>
+                            <div
+                              className={`inline-block rounded px-2 py-1 text-xs font-medium ${
+                                block.valid
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
                               {block.valid ? "VALID" : "INVALID"}
                             </div>
                           </div>
@@ -658,7 +664,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                             <div className="text-sm text-gray-600">Set {setIndex}</div>
                           </div>
                         </div>
-                        
+
                         {block.valid ? (
                           <>
                             <div className="space-y-2">
@@ -666,26 +672,26 @@ export const CacheHierarchyVisualization: React.FC = () => {
                               <div className="space-y-1 text-sm text-gray-600">
                                 <div>Hex: 0x{block.tag.toString(16).toUpperCase()}</div>
                                 <div>Decimal: {block.tag}</div>
-                                <div>Binary: {block.tag.toString(2).padStart(12, '0')}</div>
+                                <div>Binary: {block.tag.toString(2).padStart(12, "0")}</div>
                               </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                               <div className="text-sm font-medium">Stored Data</div>
                               <div className="space-y-1 text-sm text-gray-600">
                                 <div>Hex: 0x{block.data.toString(16).toUpperCase()}</div>
                                 <div>Decimal: {block.data}</div>
-                                <div>Binary: {block.data.toString(2).padStart(32, '0')}</div>
+                                <div>Binary: {block.data.toString(2).padStart(32, "0")}</div>
                               </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                               <div className="text-sm font-medium">Access Information</div>
                               <div className="text-sm text-gray-600">
                                 Last accessed: {new Date(block.lastAccessed).toLocaleTimeString()}
                               </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                               <div className="text-sm font-medium">Memory Address Range</div>
                               <div className="text-sm text-gray-600">
@@ -700,9 +706,9 @@ export const CacheHierarchyVisualization: React.FC = () => {
                           <div className="space-y-2">
                             <div className="text-sm font-medium">Empty Block</div>
                             <div className="text-sm text-gray-600">
-                              This cache block is currently empty and available for new data.
-                              When a memory access results in a cache miss for this set,
-                              new data may be loaded into this block.
+                              This cache block is currently empty and available for new data. When a
+                              memory access results in a cache miss for this set, new data may be
+                              loaded into this block.
                             </div>
                           </div>
                         )}
@@ -720,150 +726,150 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
   const renderHierarchy = () => (
     <div className="flex flex-col items-center space-y-2">
-        <div className="flex items-center space-x-2">
-          <Card
-            className={`text-center border-${stageSizesConfig.processorChip.borderStyle} border-${stageSizesConfig.processorChip.borderColor}`}
-            style={{ width: `${stageSizesConfig.processorChip.width}px` }}
-          >
-            <CardContent className="py-2">
-              <div className="text-sm font-semibold">Processor Chip</div>
-              <div className="mt-1 flex items-center justify-center space-x-1">
-                <Dialog>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DialogTrigger asChild>
-                        <Card
-                          className={`flex items-center justify-center text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor} cursor-pointer transition-colors ${
-                            highlightedStages.has("cpu")
-                              ? "border-yellow-500 bg-yellow-200 shadow-lg"
-                              : "hover:bg-gray-100"
-                          }`}
-                          style={{
-                            width: `${stageSizesConfig.cpu.width}px`,
-                            height: `${stageSizesConfig.cpu.height}px`,
-                          }}
-                        >
-                          <CardContent className="flex items-center justify-center p-1">
-                            <div className="text-xs font-semibold">CPU</div>
-                          </CardContent>
-                        </Card>
-                      </DialogTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Click to learn more about the CPU</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{STAGE_EXPLANATIONS.cpu.title}</DialogTitle>
-                    </DialogHeader>
-                    <p>{STAGE_EXPLANATIONS.cpu.description}</p>
-                  </DialogContent>
-                </Dialog>
-                <div className="h-0.5 w-1 bg-blue-500"></div>
-                <Dialog>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DialogTrigger asChild>
-                        <Card
-                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l1Cache.borderStyle} border-${stageSizesConfig.l1Cache.borderColor} cursor-pointer transition-colors ${
-                            highlightedStages.has("l1")
-                              ? "border-yellow-500 bg-yellow-200 shadow-lg"
-                              : "hover:bg-gray-100"
-                          }`}
-                          style={{
-                            width: `${stageSizesConfig.l1Cache.width}px`,
-                            height: `${stageSizesConfig.l1Cache.height}px`,
-                          }}
-                        >
-                          <CardContent className="flex items-center justify-center p-1">
-                            <div className="text-xs font-semibold">L1</div>
-                          </CardContent>
-                        </Card>
-                      </DialogTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Click to learn more about L1 Cache</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{STAGE_EXPLANATIONS.l1.title}</DialogTitle>
-                    </DialogHeader>
-                    <p>{STAGE_EXPLANATIONS.l1.description}</p>
-                  </DialogContent>
-                </Dialog>
-                <div className="h-0.5 w-2 bg-blue-500"></div>
-                <Dialog>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DialogTrigger asChild>
-                        <Card
-                          className={`flex items-center justify-center text-center border-${stageSizesConfig.l2Cache.borderStyle} border-${stageSizesConfig.l2Cache.borderColor} cursor-pointer transition-colors ${
-                            highlightedStages.has("l2")
-                              ? "border-yellow-500 bg-yellow-200 shadow-lg"
-                              : "hover:bg-gray-100"
-                          }`}
-                          style={{
-                            width: `${stageSizesConfig.l2Cache.width}px`,
-                            height: `${stageSizesConfig.l2Cache.height}px`,
-                          }}
-                        >
-                          <CardContent className="flex items-center justify-center p-1">
-                            <div className="text-xs font-semibold">L2</div>
-                          </CardContent>
-                        </Card>
-                      </DialogTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Click to learn more about L2 Shared Cache</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{STAGE_EXPLANATIONS.l2.title}</DialogTitle>
-                    </DialogHeader>
-                    <p>{STAGE_EXPLANATIONS.l2.description}</p>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardContent>
-          </Card>
-          <div className="h-0.5 w-6 bg-blue-500"></div>
-          <Dialog>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Card
-                    className={`flex items-center justify-center text-center border-${stageSizesConfig.mainMemory.borderStyle} border-${stageSizesConfig.mainMemory.borderColor} cursor-pointer transition-colors ${
-                      highlightedStages.has("ram")
-                        ? "border-yellow-500 bg-yellow-200 shadow-lg"
-                        : "hover:bg-gray-100"
-                    }`}
-                    style={{
-                      width: `${stageSizesConfig.mainMemory.width}px`,
-                      height: `${stageSizesConfig.mainMemory.height}px`,
-                    }}
-                  >
-                    <CardContent className="flex items-center justify-center p-2">
-                      <div className="text-sm font-semibold">Main Memory</div>
-                    </CardContent>
-                  </Card>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Click to learn more about Main Memory (RAM)</p>
-              </TooltipContent>
-            </Tooltip>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{STAGE_EXPLANATIONS.ram.title}</DialogTitle>
-              </DialogHeader>
-              <p>{STAGE_EXPLANATIONS.ram.description}</p>
-            </DialogContent>
-          </Dialog>{" "}
-        </div>
+      <div className="flex items-center space-x-2">
+        <Card
+          className={`text-center border-${stageSizesConfig.processorChip.borderStyle} border-${stageSizesConfig.processorChip.borderColor}`}
+          style={{ width: `${stageSizesConfig.processorChip.width}px` }}
+        >
+          <CardContent className="py-2">
+            <div className="text-sm font-semibold">Processor Chip</div>
+            <div className="mt-1 flex items-center justify-center space-x-1">
+              <Dialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Card
+                        className={`flex items-center justify-center text-center border-${stageSizesConfig.cpu.borderStyle} border-${stageSizesConfig.cpu.borderColor} cursor-pointer transition-colors ${
+                          highlightedStages.has("cpu")
+                            ? "border-yellow-500 bg-yellow-200 shadow-lg"
+                            : "hover:bg-gray-100"
+                        }`}
+                        style={{
+                          width: `${stageSizesConfig.cpu.width}px`,
+                          height: `${stageSizesConfig.cpu.height}px`,
+                        }}
+                      >
+                        <CardContent className="flex items-center justify-center p-1">
+                          <div className="text-xs font-semibold">CPU</div>
+                        </CardContent>
+                      </Card>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Click to learn more about the CPU</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{STAGE_EXPLANATIONS.cpu.title}</DialogTitle>
+                  </DialogHeader>
+                  <p>{STAGE_EXPLANATIONS.cpu.description}</p>
+                </DialogContent>
+              </Dialog>
+              <div className="h-0.5 w-1 bg-blue-500"></div>
+              <Dialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Card
+                        className={`flex items-center justify-center text-center border-${stageSizesConfig.l1Cache.borderStyle} border-${stageSizesConfig.l1Cache.borderColor} cursor-pointer transition-colors ${
+                          highlightedStages.has("l1")
+                            ? "border-yellow-500 bg-yellow-200 shadow-lg"
+                            : "hover:bg-gray-100"
+                        }`}
+                        style={{
+                          width: `${stageSizesConfig.l1Cache.width}px`,
+                          height: `${stageSizesConfig.l1Cache.height}px`,
+                        }}
+                      >
+                        <CardContent className="flex items-center justify-center p-1">
+                          <div className="text-xs font-semibold">L1</div>
+                        </CardContent>
+                      </Card>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Click to learn more about L1 Cache</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{STAGE_EXPLANATIONS.l1.title}</DialogTitle>
+                  </DialogHeader>
+                  <p>{STAGE_EXPLANATIONS.l1.description}</p>
+                </DialogContent>
+              </Dialog>
+              <div className="h-0.5 w-2 bg-blue-500"></div>
+              <Dialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Card
+                        className={`flex items-center justify-center text-center border-${stageSizesConfig.l2Cache.borderStyle} border-${stageSizesConfig.l2Cache.borderColor} cursor-pointer transition-colors ${
+                          highlightedStages.has("l2")
+                            ? "border-yellow-500 bg-yellow-200 shadow-lg"
+                            : "hover:bg-gray-100"
+                        }`}
+                        style={{
+                          width: `${stageSizesConfig.l2Cache.width}px`,
+                          height: `${stageSizesConfig.l2Cache.height}px`,
+                        }}
+                      >
+                        <CardContent className="flex items-center justify-center p-1">
+                          <div className="text-xs font-semibold">L2</div>
+                        </CardContent>
+                      </Card>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Click to learn more about L2 Shared Cache</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{STAGE_EXPLANATIONS.l2.title}</DialogTitle>
+                  </DialogHeader>
+                  <p>{STAGE_EXPLANATIONS.l2.description}</p>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="h-0.5 w-6 bg-blue-500"></div>
+        <Dialog>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Card
+                  className={`flex items-center justify-center text-center border-${stageSizesConfig.mainMemory.borderStyle} border-${stageSizesConfig.mainMemory.borderColor} cursor-pointer transition-colors ${
+                    highlightedStages.has("ram")
+                      ? "border-yellow-500 bg-yellow-200 shadow-lg"
+                      : "hover:bg-gray-100"
+                  }`}
+                  style={{
+                    width: `${stageSizesConfig.mainMemory.width}px`,
+                    height: `${stageSizesConfig.mainMemory.height}px`,
+                  }}
+                >
+                  <CardContent className="flex items-center justify-center p-2">
+                    <div className="text-sm font-semibold">Main Memory</div>
+                  </CardContent>
+                </Card>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Click to learn more about Main Memory (RAM)</p>
+            </TooltipContent>
+          </Tooltip>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{STAGE_EXPLANATIONS.ram.title}</DialogTitle>
+            </DialogHeader>
+            <p>{STAGE_EXPLANATIONS.ram.description}</p>
+          </DialogContent>
+        </Dialog>{" "}
       </div>
+    </div>
   );
 
   const renderConfiguration = () => (
@@ -961,9 +967,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="text-muted-foreground text-sm font-medium">L2 Misses → RAM</span>
-            <span className="text-lg font-semibold text-orange-600">
-              {cacheStats.cacheMisses}
-            </span>
+            <span className="text-lg font-semibold text-orange-600">{cacheStats.cacheMisses}</span>
           </div>
         </div>
 
@@ -1008,7 +1012,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
           </h5>
           <div className="grid grid-cols-3 gap-2 text-center">
             {Object.entries(actualHitCounts).map(([level, count]) => {
-              const hitRate = cacheStats.totalAccesses > 0 ? (count / cacheStats.totalAccesses) * 100 : 0;
+              const hitRate =
+                cacheStats.totalAccesses > 0 ? (count / cacheStats.totalAccesses) * 100 : 0;
               return (
                 <div key={level} className="flex flex-col rounded bg-gray-50 px-2 py-2">
                   <span className="text-muted-foreground text-xs font-medium">
@@ -1038,88 +1043,89 @@ export const CacheHierarchyVisualization: React.FC = () => {
             <CardContent>{renderHierarchy()}</CardContent>
           </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Pattern Examples</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {renderAccessPattern()}
-            <div className="mt-4 flex space-x-4">
-              <Button
-                onClick={startSimulation}
-                disabled={
-                  isSimulating || currentInstructionIndexRef.current >= memoryInstructions.length
-                }
-              >
-                Start Simulation
-              </Button>
-              <Button onClick={stopSimulation} disabled={!isSimulating}>
-                Stop Simulation
-              </Button>
-              <Button onClick={resetSimulation} variant="outline">
-                Reset
-              </Button>
-            </div>
-            <div className="mt-4 text-sm text-gray-600">
-              Instruction {Math.min(currentInstructionIndex, memoryInstructions.length)} of {memoryInstructions.length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Access Pattern Examples</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderAccessPattern()}
+              <div className="mt-4 flex space-x-4">
+                <Button
+                  onClick={startSimulation}
+                  disabled={
+                    isSimulating || currentInstructionIndexRef.current >= memoryInstructions.length
+                  }
+                >
+                  Start Simulation
+                </Button>
+                <Button onClick={stopSimulation} disabled={!isSimulating}>
+                  Stop Simulation
+                </Button>
+                <Button onClick={resetSimulation} variant="outline">
+                  Reset
+                </Button>
+              </div>
+              <div className="mt-4 text-sm text-gray-600">
+                Instruction {Math.min(currentInstructionIndex, memoryInstructions.length)} of{" "}
+                {memoryInstructions.length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Memory Instructions and Cache State */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Memory Instructions</CardTitle>
-          </CardHeader>
-          <CardContent>{renderMemoryInstructions()}</CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>L1 Cache State</CardTitle>
-          </CardHeader>
-          <CardContent>{renderCacheVisualization()}</CardContent>
-        </Card>
-      </div>
-
-      {latencyConfigUIEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Latency Configuration</CardTitle>
-          </CardHeader>
-          <CardContent>{renderConfiguration()}</CardContent>
-        </Card>
-      )}
-
-      {accessCountsUIEnabled && (
+        {/* Memory Instructions and Cache State */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Hit/Miss Breakdown</CardTitle>
+              <CardTitle>Memory Instructions</CardTitle>
             </CardHeader>
-            <CardContent>{renderBarGraph()}</CardContent>
+            <CardContent>{renderMemoryInstructions()}</CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>L1 Cache State</CardTitle>
+            </CardHeader>
+            <CardContent>{renderCacheVisualization()}</CardContent>
+          </Card>
+        </div>
+
+        {latencyConfigUIEnabled && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Latency Configuration</CardTitle>
+            </CardHeader>
+            <CardContent>{renderConfiguration()}</CardContent>
+          </Card>
+        )}
+
+        {accessCountsUIEnabled && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Hit/Miss Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>{renderBarGraph()}</CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>{renderCacheStats()}</CardContent>
+            </Card>
+          </div>
+        )}
+
+        {!accessCountsUIEnabled && (
           <Card>
             <CardHeader>
               <CardTitle>Statistics</CardTitle>
             </CardHeader>
             <CardContent>{renderCacheStats()}</CardContent>
           </Card>
-        </div>
-      )}
-
-      {!accessCountsUIEnabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>{renderCacheStats()}</CardContent>
-        </Card>
-      )}
-    </div>
+        )}
+      </div>
     </TooltipProvider>
   );
 };

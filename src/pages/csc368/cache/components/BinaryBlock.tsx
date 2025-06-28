@@ -103,9 +103,7 @@ export const BinaryBlock: React.FC<BinaryBlockProps> = ({
               aria-label={`Block ${index}`}
             >
               {binaryValue && (
-                <span className="text-xs font-mono font-semibold">
-                  {binaryValue[index] || '0'}
-                </span>
+                <span className="font-mono text-xs font-semibold">{binaryValue[index] || "0"}</span>
               )}
             </div>
           </div>

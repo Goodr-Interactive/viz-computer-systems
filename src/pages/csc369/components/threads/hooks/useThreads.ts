@@ -331,7 +331,7 @@ export const useThreads = (
 
   useEffect(() => {
     if (running) {
-      const interval = setInterval(() => update(running), 100 / playbackSpeed);
+      const interval = setInterval(() => update(running), 50 / playbackSpeed);
       return () => clearInterval(interval);
     }
   }, [running, playbackSpeed, lockState, semaphoreState, conditionVariableState]);

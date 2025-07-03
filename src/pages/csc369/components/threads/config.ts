@@ -179,19 +179,19 @@ export const READER_WRITER: ThreadsProps = {
         {
           id: "Mutex",
           acquireAt: 50,
-          releaseAt: 100
+          releaseAt: 100,
         },
         {
           id: "Mutex",
           acquireAt: 200,
-          releaseAt: 250
+          releaseAt: 250,
         },
         {
           id: "Mutex",
           acquireAt: 350,
-          releaseAt: 400
+          releaseAt: 400,
         },
-      ]
+      ],
     },
     {
       id: "Reader",
@@ -224,19 +224,19 @@ export const READER_WRITER: ThreadsProps = {
         {
           id: "Mutex",
           acquireAt: 40,
-          releaseAt: 90
+          releaseAt: 90,
         },
         {
           id: "Mutex",
           acquireAt: 210,
-          releaseAt: 260
+          releaseAt: 260,
         },
         {
           id: "Mutex",
           acquireAt: 340,
-          releaseAt: 390
+          releaseAt: 390,
         },
-      ]
+      ],
     },
   ],
   semaphores: [
@@ -247,9 +247,9 @@ export const READER_WRITER: ThreadsProps = {
   ],
   locks: [
     {
-      id: "Mutex"
-    }
-  ]
+      id: "Mutex",
+    },
+  ],
 };
 
 export const MULTI_READER_WRITER: ThreadsProps = {
@@ -284,8 +284,30 @@ export const MULTI_READER_WRITER: ThreadsProps = {
       semaphores: [
         {
           id: "Semaphore",
-          posts: [75, 175, 275, 375],
+          posts: [90, 190, 290, 390],
           waits: [],
+        },
+      ],
+      locks: [
+        {
+          id: "Mutex",
+          acquireAt: 50,
+          releaseAt: 75,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 150,
+          releaseAt: 175,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 250,
+          releaseAt: 275,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 350,
+          releaseAt: 375,
         },
       ],
     },
@@ -313,7 +335,24 @@ export const MULTI_READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [],
-          waits: [30, 210, 360],
+          waits: [15, 195, 345],
+        },
+      ],
+      locks: [
+        {
+          id: "Mutex",
+          acquireAt: 30,
+          releaseAt: 60,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 210,
+          releaseAt: 240,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 360,
+          releaseAt: 390,
         },
       ],
     },
@@ -336,7 +375,19 @@ export const MULTI_READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [],
-          waits: [130, 310],
+          waits: [115, 295],
+        },
+      ],
+      locks: [
+        {
+          id: "Mutex",
+          acquireAt: 130,
+          releaseAt: 160,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 310,
+          releaseAt: 340,
         },
       ],
     },
@@ -345,6 +396,11 @@ export const MULTI_READER_WRITER: ThreadsProps = {
     {
       id: "Semaphore",
       initial: 0,
+    },
+  ],
+  locks: [
+    {
+      id: "Mutex",
     },
   ],
 };
@@ -376,8 +432,25 @@ export const CV_READER_WRITER: ThreadsProps = {
       conditionVariables: [
         {
           id: "Condition Variable",
-          signals: [100, 250, 400],
+          signals: [115, 265, 415],
           waits: [],
+        },
+      ],
+      locks: [
+        {
+          id: "Mutex",
+          acquireAt: 50,
+          releaseAt: 100,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 200,
+          releaseAt: 250,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 350,
+          releaseAt: 400,
         },
       ],
     },
@@ -405,7 +478,24 @@ export const CV_READER_WRITER: ThreadsProps = {
         {
           id: "Condition Variable",
           signals: [],
-          waits: [40, 210, 340],
+          waits: [25, 195, 325],
+        },
+      ],
+      locks: [
+        {
+          id: "Mutex",
+          acquireAt: 40,
+          releaseAt: 90,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 210,
+          releaseAt: 260,
+        },
+        {
+          id: "Mutex",
+          acquireAt: 340,
+          releaseAt: 390,
         },
       ],
     },
@@ -413,6 +503,11 @@ export const CV_READER_WRITER: ThreadsProps = {
   conditionVariables: [
     {
       id: "Condition Variable",
+    },
+  ],
+  locks: [
+    {
+      id: "Mutex",
     },
   ],
 };

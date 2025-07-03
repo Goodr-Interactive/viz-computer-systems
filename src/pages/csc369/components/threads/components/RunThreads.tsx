@@ -48,6 +48,7 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
         ) : (
           controller.threads.map((thread) => (
             <Button
+              key={thread.id}
               variant={thread.id === controller.running?.id ? "secondary" : "default"}
               onClick={() =>
                 controller.runThread(thread.id === controller.running?.id ? undefined : thread)

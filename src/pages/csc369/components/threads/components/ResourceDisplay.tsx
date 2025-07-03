@@ -17,7 +17,7 @@ interface Props {
 
 export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) => {
   return (
-    <div className="flex h-full w-full flex-col gap-[12px] p-[12px]">
+    <div className="flex h-full w-full flex-col gap-[36px] p-[12px]">
       <h1 className="text-xl font-medium tracking-tight">Resources</h1>
       {controller.locks.length ? (
         <div className="flex flex-col">
@@ -52,8 +52,8 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
         </div>
       ) : null}
       {controller.semaphores.length ? (
-        <>
-          <span>Semaphores</span>
+        <div className="flex flex-col">
+          <span className="text-lg font-medium">Semaphores</span>
           <Table>
             <TableHeader>
               <TableRow>
@@ -81,11 +81,11 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
               ))}
             </TableBody>
           </Table>
-        </>
+        </div>
       ) : null}
       {controller.conditionVariables.length ? (
-        <>
-          <span>Condition Variables</span>
+        <div className="flex flex-col">
+          <span className="text-lg font-medium">Condition Variables</span>
           <Table>
             <TableHeader>
               <TableRow>
@@ -114,7 +114,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
               ))}
             </TableBody>
           </Table>
-        </>
+        </div>
       ) : null}
     </div>
   );

@@ -171,10 +171,27 @@ export const READER_WRITER: ThreadsProps = {
       semaphores: [
         {
           id: "Semaphore",
-          posts: [100, 250, 400],
+          posts: [115, 265, 415],
           waits: [],
         },
       ],
+      locks: [
+        {
+          id: "Mutex",
+          acquireAt: 50,
+          releaseAt: 100
+        },
+        {
+          id: "Mutex",
+          acquireAt: 200,
+          releaseAt: 250
+        },
+        {
+          id: "Mutex",
+          acquireAt: 350,
+          releaseAt: 400
+        },
+      ]
     },
     {
       id: "Reader",
@@ -200,9 +217,26 @@ export const READER_WRITER: ThreadsProps = {
         {
           id: "Semaphore",
           posts: [],
-          waits: [40, 210, 340],
+          waits: [25, 195, 325],
         },
       ],
+      locks: [
+        {
+          id: "Mutex",
+          acquireAt: 40,
+          releaseAt: 90
+        },
+        {
+          id: "Mutex",
+          acquireAt: 210,
+          releaseAt: 260
+        },
+        {
+          id: "Mutex",
+          acquireAt: 340,
+          releaseAt: 390
+        },
+      ]
     },
   ],
   semaphores: [
@@ -211,6 +245,11 @@ export const READER_WRITER: ThreadsProps = {
       initial: 0,
     },
   ],
+  locks: [
+    {
+      id: "Mutex"
+    }
+  ]
 };
 
 export const MULTI_READER_WRITER: ThreadsProps = {

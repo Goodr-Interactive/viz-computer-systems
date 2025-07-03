@@ -27,7 +27,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
           }}
           // @ts-expect-error tailwindcolors
           color={tailwindcolors[controller.colors[lock.id]][500]}
-          size={16}
+          size={14}
           key={`${lock.id}-${index}-acquire`}
         />
       ))}
@@ -41,7 +41,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
           }}
           // @ts-expect-error tailwindcolors
           color={tailwindcolors[controller.colors[lock.id]][500]}
-          size={16}
+          size={14}
           key={`${lock.id}-${index}-release`}
         />
       ))}
@@ -56,7 +56,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
             }}
             // @ts-expect-error tailwindcolors
             color={tailwindcolors[controller.colors[sem.id]][500]}
-            size={16}
+            size={14}
             key={`${sem.id}-${index}-${postIndex}-post`}
           />
         ))
@@ -73,7 +73,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
             color={tailwindcolors[controller.colors[sem.id]][500]}
             // @ts-expect-error tailwindcolors
             fill={tailwindcolors[controller.colors[sem.id]][500]}
-            size={16}
+            size={14}
             key={`${sem.id}-${index}-${waitIndex}-wait`}
           />
         ))
@@ -89,7 +89,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
             }}
             // @ts-expect-error tailwindcolors
             color={tailwindcolors[controller.colors[cv.id]][500]}
-            size={16}
+            size={14}
             key={`${cv.id}-${index}-${sigIndex}-signal`}
           />
         ))
@@ -106,7 +106,7 @@ export const ResourceTimeline: React.FunctionComponent<Props> = ({ thread, contr
             color={tailwindcolors[controller.colors[cv.id]][500]}
             // @ts-expect-error tailwindcolors
             fill={tailwindcolors[controller.colors[cv.id]][500]}
-            size={16}
+            size={14}
             key={`${cv.id}-${index}-${waitIndex}-wait`}
           />
         ))

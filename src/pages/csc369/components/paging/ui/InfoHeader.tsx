@@ -16,7 +16,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({
 }) => (
   <div>
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip delayDuration={350}>
         <TooltipTrigger asChild>
           <p className="text-muted-foreground border-muted-foreground/50 hover:border-muted-foreground inline-block cursor-help border-b border-dotted text-sm font-medium transition-colors">
             {children}

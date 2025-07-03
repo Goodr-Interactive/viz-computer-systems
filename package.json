@@ -14,6 +14,7 @@
     "check-lint": "eslint . --ext js,jsx,ts,tsx"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.8.0",
     "@fontsource/inter": "^5.2.5",
     "@mynaui/icons-react": "^0.3.3",
     "@radix-ui/react-alert-dialog": "^1.1.13",

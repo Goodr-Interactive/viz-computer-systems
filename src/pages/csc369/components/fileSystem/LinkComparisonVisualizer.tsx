@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "../paging/ui/SectionHeading";
 import { FILE_SYSTEM_CONFIG, generateRandomLinkScenario, type LinkScenario } from "./config";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export const LinkComparisonVisualizer: React.FC = () => {
   const [linkType, setLinkType] = useState<"hard" | "soft">("hard");
@@ -20,6 +22,10 @@ export const LinkComparisonVisualizer: React.FC = () => {
   const [selectedInode, setSelectedInode] = useState<number | null>(null);
   const [showingAfter, setShowingAfter] = useState(false);
   const [linkScenario, setLinkScenario] = useState<LinkScenario | null>(null);
+  const [testMode, setTestMode] = useState(false);
+  const [selectedChangedAttributes, setSelectedChangedAttributes] = useState<Set<string>>(
+    new Set()
+  );
 
   // Initialize file systems
   useEffect(() => {
@@ -52,6 +58,26 @@ export const LinkComparisonVisualizer: React.FC = () => {
       updateAfterFileSystem(fileSystemBefore, linkType, linkScenario);
     }
   }, [linkType, fileSystemBefore, linkScenario]);
+
+  // Reset selected inode when switching between before/after if it's no longer valid
+  useEffect(() => {
+    if (selectedInode !== null && selectedBlock !== null) {
+      const effectiveFS = (testMode ? true : showingAfter) ? fileSystemAfter : fileSystemBefore;
+      if (effectiveFS) {
+        try {
+          const inodeData = effectiveFS.getInodeBlockData(selectedBlock);
+          const inode = inodeData.inodes.find((i) => i.number === selectedInode);
+          // If the inode doesn't exist, isn't used, or doesn't have data, reset selection
+          if (!inode || !inode.used || !inode.data) {
+            setSelectedInode(null);
+          }
+        } catch {
+          // If we can't get the inode data, reset selection
+          setSelectedInode(null);
+        }
+      }
+    }
+  }, [showingAfter, selectedInode, selectedBlock, fileSystemBefore, fileSystemAfter, testMode]);
 
   const updateAfterFileSystem = (
     _baseFsInstance: FileSystem,
@@ -89,11 +115,15 @@ export const LinkComparisonVisualizer: React.FC = () => {
   const handleInodeClick = (inodeNumber: number, isUsed: boolean) => {
     if (isUsed) {
       setSelectedInode(inodeNumber);
+      // Reset selected attributes when changing inodes in test mode
+      if (testMode) {
+        setSelectedChangedAttributes(new Set());
+      }
     }
   };
 
   const handleDirectoryRowClick = (inodeNumber: number) => {
-    const fs = showingAfter ? fileSystemAfter : fileSystemBefore;
+    const fs = (testMode ? true : showingAfter) ? fileSystemAfter : fileSystemBefore;
     if (!fs) return;
 
     const sb = fs.getSuperBlock();
@@ -385,20 +415,26 @@ export const LinkComparisonVisualizer: React.FC = () => {
     return changes;
   };
 
-  const currentFS = showingAfter ? fileSystemAfter : fileSystemBefore;
-  const changedBlocks = showingAfter ? getChangedBlocks() : new Set<number>();
-  const highlightedInodes = showingAfter ? getHighlightedInodes() : new Set<number>();
-  const highlightedEntries = showingAfter ? getHighlightedEntries() : new Set<string>();
-  const highlightedInodeBitmapItems = showingAfter
-    ? getHighlightedInodeBitmapItems()
-    : new Set<number>();
-  const highlightedDataBitmapItems = showingAfter
-    ? getHighlightedDataBitmapItems()
-    : new Set<number>();
-  const highlightedDataBlocks = showingAfter ? getHighlightedDataBlocks() : new Set<number>();
-  const changedInodeAttributes = showingAfter
+  // In test mode, lock to "after" state and remove all highlighting
+  const effectiveShowingAfter = testMode ? true : showingAfter;
+  const currentFS = effectiveShowingAfter ? fileSystemAfter : fileSystemBefore;
+  const changedBlocks = showingAfter && !testMode ? getChangedBlocks() : new Set<number>();
+  const highlightedInodes = showingAfter && !testMode ? getHighlightedInodes() : new Set<number>();
+  const highlightedEntries =
+    showingAfter && !testMode ? getHighlightedEntries() : new Set<string>();
+  const highlightedInodeBitmapItems =
+    showingAfter && !testMode ? getHighlightedInodeBitmapItems() : new Set<number>();
+  const highlightedDataBitmapItems =
+    showingAfter && !testMode ? getHighlightedDataBitmapItems() : new Set<number>();
+  const highlightedDataBlocks =
+    showingAfter && !testMode ? getHighlightedDataBlocks() : new Set<number>();
+  // Always calculate changed attributes for test mode quiz, but only show highlighting when not in test mode
+  const changedInodeAttributes = effectiveShowingAfter
     ? getChangedInodeAttributes()
     : new Map<number, Set<string>>();
+  const displayedChangedInodeAttributes = testMode
+    ? new Map<number, Set<string>>()
+    : changedInodeAttributes;
 
   if (!fileSystemBefore || !fileSystemAfter) {
     return <div>Loading...</div>;
@@ -427,37 +463,53 @@ export const LinkComparisonVisualizer: React.FC = () => {
             </span>
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              const newScenario = generateRandomLinkScenario();
-              setLinkScenario(newScenario);
-              if (fileSystemBefore) {
-                updateAfterFileSystem(fileSystemBefore, linkType, newScenario);
-              }
-            }}
-          >
-            New Scenario
-          </Button>
-          <Button
-            variant={linkType === "hard" ? "default" : "outline"}
-            onClick={() => setLinkType("hard")}
-            className="w-24"
-          >
-            Hard Link
-          </Button>
-          <Button
-            variant={linkType === "soft" ? "default" : "outline"}
-            onClick={() => setLinkType("soft")}
-            className="w-24"
-          >
-            Soft Link
-          </Button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const newScenario = generateRandomLinkScenario();
+                setLinkScenario(newScenario);
+                if (fileSystemBefore) {
+                  updateAfterFileSystem(fileSystemBefore, linkType, newScenario);
+                }
+              }}
+            >
+              New Scenario
+            </Button>
+            <Button
+              variant={linkType === "hard" ? "default" : "outline"}
+              onClick={() => setLinkType("hard")}
+              className="w-24"
+            >
+              Hard Link
+            </Button>
+            <Button
+              variant={linkType === "soft" ? "default" : "outline"}
+              onClick={() => setLinkType("soft")}
+              className="w-24"
+            >
+              Soft Link
+            </Button>
+            <div className="border-border bg-background hover:bg-accent/50 flex h-9 items-center space-x-2 rounded-md border px-4 py-1 shadow-xs transition-colors">
+              <Switch
+                id="show-after"
+                checked={effectiveShowingAfter}
+                onCheckedChange={testMode ? undefined : setShowingAfter}
+                disabled={testMode}
+              />
+              <Label
+                htmlFor="show-after"
+                className={`cursor-pointer font-medium ${testMode ? "text-muted-foreground" : ""}`}
+              >
+                {effectiveShowingAfter ? "After" : "Before"}
+              </Label>
+            </div>
+          </div>
           <div className="border-border bg-background hover:bg-accent/50 flex h-9 items-center space-x-2 rounded-md border px-4 py-1 shadow-xs transition-colors">
-            <Switch id="show-after" checked={showingAfter} onCheckedChange={setShowingAfter} />
-            <Label htmlFor="show-after" className="cursor-pointer font-medium">
-              {showingAfter ? "After" : "Before"}
+            <Switch id="test-mode" checked={testMode} onCheckedChange={setTestMode} />
+            <Label htmlFor="test-mode" className="cursor-pointer font-medium">
+              Test Mode
             </Label>
           </div>
         </div>
@@ -468,7 +520,7 @@ export const LinkComparisonVisualizer: React.FC = () => {
           <div className="bg-muted/50 min-w-fit rounded-lg p-6">
             <SubsectionHeading className="flex items-center">
               Disk Layout{" "}
-              {showingAfter && (
+              {effectiveShowingAfter && !testMode && (
                 <Badge className="mt-0.5 ml-4 border-orange-400 bg-orange-100 py-1 pt-[3px] text-orange-600">
                   Changes Highlighted
                 </Badge>
@@ -488,13 +540,18 @@ export const LinkComparisonVisualizer: React.FC = () => {
         </TooltipProvider>
       </section>
 
-      <section className="flex h-full w-full max-w-7xl flex-col overflow-x-auto">
-        <div className="bg-muted/50 flex h-full min-w-fit flex-col rounded-lg p-6">
+      <section
+        className={`flex w-full max-w-7xl overflow-x-auto ${testMode ? "h-full items-stretch gap-10" : "h-full flex-col"}`}
+      >
+        {/* Block Content Card */}
+        <div
+          className={`bg-muted/50 flex h-full min-w-fit flex-col rounded-lg p-6 ${testMode ? "flex-[7]" : "w-full"}`}
+        >
           <SubsectionHeading>Block Content</SubsectionHeading>
           <div className="flex-grow overflow-y-auto p-1">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
-                key={`${selectedBlock}-${showingAfter ? "after" : "before"}`}
+                key={`block-${selectedBlock}`}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1, height: "auto" }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -524,14 +581,134 @@ export const LinkComparisonVisualizer: React.FC = () => {
                     highlightedInodeBitmapItems={highlightedInodeBitmapItems}
                     highlightedDataBitmapItems={highlightedDataBitmapItems}
                     highlightedDataBlocks={highlightedDataBlocks}
-                    changedInodeAttributes={changedInodeAttributes}
+                    changedInodeAttributes={displayedChangedInodeAttributes}
                   />
                 )}
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
+
+        {/* Changed Inode Quiz Card - Only visible in test mode */}
+        {testMode && (
+          <div className="bg-muted/50 flex w-full flex-[3] flex-col rounded-lg p-6">
+            <SubsectionHeading>Changed Inode</SubsectionHeading>
+            <div className="h-full flex-grow overflow-y-auto">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={`quiz-${selectedInode !== null ? "has-selection" : "no-selection"}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1, height: "auto" }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{
+                    duration: 0.2,
+                    ease: "easeInOut",
+                    layout: {
+                      duration: 0.2,
+                      ease: "easeInOut",
+                    },
+                  }}
+                  layout
+                  className="h-full origin-top"
+                >
+                  <div className="flex h-full flex-col justify-between space-y-4">
+                    <p className="text-muted-foreground text-sm">
+                      Select the affected inode and the attributes that have changed after the link
+                      is created.
+                    </p>
+
+                    {selectedInode !== null ? (
+                      <>
+                        {/* Attribute selection checkboxes */}
+                        <div className="space-y-2">
+                          {["type", "nlink", "mtime", "blockPointers"].map((attr) => {
+                            const isSelected = selectedChangedAttributes.has(attr);
+                            const displayName =
+                              attr === "nlink"
+                                ? "Links"
+                                : attr === "mtime"
+                                  ? "Modified"
+                                  : attr === "blockPointers"
+                                    ? "Block Pointers"
+                                    : "Type";
+
+                            return (
+                              <div key={attr} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`attr-${attr}`}
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const newSet = new Set(selectedChangedAttributes);
+                                    if (e.target.checked) {
+                                      newSet.add(attr);
+                                    } else {
+                                      newSet.delete(attr);
+                                    }
+                                    setSelectedChangedAttributes(newSet);
+                                  }}
+                                  className="h-4 w-4 rounded border-gray-300"
+                                />
+                                <label
+                                  htmlFor={`attr-${attr}`}
+                                  className="cursor-pointer text-sm font-medium"
+                                >
+                                  {displayName}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Submit button */}
+                        <Button
+                          onClick={() => {
+                            // Get the highlighted (changed) inodes
+                            const highlightedInodesSet = getHighlightedInodes();
+
+                            // Check if the selected inode is one that actually changed
+                            const selectedCorrectInode = highlightedInodesSet.has(selectedInode);
+
+                            // Get the actual changed attributes for the selected inode
+                            const actualChanges =
+                              changedInodeAttributes.get(selectedInode) || new Set();
+
+                            // Check if the user's attribute selection matches
+                            const attributesCorrect =
+                              actualChanges.size === selectedChangedAttributes.size &&
+                              [...actualChanges].every((attr) =>
+                                selectedChangedAttributes.has(attr)
+                              );
+
+                            if (selectedCorrectInode && attributesCorrect) {
+                              toast.success(
+                                "Correct! You identified the right inode and all the changed attributes."
+                              );
+                            } else if (!selectedCorrectInode) {
+                              toast.error(`Incorrect inode selected.`);
+                            } else if (selectedCorrectInode && !attributesCorrect) {
+                              toast.error(`Correct inode, but incorrect attributes.`);
+                            } else {
+                              toast.error(`Incorrect. Try again.`);
+                            }
+                          }}
+                          className="w-full"
+                          variant="default"
+                        >
+                          Submit
+                        </Button>
+                      </>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
       </section>
+      <Toaster />
     </>
   );
 };

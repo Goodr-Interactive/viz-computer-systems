@@ -6,14 +6,11 @@ const generateFoodText = (): string => {
   const foodMethods = [
     () => faker.food.adjective(),
     () => faker.food.fruit(),
-    () => faker.food.ingredient(),
-    () => faker.food.spice(),
-    () => faker.food.meat(),
     () => faker.food.vegetable(),
   ];
 
   const words: string[] = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 20; i++) {
     const randomMethod = foodMethods[Math.floor(faker.number.float() * foodMethods.length)];
     words.push(randomMethod());
   }
@@ -47,248 +44,248 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
 
   files: [
     {
-      path: "persistence/storage/ssd_internals.txt",
+      path: "apple/mango/carrot.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/locks/deadlock_avoidance.txt",
+      path: "banana/grape/broccoli.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/memory/malloc_impl.txt",
+      path: "orange/lime/spinach.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/filesystems/journaling.txt",
+      path: "apple/cherry/tomato.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/synchronization/semaphores.txt",
+      path: "banana/peach/potato.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/paging/page_replacement.txt",
+      path: "orange/plum/lettuce.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/recovery/checkpoint_rollback.txt",
+      path: "apple/guava/cucumber.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/scheduling/lottery_scheduling.txt",
+      path: "orange/kiwi/onion.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/thread_creation.txt",
+      path: "banana/pepper.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/storage/flash_translation.txt",
+      path: "apple/mango/corn.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/context_switch.txt",
+      path: "orange/cauliflower.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/locks/lock_free_structures.txt",
+      path: "banana/grape/celery.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/filesystems/copy_on_write.txt",
+      path: "apple/cherry/radish.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/memory/segmentation.txt",
+      path: "orange/lime/eggplant.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/synchronization/readers_writers.txt",
+      path: "banana/peach/zucchini.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/directory_traversal.txt",
+      path: "apple/mushroom.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/scheduling/fcfs_scheduling.txt",
+      path: "orange/kiwi/peas.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/parallel/work_stealing.txt",
+      path: "banana/melon/kale.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/storage/disk_scheduling.txt",
+      path: "apple/mango/beets.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/paging/tlb_management.txt",
+      path: "orange/plum/cabbage.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/locks/spinlock.txt",
+      path: "banana/grape/asparagus.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/recovery/log_structured.txt",
+      path: "apple/guava/turnip.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/memory/address_spaces.txt",
+      path: "orange/lime/beans.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/synchronization/barriers.txt",
+      path: "banana/peach/leek.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/filesystems/ext4_design.txt",
+      path: "apple/cherry/squash.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/scheduling/round_robin.txt",
+      path: "orange/kiwi/artichoke.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/atomic_operations.txt",
+      path: "banana/strawberry.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/storage/raid_levels.txt",
+      path: "apple/mango/garlic.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/paging/demand_paging.txt",
+      path: "orange/plum/cilantro.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/locks/mutex_impl.txt",
+      path: "banana/grape/okra.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/recovery/write_ahead_logging.txt",
+      path: "apple/guava/ginger.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
-    { path: "virtualization/fork_exec.txt", blocks: 1, type: "text", content: generateFoodText() },
+    { path: "orange/watercress.txt", blocks: 1, type: "text", content: generateFoodText() },
     {
-      path: "concurrency/synchronization/cond_variables.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "persistence/filesystems/inode_allocation.txt",
+      path: "banana/peach/avocado.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/memory/vm_mechanism.txt",
+      path: "apple/cherry/lemon.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/parallel/thread_pools.txt",
+      path: "orange/lime/blueberry.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/file_descriptors.txt",
+      path: "banana/melon/raspberry.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/scheduling/mlfq_policy.txt",
+      path: "apple/parsley.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "concurrency/race_conditions.txt",
+      path: "orange/kiwi/pineapple.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "persistence/fsync_durability.txt",
+      path: "banana/mint.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/paging/swap_mechanisms.txt",
+      path: "apple/basil.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
     },
     {
-      path: "virtualization/process_api.txt",
+      path: "orange/plum/durian.txt",
+      blocks: 1,
+      type: "text",
+      content: generateFoodText(),
+    },
+    {
+      path: "orange/coconut.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
@@ -312,7 +309,7 @@ export const generateRandomLinkScenario = (): LinkScenario => {
   const targetFile = availableFiles[Math.floor(faker.number.float() * availableFiles.length)];
 
   // Pick one of the three main directories for the link
-  const mainDirectories = ["/concurrency", "/virtualization", "/persistence"];
+  const mainDirectories = ["/apple", "/banana", "/orange"];
   const linkDirectory = mainDirectories[Math.floor(faker.number.float() * mainDirectories.length)];
 
   // Always name the link file "copy.txt"

@@ -53,6 +53,7 @@ export const EnhancedInodeBlockView: React.FC<EnhancedInodeBlockViewProps> = ({
 
       const inode = inodeData.inodes[inodeIndex];
       const isHighlighted = highlightedInodes?.has(inode.number) || false;
+      const isSelected = selectedInode === inode.number && inode.used && inode.data;
 
       let colors;
       if (isHighlighted && inode.used) {
@@ -77,7 +78,7 @@ export const EnhancedInodeBlockView: React.FC<EnhancedInodeBlockViewProps> = ({
             onClick={() => onInodeClick(inode.number, inode.used)}
             className={` ${
               inode.used ? "cursor-pointer" : "cursor-not-allowed"
-            } ${selectedInode === inode.number ? "ring-2 ring-blue-500" : ""} `}
+            } ${isSelected ? "ring-2 ring-blue-500" : ""} `}
           >
             <MultiColorBinaryBlock
               blocks={1}
@@ -139,102 +140,106 @@ export const EnhancedInodeBlockView: React.FC<EnhancedInodeBlockViewProps> = ({
 
         {/* Enhanced Info Card */}
         <AnimatePresence mode="popLayout">
-          {selectedInode !== null && (
-            <motion.div
-              key={`inode-card-${selectedInode}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{
-                duration: previousInode === null ? 0.15 : 0.1,
-                ease: "easeOut",
-                delay: previousInode === null ? 0.2 : 0,
-              }}
-              className="border-border w-[196px] flex-shrink-0 rounded-md border p-4"
-            >
-              <div className="mb-3 flex items-start justify-between">
-                <h5 className="font-medium">Inode {selectedInode}</h5>
-                <Button
-                  onClick={onCloseInodeInfo}
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 cursor-pointer p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              {(() => {
-                const inode = inodeData.inodes.find((i) => i.number === selectedInode);
-                if (!inode || !inode.data) return null;
+          {selectedInode !== null &&
+            (() => {
+              const inode = inodeData.inodes.find((i) => i.number === selectedInode);
+              return inode && inode.used && inode.data;
+            })() && (
+              <motion.div
+                key={`inode-card-${selectedInode}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{
+                  duration: previousInode === null ? 0.15 : 0.1,
+                  ease: "easeOut",
+                  delay: previousInode === null ? 0.2 : 0,
+                }}
+                className="border-border w-[196px] flex-shrink-0 rounded-md border p-4"
+              >
+                <div className="mb-3 flex items-start justify-between">
+                  <h5 className="font-medium">Inode {selectedInode}</h5>
+                  <Button
+                    onClick={onCloseInodeInfo}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 cursor-pointer p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {(() => {
+                  const inode = inodeData.inodes.find((i) => i.number === selectedInode);
+                  if (!inode || !inode.data) return null;
 
-                const changedAttributes =
-                  changedInodeAttributes?.get(selectedInode) || new Set<string>();
+                  const changedAttributes =
+                    changedInodeAttributes?.get(selectedInode) || new Set<string>();
 
-                return (
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span
-                        className={`font-medium ${changedAttributes.has("type") ? "font-bold text-orange-600" : ""}`}
-                      >
-                        Type:
-                      </span>
-                      <span>{inode.data.type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span
-                        className={`font-medium ${changedAttributes.has("nlink") ? "font-bold text-orange-600" : ""}`}
-                      >
-                        Links:
-                      </span>
-                      <span className="font-mono">{inode.data.nlink}</span>
-                    </div>
+                  return (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span
+                          className={`font-medium ${changedAttributes.has("type") ? "font-bold text-orange-600" : ""}`}
+                        >
+                          Type:
+                        </span>
+                        <span>{inode.data.type}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span
+                          className={`font-medium ${changedAttributes.has("nlink") ? "font-bold text-orange-600" : ""}`}
+                        >
+                          Links:
+                        </span>
+                        <span className="font-mono">{inode.data.nlink}</span>
+                      </div>
 
-                    {/* <div className="flex justify-between">
+                      {/* <div className="flex justify-between">
                       <span className="font-medium">Created:</span>
                       <span className="text-muted-foreground font-mono text-xs">
                         {formatTimestamp(inode.data.ctime)}
                       </span>
                     </div> */}
-                    <div className="flex justify-between">
-                      <span
-                        className={`font-medium ${changedAttributes.has("mtime") ? "font-bold text-orange-600" : ""}`}
-                      >
-                        Modified:
-                      </span>
-                      <span className="mt-0.5 font-mono text-xs">
-                        {formatTimestamp(inode.data.mtime)}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div
-                        className={`mb-2 font-medium ${changedAttributes.has("blockPointers") ? "font-bold text-orange-600" : ""}`}
-                      >
-                        Block Pointers:
+                      <div className="flex justify-between">
+                        <span
+                          className={`font-medium ${changedAttributes.has("mtime") ? "font-bold text-orange-600" : ""}`}
+                        >
+                          Modified:
+                        </span>
+                        <span className="mt-0.5 font-mono text-xs tracking-tighter">
+                          {formatTimestamp(inode.data.mtime)}
+                        </span>
                       </div>
-                      {inode.data.blockPointers.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {inode.data.blockPointers.map((pointer) => (
-                            <Button
-                              key={pointer}
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-9 cursor-pointer rounded border border-zinc-400/50 bg-white font-mono"
-                              onClick={() => onBlockClick(pointer)}
-                            >
-                              {pointer}
-                            </Button>
-                          ))}
+
+                      <div>
+                        <div
+                          className={`mb-2 font-medium ${changedAttributes.has("blockPointers") ? "font-bold text-orange-600" : ""}`}
+                        >
+                          Block Pointers:
                         </div>
-                      ) : (
-                        <div className="text-muted-foreground">No blocks allocated</div>
-                      )}
+                        {inode.data.blockPointers.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {inode.data.blockPointers.map((pointer) => (
+                              <Button
+                                key={pointer}
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-9 cursor-pointer rounded border border-zinc-400/50 bg-white font-mono"
+                                onClick={() => onBlockClick(pointer)}
+                              >
+                                {pointer}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-muted-foreground">No blocks allocated</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
-            </motion.div>
-          )}
+                  );
+                })()}
+              </motion.div>
+            )}
         </AnimatePresence>
       </motion.div>
     </div>

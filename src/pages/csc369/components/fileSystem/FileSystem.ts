@@ -864,7 +864,7 @@ export class FileSystem {
           // Check if this is a symbolic link
           if (this.isSymbolicLink(i)) {
             const targetPath = this.readSymbolicLink(i);
-            return targetPath ? `-> ${targetPath}` : "-> (invalid symlink)";
+            return targetPath ? `${targetPath}` : "(invalid symlink)";
           }
 
           // Get the actual file size (not the full block size)

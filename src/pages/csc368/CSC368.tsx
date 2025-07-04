@@ -13,7 +13,10 @@ export const CSC368: React.FunctionComponent = () => {
           <a href="/csc368/pipelining">Instruction Pipelining</a>
         </Button>
         <Button asChild variant="outline">
-          <a href="/csc368/caches">Caches</a>
+          <a href="/csc368/caches">Cache Hierarchy</a>
+        </Button>
+        <Button asChild variant="outline">
+          <a href="/csc368/associativity">Cache Associativity</a>
         </Button>
         <Button asChild variant="outline">
           <a href="/">Back to Home</a>

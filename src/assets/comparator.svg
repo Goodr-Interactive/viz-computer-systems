@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+	"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.1"
+   width="200"
+   height="170"
+   id="svg4490">
+  <defs
+     id="defs4492" />
+  <g
+     transform="translate(-474,-277.6414)"
+     id="layer1">
+    <g
+       id="g3101">
+      <path
+         d="m 533.35352,387.0739 -25,0"
+         id="path5041"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 533.35352,337.07386 -25,0"
+         id="path5043"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 533.375,387.07386 -0.0215,-70 90,45 -90,45 0.0215,-20"
+         id="path9354"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 648.35352,362.07387 -25,0"
+         id="path11146"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 521,252.09448 a 3,3 0 1 1 -6,0 3,3 0 1 1 6,0 z"
+         transform="translate(133.3535,109.9794)"
+         id="path12041"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 521,252.09448 a 3,3 0 1 1 -6,0 3,3 0 1 1 6,0 z"
+         transform="translate(-12.6465,134.9794)"
+         id="path12047"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 521,252.09448 a 3,3 0 1 1 -6,0 3,3 0 1 1 6,0 z"
+         transform="translate(-12.6465,84.97938)"
+         id="path12051"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <text
+         x="638.35352"
+         y="352.07385"
+         id="text12117"
+         xml:space="preserve"
+         style="font-size:16px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:sans"><tspan
+           x="638.35352"
+           y="352.07385"
+           dy="0 2.5"
+           id="tspan12119">V<tspan
+   id="tspan13050"
+   style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;font-family:sans">out</tspan></tspan></text>
+      <text
+         x="482.32617"
+         y="342.52698"
+         id="text12125"
+         xml:space="preserve"
+         style="font-size:16px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:sans"><tspan
+           x="482.32617"
+           y="342.52698"
+           dy="0"
+           id="tspan12127">V<tspan
+   dy="5"
+   id="tspan13038"
+   style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;font-family:sans">+</tspan></tspan></text>
+      <text
+         x="482.2832"
+         y="392.81799"
+         id="text12129"
+         xml:space="preserve"
+         style="font-size:16px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:sans"><tspan
+           x="482.2832"
+           y="392.81799"
+           dy="0"
+           id="tspan12131">V<tspan
+   dy="5"
+   id="tspan13040"
+   style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;font-family:sans">−</tspan></tspan></text>
+      <g
+         transform="translate(16.35352,6.432456)"
+         id="g1988">
+        <path
+           d="m 532,326.6414 0,8"
+           id="path12147"
+           style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+        <path
+           d="m 536,330.6414 -8,0"
+           id="path13034"
+           style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      </g>
+      <path
+         d="m 552.35352,387.07386 -8,0"
+         id="path13036"
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+    </g>
+  </g>
+</svg>

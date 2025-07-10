@@ -11,7 +11,6 @@ export const CSC368: React.FunctionComponent = () => {
         CSC368 – Computer Architecture
       </h1>
       <span>Select a topic to explore below.</span>
-
       <div className="flex max-w-[500px] flex-wrap justify-center gap-[16px]">
         {routes.map((route) => (
           <Button asChild variant="outline">

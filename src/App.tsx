@@ -19,6 +19,8 @@ import {
   SIMPLE_MUTEX,
   Threads,
 } from "./pages/csc369/components/threads";
+import { Caches } from "./pages/csc368/cache";
+import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
 
 export interface AppRoute {
   path: string;
@@ -87,6 +89,18 @@ export const ROUTES: AppRoute[] = [
     title: "Instruction Pipelining",
     description: "",
     element: <Pipelining />,
+  },
+  {
+    path: "/csc368/associativity",
+    title: "Associativity",
+    description: "",
+    element: <Associativity />,
+  },
+  {
+    path: "/csc368/caches",
+    title: "Caches",
+    description: "",
+    element: <Caches />,
   },
   {
     path: "/csc369/paging/translation",

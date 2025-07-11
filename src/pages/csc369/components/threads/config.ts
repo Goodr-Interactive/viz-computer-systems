@@ -559,7 +559,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
 export const ZEMAPHORES: ThreadsProps = {
   title: "Zemaphore Mechanics",
   description:
-    "The following example demonstrates the mechanics of a Zemaphore (OSTEP 31.17)",
+    "The following example demonstrates an implementation of a Semaphore using a Lock and a Condition Variable (Zemaphores, OSTEP 31.17)",
   threads: [
     {
       id: "Thread",

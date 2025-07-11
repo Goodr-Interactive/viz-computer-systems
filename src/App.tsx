@@ -18,6 +18,7 @@ import {
   PRODUCER_CONSUMER,
   SIMPLE_MUTEX,
   Threads,
+  ZEMAPHORES,
 } from "./pages/csc369/components/threads";
 import { Caches } from "./pages/csc368/cache";
 import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
@@ -59,6 +60,12 @@ export const ROUTES: AppRoute[] = [
     title: "Threads – Producer & Consumer with Semaphores",
     description: "",
     element: <Threads {...PRODUCER_CONSUMER} />,
+  },
+  {
+    path: "/csc369/threads-zemaphores",
+    title: "Threads – Zemaphores",
+    description: "",
+    element: <Threads {...ZEMAPHORES}/>
   },
   // {
   //   path: "/csc369/threads-multi-reader-writer",

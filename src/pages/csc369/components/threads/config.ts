@@ -555,3 +555,74 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
     },
   ],
 };
+
+export const ZEMAPHORES: ThreadsProps = {
+  title: "Zemaphore Mechanics",
+  description:
+    "The following example demonstrates the mechanics of a Zemaphore (OSTEP 31.17)",
+  threads: [
+    {
+      id: "Thread",
+      timeSteps: 300,
+      criticalSections: [
+        {
+          id: "Zem_post(&s);",
+          startAt: 50,
+          endAt: 100,
+          action: {
+            name: "increment",
+            stateId: "value",
+            action: (state) => state + 1
+          }
+        },
+        {
+          id: "Zem_wait(&s);",
+          startAt: 200,
+          endAt: 250,
+          action: {
+            name: "decrement",
+            stateId: "value",
+            action: (state) => state - 1
+          }
+        },
+      ],
+      conditionVariables: [
+        {
+          id: "cond",
+          signals: [101],
+          waits: [200],
+        }
+      ],
+      locks: [
+        {
+          id: "lock",
+          acquireAt: 35,
+          releaseAt: 115
+        },
+        {
+          id: "lock",
+          acquireAt: 185,
+          releaseAt: 265
+        },
+      ]
+    },
+  ],
+  conditionVariables: [
+    {
+      id: "cond",
+      stateId: "value",
+      condition: (state) => state <= 0,
+    }
+  ],
+  locks: [
+    {
+      id: "lock"
+    }
+  ],
+  state: [
+    {
+      id: "value",
+      initial: 0
+    }
+  ]
+};

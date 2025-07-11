@@ -1,5 +1,5 @@
 import React from "react";
-import { ThreadAction, type ThreadsController } from "../types";
+import { ThreadAction, type Thread, type ThreadsController } from "../types";
 import { Button } from "@/components/ui/button";
 import tailwindcolors from "tailwindcss/colors";
 interface Props {
@@ -21,6 +21,11 @@ const ACTIONS: Record<ThreadAction, string> = {
 };
 
 export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
+
+    const hasExited = (thread: Thread) => {
+        return controller.threadState[thread.id]?.timeStep === thread.timeSteps;
+    }
+
   return (
     <div className="h-full w-full flex-col p-[12px]">
       <h1 className="text-xl font-medium tracking-tight">Run Threads</h1>
@@ -67,19 +72,19 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
             <Button
               key={thread.id}
               variant={
-                controller.isWaiting(thread)
+                controller.isWaiting(thread) || hasExited(thread)
                   ? "secondary"
                   : thread.id === controller.running?.id
                     ? "outline"
                     : "default"
               }
-              disabled={controller.isWaiting(thread)}
+              disabled={controller.isWaiting(thread) || hasExited(thread)}
               onClick={() =>
                 !controller.isWaiting(thread) &&
                 controller.runThread(thread.id === controller.running?.id ? undefined : thread)
               }
             >
-              {controller.isWaiting(thread)
+              {hasExited(thread) ? "Exited" : controller.isWaiting(thread)
                 ? "Waiting..."
                 : thread.id === controller.running?.id
                   ? `Suspend ${thread.id}`

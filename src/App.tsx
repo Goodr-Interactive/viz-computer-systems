@@ -65,7 +65,7 @@ export const ROUTES: AppRoute[] = [
     path: "/csc369/threads-zemaphores",
     title: "Threads – Zemaphores",
     description: "",
-    element: <Threads {...ZEMAPHORES}/>
+    element: <Threads {...ZEMAPHORES} />,
   },
   // {
   //   path: "/csc369/threads-multi-reader-writer",

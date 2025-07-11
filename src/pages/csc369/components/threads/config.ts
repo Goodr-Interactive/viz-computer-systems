@@ -572,8 +572,8 @@ export const ZEMAPHORES: ThreadsProps = {
           action: {
             name: "increment",
             stateId: "value",
-            action: (state) => state + 1
-          }
+            action: (state) => state + 1,
+          },
         },
         {
           id: "Zem_wait(&s);",
@@ -582,8 +582,8 @@ export const ZEMAPHORES: ThreadsProps = {
           action: {
             name: "decrement",
             stateId: "value",
-            action: (state) => state - 1
-          }
+            action: (state) => state - 1,
+          },
         },
       ],
       conditionVariables: [
@@ -591,20 +591,20 @@ export const ZEMAPHORES: ThreadsProps = {
           id: "cond",
           signals: [101],
           waits: [200],
-        }
+        },
       ],
       locks: [
         {
           id: "lock",
           acquireAt: 35,
-          releaseAt: 115
+          releaseAt: 115,
         },
         {
           id: "lock",
           acquireAt: 185,
-          releaseAt: 265
+          releaseAt: 265,
         },
-      ]
+      ],
     },
   ],
   conditionVariables: [
@@ -612,17 +612,17 @@ export const ZEMAPHORES: ThreadsProps = {
       id: "cond",
       stateId: "value",
       condition: (state) => state <= 0,
-    }
+    },
   ],
   locks: [
     {
-      id: "lock"
-    }
+      id: "lock",
+    },
   ],
   state: [
     {
       id: "value",
-      initial: 0
-    }
-  ]
+      initial: 0,
+    },
+  ],
 };

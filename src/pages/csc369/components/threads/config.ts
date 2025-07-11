@@ -157,16 +157,31 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           id: "put(i);",
           startAt: 50,
           endAt: 100,
+          action: {
+            name: "increments",
+            stateId: "buffer items",
+            action: (state: number) => state + 1,
+          },
         },
         {
           id: "put(i);",
           startAt: 200,
           endAt: 250,
+          action: {
+            name: "increments",
+            stateId: "buffer items",
+            action: (state: number) => state + 1,
+          },
         },
         {
           id: "put(i);",
           startAt: 350,
           endAt: 400,
+          action: {
+            name: "increments",
+            stateId: "buffer items",
+            action: (state: number) => state + 1,
+          },
         },
       ],
       semaphores: [
@@ -195,16 +210,31 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           id: "int tmp = get();",
           startAt: 40,
           endAt: 90,
+          action: {
+            name: "decrements",
+            stateId: "buffer items",
+            action: (state: number) => state - 1,
+          },
         },
         {
           id: "int tmp = get();",
           startAt: 210,
           endAt: 260,
+          action: {
+            name: "decrements",
+            stateId: "buffer items",
+            action: (state: number) => state - 1,
+          },
         },
         {
           id: "int tmp = get();",
           startAt: 340,
           endAt: 390,
+          action: {
+            name: "decrements",
+            stateId: "buffer items",
+            action: (state: number) => state - 1,
+          },
         },
       ],
       semaphores: [
@@ -238,6 +268,12 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
     {
       id: "mutex",
       initial: 1,
+    },
+  ],
+  state: [
+    {
+      id: "buffer items",
+      initial: 0,
     },
   ],
 };

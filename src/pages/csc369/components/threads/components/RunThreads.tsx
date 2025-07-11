@@ -7,16 +7,17 @@ interface Props {
 }
 
 const ACTIONS: Record<ThreadAction, string> = {
-  [ThreadAction.LOCK_ACQUIRE]: "will acquire",
-  [ThreadAction.LOCK_RELEASE]: "will release",
-  [ThreadAction.LOCK_WAIT]: "will wait on",
-  [ThreadAction.SEM_POST]: "will post to",
-  [ThreadAction.SEM_WAIT]: "will wait for",
-  [ThreadAction.SEM_PASS]: "will pass",
-  [ThreadAction.CRITICAL_SECTION_ENTER]: "will enter",
-  [ThreadAction.CRITICAL_SECTION_EXIT]: "will exit",
-  [ThreadAction.CV_WAIT]: "will wait for",
-  [ThreadAction.CV_SIGNAL]: "will signal to",
+  [ThreadAction.LOCK_ACQUIRE]: "acquires",
+  [ThreadAction.LOCK_RELEASE]: "releases",
+  [ThreadAction.LOCK_WAIT]: "waits on",
+  [ThreadAction.SEM_POST]: "posts to",
+  [ThreadAction.SEM_WAIT]: "waits for",
+  [ThreadAction.SEM_PASS]: "passes",
+  [ThreadAction.CRITICAL_SECTION_ENTER]: "enters",
+  [ThreadAction.CRITICAL_SECTION_EXIT]: "exits",
+  [ThreadAction.CV_WAIT]: "waits for",
+  [ThreadAction.CV_SIGNAL]: "signals to",
+  [ThreadAction.CV_SKIP]: "skips the wait call for"
 };
 
 export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
@@ -40,6 +41,22 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
               >
                 {controller.blockingEvent.resourceId}
               </span>
+              {controller.blockingEvent.secondaryResourceId && controller.blockingEvent.secondaryAction && (
+                <>
+                  <span className="text-xs">{" "}and {ACTIONS[controller.blockingEvent.secondaryAction]}</span>
+
+                  <span
+                    className="text-xs"
+                    style={{
+                      color:
+                        // @ts-expect-error tailwindcolors
+                        tailwindcolors[controller.colors[controller.blockingEvent.secondaryResourceId]]?.[500] ?? "black",
+                    }}
+                  >
+                    {controller.blockingEvent.secondaryResourceId}
+                  </span>
+                </>
+              )}
               <span className="text-muted-foreground text-xs">
                 on Line {controller.blockingEvent.timeStep}
               </span>
@@ -49,12 +66,24 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
           controller.threads.map((thread) => (
             <Button
               key={thread.id}
-              variant={thread.id === controller.running?.id ? "secondary" : "default"}
+              variant={
+                controller.isWaiting(thread)
+                  ? "secondary"
+                  : thread.id === controller.running?.id
+                    ? "outline"
+                    : "default"
+              }
+              disabled={controller.isWaiting(thread)}
               onClick={() =>
+                !controller.isWaiting(thread) &&
                 controller.runThread(thread.id === controller.running?.id ? undefined : thread)
               }
             >
-              {thread.id === controller.running?.id ? `Suspend ${thread.id}` : `Run ${thread.id}`}
+              {controller.isWaiting(thread)
+                ? "Waiting..."
+                : thread.id === controller.running?.id
+                  ? `Suspend ${thread.id}`
+                  : `Run ${thread.id}`}
             </Button>
           ))
         )}

@@ -144,370 +144,412 @@ export const DEADLOCK: ThreadsProps = {
   ],
 };
 
-export const READER_WRITER: ThreadsProps = {
-  title: "Reader & Writer – Semaphores",
-  description: "The following threads example uses Semaphores to manage access to a message queue.",
+export const PRODUCER_CONSUMER: ThreadsProps = {
+  title: "Producer & Consumer – Semaphores",
+  description: "The following threads example uses Semaphores to manage access to a bounded Buffer/Queue.",
   threads: [
     {
-      id: "Writer",
+      id: "Producer",
       timeSteps: 500,
       criticalSections: [
         {
-          id: "Write",
+          id: "put(i);",
           startAt: 50,
           endAt: 100,
         },
         {
-          id: "Write",
+          id: "put(i);",
           startAt: 200,
           endAt: 250,
         },
         {
-          id: "Write",
+          id: "put(i);",
           startAt: 350,
           endAt: 400,
         },
       ],
       semaphores: [
         {
-          id: "Semaphore",
+          id: "full",
           posts: [115, 265, 415],
           waits: [],
         },
-      ],
-      locks: [
         {
-          id: "Mutex",
-          acquireAt: 50,
-          releaseAt: 100,
+          id: "empty",
+          posts: [],
+          waits: [35, 185, 335],
         },
         {
-          id: "Mutex",
-          acquireAt: 200,
-          releaseAt: 250,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 350,
-          releaseAt: 400,
+          id: "mutex",
+          posts: [100, 250, 400],
+          waits: [50, 200, 350],
         },
       ],
     },
     {
-      id: "Reader",
+      id: "Consumer",
       timeSteps: 500,
       criticalSections: [
         {
-          id: "Read",
+          id: "int tmp = get();",
           startAt: 40,
           endAt: 90,
         },
         {
-          id: "Read",
+          id: "int tmp = get();",
           startAt: 210,
           endAt: 260,
         },
         {
-          id: "Read",
+          id: "int tmp = get();",
           startAt: 340,
           endAt: 390,
         },
       ],
       semaphores: [
         {
-          id: "Semaphore",
+          id: "full",
           posts: [],
           waits: [25, 195, 325],
         },
-      ],
-      locks: [
         {
-          id: "Mutex",
-          acquireAt: 40,
-          releaseAt: 90,
+          id: "empty",
+          posts: [105, 275, 405],
+          waits: [],
         },
         {
-          id: "Mutex",
-          acquireAt: 210,
-          releaseAt: 260,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 340,
-          releaseAt: 390,
+          id: "mutex",
+          posts: [90, 260, 390],
+          waits: [40, 210, 340],
         },
       ],
     },
   ],
   semaphores: [
     {
-      id: "Semaphore",
+      id: "empty",
+      initial: 10,
+    },
+    {
+      id: "full",
       initial: 0,
     },
-  ],
-  locks: [
     {
-      id: "Mutex",
+      id: "mutex",
+      initial: 1,
     },
   ],
 };
 
-export const MULTI_READER_WRITER: ThreadsProps = {
-  title: "Multiple Reader & Single Writer",
-  description: "The following threads example uses Semaphores to manage access to a message queue.",
+// export const MULTI_PRODUCER_CONSUMER: ThreadsProps = {
+//   title: "Multiple Consumers & Single Producer",
+//   description: "The following threads example uses Semaphores to manage access to an unbounded Buffer/Queue.",
+//   threads: [
+//     {
+//       id: "Writer",
+//       timeSteps: 500,
+//       criticalSections: [
+//         {
+//           id: "Write",
+//           startAt: 50,
+//           endAt: 75,
+//         },
+//         {
+//           id: "Write",
+//           startAt: 150,
+//           endAt: 175,
+//         },
+//         {
+//           id: "Write",
+//           startAt: 250,
+//           endAt: 275,
+//         },
+//         {
+//           id: "Write",
+//           startAt: 350,
+//           endAt: 375,
+//         },
+//       ],
+//       semaphores: [
+//         {
+//           id: "Semaphore",
+//           posts: [90, 190, 290, 390],
+//           waits: [],
+//         },
+//       ],
+//       locks: [
+//         {
+//           id: "Mutex",
+//           acquireAt: 50,
+//           releaseAt: 75,
+//         },
+//         {
+//           id: "Mutex",
+//           acquireAt: 150,
+//           releaseAt: 175,
+//         },
+//         {
+//           id: "Mutex",
+//           acquireAt: 250,
+//           releaseAt: 275,
+//         },
+//         {
+//           id: "Mutex",
+//           acquireAt: 350,
+//           releaseAt: 375,
+//         },
+//       ],
+//     },
+//     {
+//       id: "Reader 1",
+//       timeSteps: 500,
+//       criticalSections: [
+//         {
+//           id: "Read",
+//           startAt: 30,
+//           endAt: 60,
+//         },
+//         {
+//           id: "Read",
+//           startAt: 210,
+//           endAt: 240,
+//         },
+//         {
+//           id: "Read",
+//           startAt: 360,
+//           endAt: 390,
+//         },
+//       ],
+//       semaphores: [
+//         {
+//           id: "Semaphore",
+//           posts: [],
+//           waits: [15, 195, 345],
+//         },
+//       ],
+//       locks: [
+//         {
+//           id: "Mutex",
+//           acquireAt: 30,
+//           releaseAt: 60,
+//         },
+//         {
+//           id: "Mutex",
+//           acquireAt: 210,
+//           releaseAt: 240,
+//         },
+//         {
+//           id: "Mutex",
+//           acquireAt: 360,
+//           releaseAt: 390,
+//         },
+//       ],
+//     },
+//     {
+//       id: "Reader 2",
+//       timeSteps: 500,
+//       criticalSections: [
+//         {
+//           id: "Read",
+//           startAt: 130,
+//           endAt: 160,
+//         },
+//         {
+//           id: "Read",
+//           startAt: 310,
+//           endAt: 340,
+//         },
+//       ],
+//       semaphores: [
+//         {
+//           id: "Semaphore",
+//           posts: [],
+//           waits: [115, 295],
+//         },
+//       ],
+//       locks: [
+//         {
+//           id: "Mutex",
+//           acquireAt: 130,
+//           releaseAt: 160,
+//         },
+//         {
+//           id: "Mutex",
+//           acquireAt: 310,
+//           releaseAt: 340,
+//         },
+//       ],
+//     },
+//   ],
+//   semaphores: [
+//     {
+//       id: "Semaphore",
+//       initial: 0,
+//     },
+//   ],
+//   locks: [
+//     {
+//       id: "Mutex",
+//     },
+//   ],
+// };
+
+export const CV_PRODUCER_CONSUMER: ThreadsProps = {
+  title: "Producer & Consumer – Condition Variables",
+  description: "The following threads example uses Condition Variables to manage access to a bounded Buffer/Queue.",
   threads: [
     {
-      id: "Writer",
+      id: "Producer",
       timeSteps: 500,
       criticalSections: [
         {
-          id: "Write",
+          id: "put(i);",
           startAt: 50,
-          endAt: 75,
+          endAt: 100,
+          action: {
+            name: "increments",
+            stateId: "buffer items",
+            action: (state: number) => state + 1
+          }
         },
         {
-          id: "Write",
-          startAt: 150,
-          endAt: 175,
+          id: "put(i);",
+          startAt: 200,
+          endAt: 250,
+          action: {
+            name: "increments",
+            stateId: "buffer items",
+            action: (state: number) => state + 1
+          }
         },
         {
-          id: "Write",
-          startAt: 250,
-          endAt: 275,
-        },
-        {
-          id: "Write",
+          id: "put(i);",
           startAt: 350,
-          endAt: 375,
+          endAt: 400,
+          action: {
+            name: "increments",
+            stateId: "buffer items",
+            action: (state: number) => state + 1
+          }
         },
       ],
-      semaphores: [
+      conditionVariables: [
         {
-          id: "Semaphore",
-          posts: [90, 190, 290, 390],
+          id: "fill",
+          signals: [100, 250, 400],
+          waits: [],
+        },
+        {
+          id: "empty",
+          signals:[],
+          waits: [50, 200, 350],
+        },
+      ],
+      locks: [
+        {
+          id: "mutex",
+          acquireAt: 35,
+          releaseAt: 115,
+        },
+        {
+          id: "mutex",
+          acquireAt: 185,
+          releaseAt: 265,
+        },
+        {
+          id: "mutex",
+          acquireAt: 335,
+          releaseAt: 415,
+        },
+      ],
+    },
+    {
+      id: "Consumer",
+      timeSteps: 500,
+      criticalSections: [
+        {
+          id: "int tmp = get();",
+          startAt: 40,
+          endAt: 90,
+          action: {
+            name: "decrements",
+            stateId: "buffer items",
+            action: (state: number) => state - 1
+          }
+        },
+        {
+          id: "int tmp = get();",
+          startAt: 210,
+          endAt: 260,
+          action: {
+            stateId: "buffer items",
+            name: "decrements",
+            action: (state: number) => state - 1
+          }
+        },
+        {
+          id: "int tmp = get();",
+          startAt: 340,
+          endAt: 390,
+          action: {
+            stateId: "buffer items",
+            name: "decrements",
+            action: (state: number) => state - 1
+          }
+        },
+      ],
+      conditionVariables: [
+        {
+          id: "fill",
+          signals: [],
+          waits: [40, 210, 340],
+        },
+        {
+          id: "empty",
+          signals: [90, 260, 390],
           waits: [],
         },
       ],
       locks: [
         {
-          id: "Mutex",
-          acquireAt: 50,
-          releaseAt: 75,
+          id: "mutex",
+          acquireAt: 25,
+          releaseAt: 115,
         },
         {
-          id: "Mutex",
-          acquireAt: 150,
-          releaseAt: 175,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 250,
+          id: "mutex",
+          acquireAt: 195,
           releaseAt: 275,
         },
         {
-          id: "Mutex",
-          acquireAt: 350,
-          releaseAt: 375,
-        },
-      ],
-    },
-    {
-      id: "Reader 1",
-      timeSteps: 500,
-      criticalSections: [
-        {
-          id: "Read",
-          startAt: 30,
-          endAt: 60,
-        },
-        {
-          id: "Read",
-          startAt: 210,
-          endAt: 240,
-        },
-        {
-          id: "Read",
-          startAt: 360,
-          endAt: 390,
-        },
-      ],
-      semaphores: [
-        {
-          id: "Semaphore",
-          posts: [],
-          waits: [15, 195, 345],
-        },
-      ],
-      locks: [
-        {
-          id: "Mutex",
-          acquireAt: 30,
-          releaseAt: 60,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 210,
-          releaseAt: 240,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 360,
-          releaseAt: 390,
-        },
-      ],
-    },
-    {
-      id: "Reader 2",
-      timeSteps: 500,
-      criticalSections: [
-        {
-          id: "Read",
-          startAt: 130,
-          endAt: 160,
-        },
-        {
-          id: "Read",
-          startAt: 310,
-          endAt: 340,
-        },
-      ],
-      semaphores: [
-        {
-          id: "Semaphore",
-          posts: [],
-          waits: [115, 295],
-        },
-      ],
-      locks: [
-        {
-          id: "Mutex",
-          acquireAt: 130,
-          releaseAt: 160,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 310,
-          releaseAt: 340,
-        },
-      ],
-    },
-  ],
-  semaphores: [
-    {
-      id: "Semaphore",
-      initial: 0,
-    },
-  ],
-  locks: [
-    {
-      id: "Mutex",
-    },
-  ],
-};
-
-export const CV_READER_WRITER: ThreadsProps = {
-  title: "Reader & Writer – Condition Variables",
-  description: "The following threads example uses Semaphores to manage access to a message queue.",
-  threads: [
-    {
-      id: "Writer",
-      timeSteps: 500,
-      criticalSections: [
-        {
-          id: "Write",
-          startAt: 50,
-          endAt: 100,
-        },
-        {
-          id: "Write",
-          startAt: 200,
-          endAt: 250,
-        },
-        {
-          id: "Write",
-          startAt: 350,
-          endAt: 400,
-        },
-      ],
-      conditionVariables: [
-        {
-          id: "Condition Variable",
-          signals: [115, 265, 415],
-          waits: [],
-        },
-      ],
-      locks: [
-        {
-          id: "Mutex",
-          acquireAt: 50,
-          releaseAt: 100,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 200,
-          releaseAt: 250,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 350,
-          releaseAt: 400,
-        },
-      ],
-    },
-    {
-      id: "Reader",
-      timeSteps: 500,
-      criticalSections: [
-        {
-          id: "Read",
-          startAt: 40,
-          endAt: 90,
-        },
-        {
-          id: "Read",
-          startAt: 210,
-          endAt: 260,
-        },
-        {
-          id: "Read",
-          startAt: 340,
-          endAt: 390,
-        },
-      ],
-      conditionVariables: [
-        {
-          id: "Condition Variable",
-          signals: [],
-          waits: [25, 195, 325],
-        },
-      ],
-      locks: [
-        {
-          id: "Mutex",
-          acquireAt: 40,
-          releaseAt: 90,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 210,
-          releaseAt: 260,
-        },
-        {
-          id: "Mutex",
-          acquireAt: 340,
-          releaseAt: 390,
+          id: "mutex",
+          acquireAt: 325,
+          releaseAt: 405,
         },
       ],
     },
   ],
   conditionVariables: [
     {
-      id: "Condition Variable",
+      id: "fill",
+      stateId: "buffer items",
+      condition: (state: number) => state === 0
+    },
+    {
+      id: "empty",
+      stateId: "buffer items",
+      condition: (state: number) => state === 5
     },
   ],
   locks: [
     {
-      id: "Mutex",
+      id: "mutex",
     },
   ],
+  state: [
+    {
+      id: "buffer items",
+      initial: 0
+    }
+  ]
 };

@@ -12,10 +12,10 @@ import { FileSystemExample } from "./pages/csc369/components/fileSystem/FileSyst
 import { CSC368 } from "./pages/csc368/CSC368";
 import { Pipelining } from "./pages/csc368/pipelining";
 import {
-  CV_READER_WRITER,
+  CV_PRODUCER_CONSUMER,
   DEADLOCK,
-  MULTI_READER_WRITER,
-  READER_WRITER,
+  // MULTI_READER_WRITER,
+  PRODUCER_CONSUMER,
   SIMPLE_MUTEX,
   Threads,
 } from "./pages/csc369/components/threads";
@@ -55,22 +55,22 @@ export const ROUTES: AppRoute[] = [
     element: <Threads {...DEADLOCK} />,
   },
   {
-    path: "/csc369/threads-reader-writer",
-    title: "Threads – Reader & Writer with Semaphores",
+    path: "/csc369/threads-producer-consumer",
+    title: "Threads – Producer & Consumer with Semaphores",
     description: "",
-    element: <Threads {...READER_WRITER} />,
+    element: <Threads {...PRODUCER_CONSUMER} />,
   },
+  // {
+  //   path: "/csc369/threads-multi-reader-writer",
+  //   title: "Threads – Multiple Reader & Single Writer",
+  //   description: "",
+  //   element: <Threads {...MULTI_READER_WRITER} />,
+  // },
   {
-    path: "/csc369/threads-multi-reader-writer",
-    title: "Threads – Multiple Reader & Single Writer",
+    path: "/csc369/threads-cv-producer-consumer",
+    title: "Threads – Producer & Consumer with Condition Variables",
     description: "",
-    element: <Threads {...MULTI_READER_WRITER} />,
-  },
-  {
-    path: "/csc369/threads-cv-reader-writer",
-    title: "Threads – Reader & Writer with Condition Variables",
-    description: "",
-    element: <Threads {...CV_READER_WRITER} />,
+    element: <Threads {...CV_PRODUCER_CONSUMER} />,
   },
   {
     path: "/csc369/paging",

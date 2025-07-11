@@ -2,6 +2,11 @@ export interface CriticalSection {
   id: string;
   startAt: number;
   endAt: number;
+  action?: {
+    stateId: string;
+    name: string;
+    action: (state: number) => number;
+  }
 }
 
 export interface LockContext {
@@ -28,6 +33,8 @@ export interface SemaphoreContext {
 
 export interface ConditionVariable {
   id: string;
+  stateId: string;
+  condition: (state: number) => boolean;
 }
 
 export interface ConditionVariableContext {
@@ -38,6 +45,18 @@ export interface ConditionVariableContext {
 
 export interface ConditionVariableState {
   waiting: Array<string>;
+  stateId: string;
+  condition: (state: number) => boolean;
+}
+
+export interface State {
+    id: string;
+    value: number;
+}
+
+export interface StateContext {
+    id: string;
+    initial: number;
 }
 
 export interface Thread {
@@ -78,6 +97,7 @@ export enum ThreadAction {
   SEM_POST = "SEM_POST",
   CV_WAIT = "CV_WAIT",
   CV_SIGNAL = "CV_SIGNAL",
+  CV_SKIP = "CV_SKIP"
 }
 
 export interface ThreadEvent {
@@ -85,14 +105,16 @@ export interface ThreadEvent {
   action: ThreadAction;
   timeStep: number;
   resourceId: string;
+  secondaryResourceId?: string;
+  secondaryAction?: ThreadAction;
   onComplete?: () => void;
 }
 
-export const LOCK_COLORS = ["green", "purple", "orange"];
+export const LOCK_COLORS = ["green", "purple", "pink"];
 
-export const SEM_COLORS = ["green", "purple", "orange"];
+export const SEM_COLORS = ["green", "purple", "sky"];
 
-export const CV_COLORS = ["green", "purple", "orange"];
+export const CV_COLORS = ["green", "purple", "pink"];
 
 export const CRITICAL_SECTION_COLORS = ["blue", "red", "yellow"];
 
@@ -116,4 +138,6 @@ export interface ThreadsController {
   conditionVariableState: Record<string, ConditionVariableState>;
   blockingEvent?: ThreadEvent;
   unblockEvent: () => void;
+  isWaiting: (thread: Thread) => boolean;
+  state: Record<string, State>;
 }

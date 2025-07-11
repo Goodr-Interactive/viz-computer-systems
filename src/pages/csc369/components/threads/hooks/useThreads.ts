@@ -12,6 +12,8 @@ import {
   type MutualExclusionViolation,
   type Semaphore,
   type SemaphoreState,
+  type State,
+  type StateContext,
   type Thread,
   type ThreadEvent,
   type ThreadsController,
@@ -22,7 +24,8 @@ export const useThreads = (
   threads: Thread[],
   locks: Lock[],
   semaphores: Semaphore[],
-  conditionVariables: ConditionVariable[]
+  conditionVariables: ConditionVariable[],
+  initialState: StateContext[]
 ): ThreadsController => {
   const accessedResourceIds = useMemo(
     () =>
@@ -63,7 +66,19 @@ export const useThreads = (
 
   const [conditionVariableState, setConditionVariableState] = useState<
     Record<string, ConditionVariableState>
-  >(Object.fromEntries(conditionVariables.map(({ id }) => [id, { waiting: [] }])));
+  >(
+    Object.fromEntries(
+      conditionVariables.map(({ id, stateId, condition }) => [id, { stateId, condition, waiting: [] }])
+    )
+  );
+
+  const [state, setState] = useState<
+    Record<string, State>
+  >(
+    Object.fromEntries(
+      initialState.map(({ id, initial }) => [id, { id, value: initial }])
+    )
+  );
 
   const criticalSectionIds = new Set(
     threads.flatMap(({ criticalSections }) => criticalSections?.map(({ id }) => id) ?? [])
@@ -182,38 +197,67 @@ export const useThreads = (
     if (signal) {
       const id = signal.id;
       const wake = conditionVariableState[id]?.waiting.at(0);
-      setConditionVariableState((s) => ({
-        ...s,
-        [id]: {
-          waiting: s[id]?.waiting.filter((waiting) => waiting !== wake),
-        },
-      }));
+
       addEvent({
         threadId: thread.id,
         timeStep: step,
         action: ThreadAction.CV_SIGNAL,
         resourceId: id,
         onComplete: () => {
-          const wakeThread = threads.find((thread) => thread.id === wake);
-          setRunning(wakeThread ?? thread);
+          setConditionVariableState((s) => ({
+            ...s,
+            [id]: {
+              ...s[id],
+              waiting: s[id]?.waiting.filter((waiting) => waiting !== wake),
+            },
+          }));
+          setRunning(thread);
         },
       });
     }
     if (wait) {
       const id = wait.id;
       if (!conditionVariableState[id]?.waiting.includes(thread.id)) {
-        addEvent({
-          threadId: thread.id,
-          timeStep: step,
-          action: ThreadAction.CV_WAIT,
-          resourceId: id,
-        });
-        setConditionVariableState((s) => ({
-          ...s,
-          [id]: {
-            waiting: [...s[id].waiting, thread.id],
-          },
-        }));
+        if (conditionVariableState[id] && conditionVariableState[id].condition(state[conditionVariableState[id].stateId].value)) {
+          const lock = Object.entries(lockState).find(([_, ls]) => ls.heldBy === thread.id);
+          addEvent({
+            threadId: thread.id,
+            timeStep: step,
+            action: ThreadAction.CV_WAIT,
+            resourceId: id,
+            secondaryAction: ThreadAction.LOCK_RELEASE,
+            secondaryResourceId: lock?.[0],
+            onComplete: () => {
+              setConditionVariableState((s) => ({
+                ...s,
+                [id]: {
+                  ...s[id],
+                  waiting: [...s[id].waiting, thread.id],
+                },
+              }));
+              if (lock) {
+                const [lockId, lockState] = lock;
+                setLockState((ls) => ({
+                  ...ls,
+                  [lockId]: {
+                    ...lockState,
+                    heldBy: undefined,
+                  },
+                }));
+              }
+            },
+          });
+        } else {
+          addEvent({
+            threadId: thread.id,
+            timeStep: step,
+            action: ThreadAction.CV_SKIP,
+            resourceId: id,
+            onComplete: () => {
+              setRunning(thread);
+            },
+          });
+        }
       }
     }
   };
@@ -257,24 +301,22 @@ export const useThreads = (
     }
     const release = thread.locks?.find((lock) => lock.releaseAt === step);
     if (release) {
-      if (lockState[release.id].heldBy === thread.id) {
-        addEvent({
-          threadId: thread.id,
-          timeStep: step,
-          action: ThreadAction.LOCK_RELEASE,
-          resourceId: release.id,
-          onComplete: () => {
-            setLockState((ls) => ({
-              ...ls,
-              [release.id]: {
-                ...(lockState[release.id] ?? { waiting: [] }),
-                heldBy: undefined,
-              },
-            }));
-            setRunning(thread);
-          },
-        });
-      }
+      addEvent({
+        threadId: thread.id,
+        timeStep: step,
+        action: ThreadAction.LOCK_RELEASE,
+        resourceId: release.id,
+        onComplete: () => {
+          setLockState((ls) => ({
+            ...ls,
+            [release.id]: {
+              ...(lockState[release.id] ?? { waiting: [] }),
+              heldBy: lockState[release.id].heldBy === thread.id ? undefined : lockState[release.id].heldBy,
+            },
+          }));
+          setRunning(thread);
+        },
+      });
     }
   };
 
@@ -290,6 +332,15 @@ export const useThreads = (
     }
     const exited = thread.criticalSections?.find((cs) => cs.endAt - 1 === step);
     if (exited) {
+      if(exited.action) {
+        setState(s => ({
+          ...s,
+          [exited.action!.stateId]: {
+            id: exited.action!.stateId,
+            value: exited.action!.action(s[exited.action!.stateId]!.value)
+          }
+        }));
+      }
       addEvent({
         threadId: thread.id,
         timeStep: step,
@@ -346,7 +397,9 @@ export const useThreads = (
     );
 
     setConditionVariableState(
-      Object.fromEntries(conditionVariables.map((cv) => [cv.id, { waiting: [] }]))
+      Object.fromEntries(
+        conditionVariables.map((cv) => [cv.id, { waiting: [], condition: cv.condition, stateId: cv.stateId }])
+      )
     );
 
     setThreadState(Object.fromEntries(threads.map(({ id }) => [id, { timeStep: 0 }])));
@@ -380,5 +433,7 @@ export const useThreads = (
     conditionVariableState,
     blockingEvent,
     unblockEvent,
+    isWaiting,
+    state
   };
 };

@@ -21,6 +21,8 @@ export const ThreadPlayer: React.FunctionComponent<Props> = ({ thread, controlle
         {!atStart ? (
           atEnd ? (
             <Badge variant={"secondary"}>Exited</Badge>
+          ) : controller.isWaiting(thread) ? (
+            <Badge variant={"outline"}>Waiting</Badge>
           ) : thread.id === controller.running?.id ? (
             <Badge>Running</Badge>
           ) : (

@@ -16,11 +16,13 @@ interface Props {
 }
 
 export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) => {
+  const state = Object.values(controller.state);
+
   return (
     <div className="flex h-full w-full flex-col gap-[36px] p-[12px]">
       <h1 className="text-xl font-medium tracking-tight">Resources</h1>
       {controller.locks.length ? (
-        <div className="flex flex-col">
+        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
           <span className="text-lg font-medium">Locks</span>
           <Table>
             <TableHeader>
@@ -52,13 +54,13 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
         </div>
       ) : null}
       {controller.semaphores.length ? (
-        <div className="flex flex-col">
+        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
           <span className="text-lg font-medium">Semaphores</span>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[100px]"></TableHead>
-                <TableHead>Count</TableHead>
+                <TableHead>Value</TableHead>
                 <TableHead>Waiting</TableHead>
               </TableRow>
             </TableHeader>
@@ -84,7 +86,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
         </div>
       ) : null}
       {controller.conditionVariables.length ? (
-        <div className="flex flex-col">
+        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
           <span className="text-lg font-medium">Condition Variables</span>
           <Table>
             <TableHeader>
@@ -109,6 +111,31 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
                       ? controller.conditionVariableState[cv.id].waiting
                       : ["None"]
                     ).join(", ")}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : null}
+      {state.length ? (
+        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
+          <span className="text-lg font-medium">State</span>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]"></TableHead>
+                <TableHead>Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {state.map((state) => (
+                <TableRow key={state.id}>
+                  <TableCell className="flex items-center gap-[4px] font-medium">
+                    {state.id}
+                  </TableCell>
+                  <TableCell>
+                    {state.value}
                   </TableCell>
                 </TableRow>
               ))}

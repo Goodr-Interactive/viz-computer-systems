@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/navigation-menu";
 
 interface Props {
-  routes: Array<AppRoute>;
+  routes: AppRoute[];
 }
 
 export const Home: React.FunctionComponent<Props> = ({ routes }) => {

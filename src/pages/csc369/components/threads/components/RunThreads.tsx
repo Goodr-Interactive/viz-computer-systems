@@ -17,14 +17,13 @@ const ACTIONS: Record<ThreadAction, string> = {
   [ThreadAction.CRITICAL_SECTION_EXIT]: "exits",
   [ThreadAction.CV_WAIT]: "waits for",
   [ThreadAction.CV_SIGNAL]: "signals to",
-  [ThreadAction.CV_SKIP]: "skips the wait call for"
+  [ThreadAction.CV_SKIP]: "skips the wait call for",
 };
 
 export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
-
-    const hasExited = (thread: Thread) => {
-        return controller.threadState[thread.id]?.timeStep === thread.timeSteps;
-    }
+  const hasExited = (thread: Thread) => {
+    return controller.threadState[thread.id]?.timeStep === thread.timeSteps;
+  };
 
   return (
     <div className="h-full w-full flex-col p-[12px]">
@@ -46,22 +45,28 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
               >
                 {controller.blockingEvent.resourceId}
               </span>
-              {controller.blockingEvent.secondaryResourceId && controller.blockingEvent.secondaryAction && (
-                <>
-                  <span className="text-xs">{" "}and {ACTIONS[controller.blockingEvent.secondaryAction]}</span>
+              {controller.blockingEvent.secondaryResourceId &&
+                controller.blockingEvent.secondaryAction && (
+                  <>
+                    <span className="text-xs">
+                      {" "}
+                      and {ACTIONS[controller.blockingEvent.secondaryAction]}
+                    </span>
 
-                  <span
-                    className="text-xs"
-                    style={{
-                      color:
-                        // @ts-expect-error tailwindcolors
-                        tailwindcolors[controller.colors[controller.blockingEvent.secondaryResourceId]]?.[500] ?? "black",
-                    }}
-                  >
-                    {controller.blockingEvent.secondaryResourceId}
-                  </span>
-                </>
-              )}
+                    <span
+                      className="text-xs"
+                      style={{
+                        color:
+                          // @ts-expect-error tailwindcolors
+                          tailwindcolors[
+                            controller.colors[controller.blockingEvent.secondaryResourceId]
+                          ]?.[500] ?? "black",
+                      }}
+                    >
+                      {controller.blockingEvent.secondaryResourceId}
+                    </span>
+                  </>
+                )}
               <span className="text-muted-foreground text-xs">
                 on Line {controller.blockingEvent.timeStep}
               </span>
@@ -84,11 +89,13 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
                 controller.runThread(thread.id === controller.running?.id ? undefined : thread)
               }
             >
-              {hasExited(thread) ? "Exited" : controller.isWaiting(thread)
-                ? "Waiting..."
-                : thread.id === controller.running?.id
-                  ? `Suspend ${thread.id}`
-                  : `Run ${thread.id}`}
+              {hasExited(thread)
+                ? "Exited"
+                : controller.isWaiting(thread)
+                  ? "Waiting..."
+                  : thread.id === controller.running?.id
+                    ? `Suspend ${thread.id}`
+                    : `Run ${thread.id}`}
             </Button>
           ))
         )}

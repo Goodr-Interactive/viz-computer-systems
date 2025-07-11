@@ -22,9 +22,15 @@ export const Threads: React.FunctionComponent<ThreadsProps> = ({
   locks,
   semaphores,
   conditionVariables,
-  state
+  state,
 }) => {
-  const controller = useThreads(threads, locks ?? [], semaphores ?? [], conditionVariables ?? [], state ?? []);
+  const controller = useThreads(
+    threads,
+    locks ?? [],
+    semaphores ?? [],
+    conditionVariables ?? [],
+    state ?? []
+  );
 
   return (
     <div className="flex h-[100vh] w-full flex-col px-[56px] pt-[24px] pb-[56px]">

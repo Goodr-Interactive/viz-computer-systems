@@ -146,7 +146,8 @@ export const DEADLOCK: ThreadsProps = {
 
 export const PRODUCER_CONSUMER: ThreadsProps = {
   title: "Producer & Consumer – Semaphores",
-  description: "The following threads example uses Semaphores to manage access to a bounded Buffer/Queue.",
+  description:
+    "The following threads example uses Semaphores to manage access to a bounded Buffer/Queue.",
   threads: [
     {
       id: "Producer",
@@ -396,7 +397,8 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
 
 export const CV_PRODUCER_CONSUMER: ThreadsProps = {
   title: "Producer & Consumer – Condition Variables",
-  description: "The following threads example uses Condition Variables to manage access to a bounded Buffer/Queue.",
+  description:
+    "The following threads example uses Condition Variables to manage access to a bounded Buffer/Queue.",
   threads: [
     {
       id: "Producer",
@@ -409,8 +411,8 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           action: {
             name: "increments",
             stateId: "buffer items",
-            action: (state: number) => state + 1
-          }
+            action: (state: number) => state + 1,
+          },
         },
         {
           id: "put(i);",
@@ -419,8 +421,8 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           action: {
             name: "increments",
             stateId: "buffer items",
-            action: (state: number) => state + 1
-          }
+            action: (state: number) => state + 1,
+          },
         },
         {
           id: "put(i);",
@@ -429,8 +431,8 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           action: {
             name: "increments",
             stateId: "buffer items",
-            action: (state: number) => state + 1
-          }
+            action: (state: number) => state + 1,
+          },
         },
       ],
       conditionVariables: [
@@ -441,7 +443,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
         },
         {
           id: "empty",
-          signals:[],
+          signals: [],
           waits: [50, 200, 350],
         },
       ],
@@ -474,8 +476,8 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           action: {
             name: "decrements",
             stateId: "buffer items",
-            action: (state: number) => state - 1
-          }
+            action: (state: number) => state - 1,
+          },
         },
         {
           id: "int tmp = get();",
@@ -484,8 +486,8 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           action: {
             stateId: "buffer items",
             name: "decrements",
-            action: (state: number) => state - 1
-          }
+            action: (state: number) => state - 1,
+          },
         },
         {
           id: "int tmp = get();",
@@ -494,8 +496,8 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           action: {
             stateId: "buffer items",
             name: "decrements",
-            action: (state: number) => state - 1
-          }
+            action: (state: number) => state - 1,
+          },
         },
       ],
       conditionVariables: [
@@ -533,12 +535,12 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
     {
       id: "fill",
       stateId: "buffer items",
-      condition: (state: number) => state === 0
+      condition: (state: number) => state === 0,
     },
     {
       id: "empty",
       stateId: "buffer items",
-      condition: (state: number) => state === 5
+      condition: (state: number) => state === 5,
     },
   ],
   locks: [
@@ -549,7 +551,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
   state: [
     {
       id: "buffer items",
-      initial: 0
-    }
-  ]
+      initial: 0,
+    },
+  ],
 };

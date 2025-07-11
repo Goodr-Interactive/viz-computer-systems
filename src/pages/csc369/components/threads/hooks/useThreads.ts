@@ -68,16 +68,15 @@ export const useThreads = (
     Record<string, ConditionVariableState>
   >(
     Object.fromEntries(
-      conditionVariables.map(({ id, stateId, condition }) => [id, { stateId, condition, waiting: [] }])
+      conditionVariables.map(({ id, stateId, condition }) => [
+        id,
+        { stateId, condition, waiting: [] },
+      ])
     )
   );
 
-  const [state, setState] = useState<
-    Record<string, State>
-  >(
-    Object.fromEntries(
-      initialState.map(({ id, initial }) => [id, { id, value: initial }])
-    )
+  const [state, setState] = useState<Record<string, State>>(
+    Object.fromEntries(initialState.map(({ id, initial }) => [id, { id, value: initial }]))
   );
 
   const criticalSectionIds = new Set(
@@ -218,7 +217,10 @@ export const useThreads = (
     if (wait) {
       const id = wait.id;
       if (!conditionVariableState[id]?.waiting.includes(thread.id)) {
-        if (conditionVariableState[id] && conditionVariableState[id].condition(state[conditionVariableState[id].stateId].value)) {
+        if (
+          conditionVariableState[id] &&
+          conditionVariableState[id].condition(state[conditionVariableState[id].stateId].value)
+        ) {
           const lock = Object.entries(lockState).find(([_, ls]) => ls.heldBy === thread.id);
           addEvent({
             threadId: thread.id,
@@ -311,7 +313,10 @@ export const useThreads = (
             ...ls,
             [release.id]: {
               ...(lockState[release.id] ?? { waiting: [] }),
-              heldBy: lockState[release.id].heldBy === thread.id ? undefined : lockState[release.id].heldBy,
+              heldBy:
+                lockState[release.id].heldBy === thread.id
+                  ? undefined
+                  : lockState[release.id].heldBy,
             },
           }));
           setRunning(thread);
@@ -332,13 +337,13 @@ export const useThreads = (
     }
     const exited = thread.criticalSections?.find((cs) => cs.endAt - 1 === step);
     if (exited) {
-      if(exited.action) {
-        setState(s => ({
+      if (exited.action) {
+        setState((s) => ({
           ...s,
           [exited.action!.stateId]: {
             id: exited.action!.stateId,
-            value: exited.action!.action(s[exited.action!.stateId]!.value)
-          }
+            value: exited.action!.action(s[exited.action!.stateId]!.value),
+          },
         }));
       }
       addEvent({
@@ -398,7 +403,10 @@ export const useThreads = (
 
     setConditionVariableState(
       Object.fromEntries(
-        conditionVariables.map((cv) => [cv.id, { waiting: [], condition: cv.condition, stateId: cv.stateId }])
+        conditionVariables.map((cv) => [
+          cv.id,
+          { waiting: [], condition: cv.condition, stateId: cv.stateId },
+        ])
       )
     );
 
@@ -434,6 +442,6 @@ export const useThreads = (
     blockingEvent,
     unblockEvent,
     isWaiting,
-    state
+    state,
   };
 };

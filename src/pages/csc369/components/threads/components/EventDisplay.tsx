@@ -18,7 +18,7 @@ const ACTIONS: Record<ThreadAction, string> = {
   [ThreadAction.CRITICAL_SECTION_EXIT]: "returns from",
   [ThreadAction.CV_WAIT]: "waits for",
   [ThreadAction.CV_SIGNAL]: "signals to",
-  [ThreadAction.CV_SKIP]: "skips the wait call for"
+  [ThreadAction.CV_SKIP]: "skips the wait call for",
 };
 
 export const EventDisplay: React.FunctionComponent<Props> = ({ event, controller }) => {

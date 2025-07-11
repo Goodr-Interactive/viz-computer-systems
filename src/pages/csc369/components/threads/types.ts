@@ -6,7 +6,7 @@ export interface CriticalSection {
     stateId: string;
     name: string;
     action: (state: number) => number;
-  }
+  };
 }
 
 export interface LockContext {
@@ -22,7 +22,7 @@ export interface LockState {
 
 export interface SemaphoreState {
   count: number;
-  waiting: Array<string>;
+  waiting: string[];
 }
 
 export interface SemaphoreContext {
@@ -44,19 +44,19 @@ export interface ConditionVariableContext {
 }
 
 export interface ConditionVariableState {
-  waiting: Array<string>;
+  waiting: string[];
   stateId: string;
   condition: (state: number) => boolean;
 }
 
 export interface State {
-    id: string;
-    value: number;
+  id: string;
+  value: number;
 }
 
 export interface StateContext {
-    id: string;
-    initial: number;
+  id: string;
+  initial: number;
 }
 
 export interface Thread {
@@ -97,7 +97,7 @@ export enum ThreadAction {
   SEM_POST = "SEM_POST",
   CV_WAIT = "CV_WAIT",
   CV_SIGNAL = "CV_SIGNAL",
-  CV_SKIP = "CV_SKIP"
+  CV_SKIP = "CV_SKIP",
 }
 
 export interface ThreadEvent {

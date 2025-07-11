@@ -22,7 +22,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
     <div className="flex h-full w-full flex-col gap-[36px] p-[12px]">
       <h1 className="text-xl font-medium tracking-tight">Resources</h1>
       {controller.locks.length ? (
-        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
+        <div className="flex flex-col rounded-md bg-neutral-50 p-2">
           <span className="text-lg font-medium">Locks</span>
           <Table>
             <TableHeader>
@@ -54,7 +54,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
         </div>
       ) : null}
       {controller.semaphores.length ? (
-        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
+        <div className="flex flex-col rounded-md bg-neutral-50 p-2">
           <span className="text-lg font-medium">Semaphores</span>
           <Table>
             <TableHeader>
@@ -86,7 +86,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
         </div>
       ) : null}
       {controller.conditionVariables.length ? (
-        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
+        <div className="flex flex-col rounded-md bg-neutral-50 p-2">
           <span className="text-lg font-medium">Condition Variables</span>
           <Table>
             <TableHeader>
@@ -119,7 +119,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
         </div>
       ) : null}
       {state.length ? (
-        <div className="flex flex-col p-2 rounded-md bg-neutral-50">
+        <div className="flex flex-col rounded-md bg-neutral-50 p-2">
           <span className="text-lg font-medium">State</span>
           <Table>
             <TableHeader>
@@ -134,9 +134,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
                   <TableCell className="flex items-center gap-[4px] font-medium">
                     {state.id}
                   </TableCell>
-                  <TableCell>
-                    {state.value}
-                  </TableCell>
+                  <TableCell>{state.value}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

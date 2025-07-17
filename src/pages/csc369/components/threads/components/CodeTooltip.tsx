@@ -12,7 +12,7 @@ export const CodeTooltip: React.FunctionComponent<PropsWithChildren<Props>> = ({
   return (
     <Tooltip>
       <TooltipContent>
-        <p style={{ whiteSpace: 'pre-wrap', fontFamily: "Courier New" }}>{code}</p>
+        <p style={{ whiteSpace: "pre-wrap", fontFamily: "Courier New" }}>{code}</p>
       </TooltipContent>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
     </Tooltip>

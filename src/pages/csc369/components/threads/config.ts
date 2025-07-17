@@ -636,7 +636,7 @@ export const ZEMAPHORES: ThreadsProps = {
           signals: [101],
           waits: [200],
           conditionStr: "value <= 0",
-          releases: "lock"
+          releases: "lock",
         },
       ],
       locks: [

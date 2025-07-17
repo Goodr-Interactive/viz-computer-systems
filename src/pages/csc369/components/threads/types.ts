@@ -39,6 +39,8 @@ export interface ConditionVariable {
 
 export interface ConditionVariableContext {
   id: string;
+  releases: string;
+  conditionStr: string;
   signals: number[];
   waits: number[];
 }

@@ -4,6 +4,7 @@ import { useThreads } from "./hooks";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Controls, EventsList, RunThreads, ThreadsDisplay } from "./components";
 import { ResourceDisplay } from "./components/ResourceDisplay";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export interface ThreadsProps {
   title: string;
@@ -33,6 +34,7 @@ export const Threads: React.FunctionComponent<ThreadsProps> = ({
   );
 
   return (
+    <TooltipProvider>
     <div className="flex h-[100vh] w-full flex-col px-[56px] pt-[24px] pb-[56px]">
       <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
       <p className="text-muted-foreground mb-[24px] text-base">
@@ -72,5 +74,6 @@ export const Threads: React.FunctionComponent<ThreadsProps> = ({
         </ResizablePanelGroup>
       </ResizablePanelGroup>
     </div>
+    </TooltipProvider>
   );
 };

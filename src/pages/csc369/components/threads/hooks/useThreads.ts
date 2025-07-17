@@ -405,7 +405,7 @@ export const useThreads = (
       Object.fromEntries(
         conditionVariables.map((cv) => [
           cv.id,
-          { waiting: [], condition: cv.condition, stateId: cv.stateId },
+          { waiting: [], condition: cv.condition, stateId: cv.stateId, conditionStr: cv },
         ])
       )
     );

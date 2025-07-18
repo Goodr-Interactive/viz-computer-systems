@@ -40,7 +40,7 @@ export const SchedulerSettings: React.FunctionComponent<Props> = ({ controller }
             name="Context Switch Duration"
             defaultValue={[controller.contextSwitchDuration]}
             min={0}
-            max={5}
+            max={1}
             step={0.1}
           />
         </div>

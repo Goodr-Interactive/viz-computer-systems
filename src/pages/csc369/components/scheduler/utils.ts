@@ -5,7 +5,7 @@ export const getWaitTime = (process: Process, now: number): number => {
 };
 
 export const getTurnaroundTime = (process: Process, now: number): number => {
-  return process.completedAt ?? now - process.enquedAt;
+  return (process.completedAt ?? now) - process.enquedAt;
 };
 
 export const getResponseTime = (process: Process, now: number): number => {

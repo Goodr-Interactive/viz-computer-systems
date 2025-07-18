@@ -15,7 +15,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
   const [state, setState] = useState<SchedulerState>(SchedulerState.PAUSED);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [contextSwitchFrequency, _setContextSwitchFrequency] = useState<number>(5);
-  const [contextSwitchDuration, _setContextSwitchDuration] = useState<number>(2);
+  const [contextSwitchDuration, _setContextSwitchDuration] = useState<number>(1);
   const [algorithm, setAlgorithm] = useState<Algorithm>(allowedAlgorithms?.at(0) ?? Algorithm.FIFO);
   const [quizMode, setQuizMode] = useState<boolean>(false);
   const [clock, setClock] = useState<number>(0);
@@ -56,6 +56,8 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     setProcesses([]);
     setClock(0);
     setContextSwitchTimes([0, contextSwitchDuration * 1000]);
+    setLastRun(undefined);
+    setNextRun(undefined);
   };
 
   const skipForward = () => {};
@@ -66,7 +68,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
 
   const processUpdate = () => {
     setClock((c) => {
-      const now = c + 100 * playbackSpeed;
+      const now = c + 100;
       const [start, end] = contextSwitchTimes;
 
       c === 0 && initiateContextSwitch(now);
@@ -84,7 +86,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
           ...process,
           vruntime:
             process.pid === running?.pid && process.vruntime < process.duration * 1000
-              ? process.vruntime + 100 * playbackSpeed
+              ? process.vruntime + 100
               : process.vruntime,
         }))
       );
@@ -94,7 +96,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
 
   useEffect(() => {
     if (state === SchedulerState.RUNNING) {
-      const interval = setInterval(processUpdate, 100);
+      const interval = setInterval(processUpdate, 100 / playbackSpeed);
       return () => {
         clearInterval(interval);
       };
@@ -129,7 +131,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
             ...process,
             vruntime: isComplete ? process.duration * 1000 : process.vruntime,
             status: isComplete ? ProcessStatus.COMPLETE : ProcessStatus.WAITING,
-            completedAt: isComplete ? now : undefined,
+            completedAt: isComplete ? (now - 100) : undefined,
             events: [
               ...process.events,
               {

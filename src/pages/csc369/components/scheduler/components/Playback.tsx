@@ -50,10 +50,10 @@ export const Playback: React.FunctionComponent<Props> = ({ controller }) => {
           </div>
           <Slider
             onValueChange={([value]) => controller.setPlaybackSpeed(value)}
-            name="Context Switch Duration"
+            name="Playback Speed"
             defaultValue={[controller.playbackSpeed]}
-            min={0}
-            max={1}
+            min={0.5}
+            max={2}
             step={0.1}
           />
         </div>

@@ -52,8 +52,8 @@ export const Playback: React.FunctionComponent<Props> = ({ controller }) => {
             onValueChange={([value]) => controller.setPlaybackSpeed(value)}
             name="Context Switch Duration"
             defaultValue={[controller.playbackSpeed]}
-            min={0.5}
-            max={2}
+            min={0}
+            max={1}
             step={0.1}
           />
         </div>

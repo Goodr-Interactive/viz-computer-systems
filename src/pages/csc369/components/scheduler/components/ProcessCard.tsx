@@ -55,7 +55,7 @@ export const ProcessCard: React.FunctionComponent<Props> = ({ process, clock, al
           <Badge variant={variant}>{label}</Badge>
         </div>
 
-        <CardDescription>Created at: {(process.enquedAt / 1000).toFixed(1)}s</CardDescription>
+        <CardDescription>Arrived at: {(process.enquedAt / 1000).toFixed(1)}s</CardDescription>
         <div className="mt-[8px] flex w-full justify-between">
           <Label>{algorithm === Algorithm.CFS ? "vruntime" : "time"}</Label>
           <Label>

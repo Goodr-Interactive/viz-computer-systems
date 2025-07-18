@@ -16,7 +16,7 @@ interface Props {
 
 export const MenuBar: React.FunctionComponent<Props> = ({ controller, allowedAlgorithms }) => {
   const algorithms = allowedAlgorithms ?? [
-    Algorithm.FCFS,
+    Algorithm.FIFO,
     Algorithm.SJF,
     Algorithm.SCTF,
     Algorithm.RR,

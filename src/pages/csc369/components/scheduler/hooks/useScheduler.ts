@@ -16,7 +16,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
   const [processes, setProcesses] = useState<Process[]>([]);
   const [contextSwitchFrequency, _setContextSwitchFrequency] = useState<number>(5);
   const [contextSwitchDuration, _setContextSwitchDuration] = useState<number>(2);
-  const [algorithm, setAlgorithm] = useState<Algorithm>(allowedAlgorithms?.at(0) ?? Algorithm.FCFS);
+  const [algorithm, setAlgorithm] = useState<Algorithm>(allowedAlgorithms?.at(0) ?? Algorithm.FIFO);
   const [quizMode, setQuizMode] = useState<boolean>(false);
   const [clock, setClock] = useState<number>(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
@@ -108,7 +108,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     switch (algorithm) {
       case Algorithm.SJF:
         return minBy(waitingProcesses, (p) => p.duration);
-      case Algorithm.FCFS:
+      case Algorithm.FIFO:
         return minBy(waitingProcesses, (p) => p.enquedAt);
       case Algorithm.RR:
         const greaterPids = waitingProcesses.filter(({ pid }) => pid > (lastRun?.pid ?? 0));

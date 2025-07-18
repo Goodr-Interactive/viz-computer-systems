@@ -26,7 +26,7 @@ export interface Process {
 }
 
 export enum Algorithm {
-  FCFS = "FCFS",
+  FIFO = "FIFO",
   SJF = "SJF",
   SCTF = "STCF",
   CFS = "CFS",

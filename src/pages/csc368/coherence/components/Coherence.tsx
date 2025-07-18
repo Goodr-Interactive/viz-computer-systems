@@ -8,6 +8,7 @@ interface MemoryVariable {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FalseSharingGrid } from "./FalseSharingGrid";
 import { InteractiveFalseSharing } from "./InteractiveFalseSharing";
+import { MSIFalseSharing } from "./MSIFalseSharing";
 
 const CACHE_BLOCK_SIZE = 8;
 
@@ -54,6 +55,11 @@ export function TrueFalseSharingViz() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-8 p-4">
+      {/* MSI Cache Coherence Protocol Visualization */}
+      <div className="mb-8">
+        <MSIFalseSharing width={1000} height={600} />
+      </div>
+      
       {/* Interactive False Sharing Simulator */}
       <div className="mb-8">
         <InteractiveFalseSharing width={900} height={500} />

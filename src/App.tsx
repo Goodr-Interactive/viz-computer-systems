@@ -124,6 +124,8 @@ export const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc369/filesystem/links",
+    title: "File System Links",
+    description: "",
     element: <LinkComparison />,
   },
 ];

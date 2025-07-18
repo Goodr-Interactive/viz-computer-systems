@@ -301,7 +301,14 @@ const TranslationExampleNew: React.FC = () => {
     };
   }, [translation, displayedPageTables]);
 
-  if (!translationSystem || !translation || !dynamicTranslationData) return <div>Loading...</div>;
+  if (!translationSystem || !translation || !dynamicTranslationData)
+    return (
+      <div
+        className={`${uiConstants.flexColCenter} ${uiConstants.sectionGap} ${uiConstants.containerPadding} ${uiConstants.bottomPadding}`}
+      >
+        Loading...
+      </div>
+    );
 
   const systemInfo = translationSystem.getSystemInfo();
   const breakdown = translationSystem.getVirtualAddressBreakdown(dynamicTranslationData);

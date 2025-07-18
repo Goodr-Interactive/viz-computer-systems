@@ -74,12 +74,6 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
       content: generateFoodText(),
     },
     {
-      path: "orange/plum/lettuce.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
       path: "apple/guava/cucumber.txt",
       blocks: 1,
       type: "text",
@@ -146,19 +140,7 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
       content: generateFoodText(),
     },
     {
-      path: "banana/melon/kale.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
       path: "apple/mango/beets.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "orange/plum/cabbage.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
@@ -176,49 +158,7 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
       content: generateFoodText(),
     },
     {
-      path: "orange/lime/beans.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "banana/peach/leek.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "apple/cherry/squash.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "orange/kiwi/artichoke.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
       path: "banana/strawberry.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "apple/mango/garlic.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "orange/plum/cilantro.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "banana/grape/okra.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
@@ -249,12 +189,6 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
       content: generateFoodText(),
     },
     {
-      path: "banana/melon/raspberry.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
       path: "apple/parsley.txt",
       blocks: 1,
       type: "text",
@@ -274,12 +208,6 @@ export const FILE_SYSTEM_CONFIG: FileSystemConfig = {
     },
     {
       path: "apple/basil.txt",
-      blocks: 1,
-      type: "text",
-      content: generateFoodText(),
-    },
-    {
-      path: "orange/plum/durian.txt",
       blocks: 1,
       type: "text",
       content: generateFoodText(),
@@ -310,10 +238,16 @@ export const generateRandomLinkScenario = (): LinkScenario => {
 
   // Pick one of the main directories or second-level directories for the link
   const allDirectories = [
-    "/apple", "/banana", "/orange",
-    "/apple/mango", "/apple/cherry", "/apple/guava",
-    "/banana/grape", "/banana/peach", "/banana/melon",
-    "/orange/lime", "/orange/plum", "/orange/kiwi"
+    "/apple",
+    "/banana",
+    "/orange",
+    "/apple/mango",
+    "/apple/cherry",
+    "/apple/guava",
+    "/banana/grape",
+    "/banana/peach",
+    "/orange/lime",
+    "/orange/kiwi",
   ];
   const linkDirectory = allDirectories[Math.floor(faker.number.float() * allDirectories.length)];
 

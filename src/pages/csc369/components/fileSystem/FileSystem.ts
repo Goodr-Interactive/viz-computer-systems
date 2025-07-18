@@ -6,6 +6,7 @@ const DEFAULT_INODE_SIZE = 128; // 128 bytes
 const MAGIC_SIGNATURE = 0x1234;
 const POINTERS_PER_INODE = 15;
 const DIRECT_POINTERS = 12; // Only using direct pointers for now
+const ROOT_DIRECTORY_DATA_BLOCK = 8; // First data block allocated for root directory
 
 // File mode constants
 const S_IFMT = 0o170000; // File type mask
@@ -83,6 +84,7 @@ export class FileSystem {
   private dataBlocks: Uint8Array[];
   private blockSize: number;
   private inodeSize: number;
+  private allocationCounter = 0;
 
   constructor(
     numDataBlocks: number,
@@ -174,8 +176,8 @@ export class FileSystem {
   }
 
   // Helper method to create a new directory inode with proper initialization
-  private createDirectoryInode(): number {
-    const newInode = this.allocateInode();
+  private createDirectoryInode(skipInode = -1): number {
+    const newInode = this.allocateInode(skipInode);
     if (newInode === -1) return -1;
 
     // Set up directory inode
@@ -212,7 +214,7 @@ export class FileSystem {
         }
 
         // Create the missing directory
-        const newInode = this.createDirectoryInode();
+        const newInode = this.createDirectoryInode(skipDataBlock);
         if (newInode === -1) return -1;
 
         if (!this.addDirectoryEntry(currentInode, dirName, newInode, skipDataBlock)) {
@@ -244,24 +246,60 @@ export class FileSystem {
   }
 
   private allocateDataBlock(skipBlock = -1): number {
+    if (skipBlock == -1) {
+      this.dataBitmap[ROOT_DIRECTORY_DATA_BLOCK] = true;
+      return ROOT_DIRECTORY_DATA_BLOCK;
+    }
+
+    const availableBlocks: number[] = [];
+
+    // First pass: collect all available blocks
     for (let i = this.superBlock.s_first_data_block; i < this.superBlock.s_blocks_count; i++) {
-      if (i === skipBlock) continue;
       if (!this.dataBitmap[i]) {
-        this.dataBitmap[i] = true;
-        return i;
+        availableBlocks.push(i);
       }
     }
-    return -1; // No free blocks
+
+    if (availableBlocks.length === 0) {
+      return -1; // No free blocks
+    }
+
+    faker.seed(skipBlock + this.allocationCounter);
+
+    const randomIndex = Math.floor(faker.number.float() * availableBlocks.length);
+    const selectedBlock = availableBlocks[randomIndex];
+    this.dataBitmap[selectedBlock] = true;
+
+    // Increment counter for next allocation
+    this.allocationCounter++;
+
+    return selectedBlock;
   }
 
-  private allocateInode(): number {
+  private allocateInode(skipInode: number): number {
+    const availableInodes: number[] = [];
+
+    // First pass: collect all available inodes
     for (let i = 0; i < this.inodeBitmap.length; i++) {
       if (!this.inodeBitmap[i]) {
-        this.inodeBitmap[i] = true;
-        return i;
+        availableInodes.push(i);
       }
     }
-    return -1; // No free inodes
+
+    if (availableInodes.length === 0) {
+      return -1; // No free inodes
+    }
+
+    faker.seed(skipInode + this.allocationCounter);
+
+    const randomIndex = Math.floor(faker.number.float() * availableInodes.length);
+    const selectedInode = availableInodes[randomIndex];
+    this.inodeBitmap[selectedInode] = true;
+
+    // Increment counter for next allocation
+    this.allocationCounter++;
+
+    return selectedInode;
   }
 
   private findDirectoryEntry(
@@ -381,112 +419,18 @@ export class FileSystem {
     return false; // No space in any block
   }
 
-  // Method overloads
-  public createFile(path: string, size: number, skipDataBlock?: number): boolean;
-  public createFile(
-    path: string,
-    contentType: "text" | "base64",
-    content: string,
-    skipDataBlock?: number
-  ): boolean;
-  public createFile(
-    path: string,
-    sizeOrContentType: number | "text" | "base64",
-    contentOrSkip?: string | number,
-    skipDataBlock?: number
-  ): boolean {
-    // Handle the content overload
-    if (typeof sizeOrContentType === "string" && typeof contentOrSkip === "string") {
-      return this.createFileWithContent(path, sizeOrContentType, contentOrSkip, skipDataBlock);
-    }
-
-    // Handle the original size-based overload
-    if (typeof sizeOrContentType === "number") {
-      const skip = typeof contentOrSkip === "number" ? contentOrSkip : undefined;
-      return this.createFileWithSize(path, sizeOrContentType, skip);
-    }
-
-    return false;
-  }
-
-  private createFileWithSize(path: string, size: number, skipDataBlock = -1): boolean {
-    if (!path) return false;
-
-    // Navigate to parent directory, creating missing directories as needed
-    const parentInode = this.navigateToParentDirectory(path, true, skipDataBlock);
-    if (parentInode === -1) return false;
-
-    // Create the file
-    const fileName = this.getFilenameFromPath(path);
-    const fileInode = this.allocateInode();
-    if (fileInode === -1) return false;
-
-    // Calculate number of blocks needed (size parameter is already in blocks)
-    const blocksNeeded = size;
-    if (blocksNeeded > DIRECT_POINTERS) return false; // File too large
-
-    // Allocate blocks for the file
-    for (let i = 0; i < blocksNeeded; i++) {
-      const block = this.allocateDataBlock(skipDataBlock);
-      if (block === -1) {
-        // Cleanup allocated blocks
-        for (let j = 0; j < i; j++) {
-          const blockToFree = this.inodes[fileInode].i_block_pointers[j];
-          const relativeBlockToFree = blockToFree - this.superBlock.s_first_data_block;
-          this.dataBitmap[relativeBlockToFree] = false;
-        }
-        this.inodeBitmap[fileInode] = false;
-        return false;
-      }
-      this.inodes[fileInode].i_block_pointers[i] = block;
-    }
-
-    // Set up file inode - size should be in BYTES
-    const currentTime = Date.now();
-    this.inodes[fileInode].i_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Regular file with rw-r--r--
-    this.inodes[fileInode].i_uid = 0;
-    this.inodes[fileInode].i_size = blocksNeeded * this.blockSize; // Convert blocks to bytes
-    this.inodes[fileInode].i_ctime = currentTime;
-    this.inodes[fileInode].i_mtime = currentTime;
-    this.inodes[fileInode].i_nlink = 1; // Regular file has 1 link
-
-    // Add directory entry
-    return this.addDirectoryEntry(parentInode, fileName, fileInode, skipDataBlock);
-  }
-
-  // Private method for creating files with content (limited to 1 block = 4KB max)
-  private createFileWithContent(
-    path: string,
-    contentType: "text" | "base64",
-    content: string,
-    skipDataBlock = -1
-  ): boolean {
+  // Create a file with text content (limited to 1 block = 4KB max)
+  public createFile(path: string, content: string, skipDataBlock = -1): boolean {
     // Validate content size - must fit in 1 block (4KB)
     let contentBytes: Uint8Array;
-    let metadataBytes: Uint8Array;
 
     try {
-      if (contentType === "text") {
-        contentBytes = new TextEncoder().encode(content);
-        // Store metadata: 1 byte for type (0 = text), then content
-        metadataBytes = new Uint8Array(1 + contentBytes.length);
-        metadataBytes[0] = 0; // 0 = text
-        metadataBytes.set(contentBytes, 1);
-      } else if (contentType === "base64") {
-        // For base64, store the original base64 string as text with metadata
-        const base64Bytes = new TextEncoder().encode(content);
-        // Store metadata: 1 byte for type (1 = base64), then base64 string
-        metadataBytes = new Uint8Array(1 + base64Bytes.length);
-        metadataBytes[0] = 1; // 1 = base64
-        metadataBytes.set(base64Bytes, 1);
-      } else {
-        return false; // Invalid content type
-      }
+      contentBytes = new TextEncoder().encode(content);
     } catch {
-      return false; // Invalid base64 or encoding error
+      return false; // Encoding error
     }
 
-    if (metadataBytes.length > this.blockSize) {
+    if (contentBytes.length > this.blockSize) {
       return false; // Content too large for 1 block
     }
 
@@ -496,7 +440,7 @@ export class FileSystem {
 
     // Create the file
     const fileName = this.getFilenameFromPath(path);
-    const fileInode = this.allocateInode();
+    const fileInode = this.allocateInode(skipDataBlock);
     if (fileInode === -1) return false;
 
     // Allocate exactly 1 data block
@@ -513,14 +457,14 @@ export class FileSystem {
     // Clear the block first
     block.fill(0);
 
-    // Copy content with metadata to the block
-    block.set(metadataBytes, 0);
+    // Copy content directly to the block
+    block.set(contentBytes, 0);
 
     // Set up file inode
     const currentTime = Date.now();
     this.inodes[fileInode].i_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
     this.inodes[fileInode].i_uid = 0;
-    this.inodes[fileInode].i_size = metadataBytes.length; // Actual content size in bytes
+    this.inodes[fileInode].i_size = contentBytes.length; // Actual content size in bytes
     this.inodes[fileInode].i_ctime = currentTime;
     this.inodes[fileInode].i_mtime = currentTime;
     this.inodes[fileInode].i_nlink = 1; // Regular file has 1 link
@@ -546,7 +490,7 @@ export class FileSystem {
   }
 
   // Create a hard link to an existing file
-  public createHardLink(targetPath: string, linkPath: string): boolean {
+  public createHardLink(targetPath: string, linkPath: string, skipDataBlock = -1): boolean {
     // Find the target file's inode
     const targetInode = this.findInodeByPath(targetPath);
     if (targetInode === -1) {
@@ -571,7 +515,7 @@ export class FileSystem {
     }
 
     // Add directory entry pointing to the target inode
-    if (!this.addDirectoryEntry(parentInode, linkName, targetInode)) {
+    if (!this.addDirectoryEntry(parentInode, linkName, targetInode, skipDataBlock)) {
       return false; // Failed to add directory entry
     }
 
@@ -587,7 +531,7 @@ export class FileSystem {
   }
 
   // Create a symbolic link (soft link) to a target path
-  public createSymbolicLink(targetPath: string, linkPath: string): boolean {
+  public createSymbolicLink(targetPath: string, linkPath: string, skipDataBlock = -1): boolean {
     // Validate target path length - must fit in one block
     const targetPathBytes = new TextEncoder().encode(targetPath);
     if (targetPathBytes.length > this.blockSize) {
@@ -607,11 +551,11 @@ export class FileSystem {
     }
 
     // Create the symlink inode
-    const symlinkInode = this.allocateInode();
+    const symlinkInode = this.allocateInode(skipDataBlock);
     if (symlinkInode === -1) return false;
 
     // Allocate exactly 1 data block for the symlink
-    const dataBlock = this.allocateDataBlock();
+    const dataBlock = this.allocateDataBlock(skipDataBlock);
     if (dataBlock === -1) {
       this.inodeBitmap[symlinkInode] = false;
       return false;
@@ -629,7 +573,7 @@ export class FileSystem {
 
     // Set up symlink inode
     const currentTime = Date.now();
-    const laterTime = currentTime + 10000; // 10 seconds later to show recent creation
+    const laterTime = currentTime + 1000 * 3600; // 1 hour later to show recent creation
     this.inodes[symlinkInode].i_mode = S_IFLNK | S_IRWXU | S_IRWXG | S_IRWXO; // Symlink with full permissions
     this.inodes[symlinkInode].i_uid = 0;
     this.inodes[symlinkInode].i_size = targetPathBytes.length; // Size is length of target path
@@ -908,47 +852,13 @@ export class FileSystem {
             return loremText;
           }
 
-          // Check if this file has metadata (files created with content)
-          if (contentBytes.length > 0) {
-            const contentType = contentBytes[0];
-            const actualContent = contentBytes.slice(1);
-
-            if (contentType === 0) {
-              // Text file - return as plain text
-              try {
-                return new TextDecoder("utf-8", { fatal: true }).decode(actualContent);
-              } catch {
-                // Fallback to regular text decoding
-                return new TextDecoder().decode(actualContent);
-              }
-            } else if (contentType === 1) {
-              // Base64 file - return the base64 string
-              try {
-                return new TextDecoder("utf-8", { fatal: true }).decode(actualContent);
-              } catch {
-                return new TextDecoder().decode(actualContent);
-              }
-            }
-          }
-
-          // Try to decode as text first
+          // Decode content as text
           try {
-            const textContent = new TextDecoder("utf-8", { fatal: true }).decode(contentBytes);
-            // Check if it's printable text (no control characters except common ones)
-            const isPrintableText = /^[\x20-\x7E\x09\x0A\x0D]*$/.test(textContent);
-
-            if (isPrintableText) {
-              return textContent;
-            }
+            return new TextDecoder("utf-8", { fatal: true }).decode(contentBytes);
           } catch {
-            // Not valid UTF-8 text
+            // Fallback to regular text decoding
+            return new TextDecoder().decode(contentBytes);
           }
-
-          // If not text, generate lorem ipsum content
-          // Generate lorem ipsum based on file size to make it realistic
-          const wordsNeeded = Math.max(10, Math.floor(fileSize / 6)); // Approximate words based on file size
-          const loremText = faker.lorem.words(wordsNeeded);
-          return loremText;
         }
       }
     }

@@ -26,12 +26,12 @@ export const LinkComparisonVisualizer: React.FC = () => {
   const [selectedChangedAttributes, setSelectedChangedAttributes] = useState<Set<string>>(
     new Set()
   );
-  const [shuffledFiles, setShuffledFiles] = useState<(typeof FILE_SYSTEM_CONFIG.files)[0][]>([]);
+  const [shuffledFiles, setShuffledFiles] = useState<Array<(typeof FILE_SYSTEM_CONFIG.files)[0]>>([]);
   const [reservedBlock, setReservedBlock] = useState<number>(-1);
   const [foundInodes, setFoundInodes] = useState<Set<number>>(new Set());
 
   const createInitialFileSystem = (
-    files: (typeof FILE_SYSTEM_CONFIG.files)[0][],
+    files: Array<(typeof FILE_SYSTEM_CONFIG.files)[0]>,
     blockToSkip: number
   ): FileSystem => {
     const fs = new FileSystem(
@@ -42,12 +42,7 @@ export const LinkComparisonVisualizer: React.FC = () => {
     );
 
     files.forEach((file) => {
-      fs.createFile(
-        `/${file.path}`,
-        file.type || "text",
-        file.content || "Default file content",
-        blockToSkip
-      );
+      fs.createFile(`/${file.path}`, file.content || "Default file content", blockToSkip);
     });
     return fs;
   };
@@ -55,18 +50,7 @@ export const LinkComparisonVisualizer: React.FC = () => {
   const generateNewScenario = () => {
     const newShuffledFiles = [...FILE_SYSTEM_CONFIG.files].sort(() => Math.random() - 0.5);
     setShuffledFiles(newShuffledFiles);
-
-    const tempFs = new FileSystem(
-      FILE_SYSTEM_CONFIG.dataBlocks,
-      FILE_SYSTEM_CONFIG.totalInodes,
-      FILE_SYSTEM_CONFIG.blockSize,
-      FILE_SYSTEM_CONFIG.inodeSize
-    );
-    const sb = tempFs.getSuperBlock();
-    const firstDataBlock = sb.s_first_data_block;
-    const numDataBlocks = sb.s_blocks_count - firstDataBlock;
-    const newReservedBlock = firstDataBlock + Math.floor(Math.random() * numDataBlocks);
-    setReservedBlock(newReservedBlock);
+    setReservedBlock(Math.floor(Math.random() * 10000));
 
     setLinkScenario(generateRandomLinkScenario());
   };
@@ -85,9 +69,9 @@ export const LinkComparisonVisualizer: React.FC = () => {
       const afterFs = createInitialFileSystem(shuffledFiles, reservedBlock);
       if (linkScenario) {
         if (linkType === "hard") {
-          afterFs.createHardLink(linkScenario.targetFile, linkScenario.linkPath);
+          afterFs.createHardLink(linkScenario.targetFile, linkScenario.linkPath, reservedBlock);
         } else {
-          afterFs.createSymbolicLink(linkScenario.targetFile, linkScenario.linkPath);
+          afterFs.createSymbolicLink(linkScenario.targetFile, linkScenario.linkPath, reservedBlock);
         }
       }
       setFileSystemAfter(afterFs);
@@ -512,7 +496,7 @@ export const LinkComparisonVisualizer: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Button
               variant="outline"
               onClick={() => {
@@ -549,8 +533,14 @@ export const LinkComparisonVisualizer: React.FC = () => {
                 {effectiveShowingAfter ? "After" : "Before"}
               </Label>
             </div>
+            <div className="border-border bg-background hover:bg-accent/50 flex h-9 items-center space-x-2 rounded-md border px-4 py-1 shadow-xs transition-colors md:hidden">
+              <Switch id="test-mode" checked={testMode} onCheckedChange={setTestMode} />
+              <Label htmlFor="test-mode" className="cursor-pointer font-medium">
+                Test Mode
+              </Label>
+            </div>
           </div>
-          <div className="border-border bg-background hover:bg-accent/50 flex h-9 items-center space-x-2 rounded-md border px-4 py-1 shadow-xs transition-colors">
+          <div className="border-border bg-background hover:bg-accent/50 hidden h-9 items-center space-x-2 rounded-md border px-4 py-1 shadow-xs transition-colors md:flex">
             <Switch id="test-mode" checked={testMode} onCheckedChange={setTestMode} />
             <Label htmlFor="test-mode" className="cursor-pointer font-medium">
               Test Mode
@@ -585,14 +575,14 @@ export const LinkComparisonVisualizer: React.FC = () => {
       </section>
 
       <section
-        className={`flex w-full max-w-7xl overflow-x-auto ${testMode ? "h-full items-stretch gap-10" : "h-full flex-col"}`}
+        className={`flex w-full max-w-7xl overflow-x-auto ${testMode ? "h-full flex-col items-stretch gap-10 lg:flex-row" : "h-full flex-col"}`}
       >
         {/* Block Content Card */}
         <div
-          className={`bg-muted/50 flex h-full min-w-fit flex-col rounded-lg p-6 ${testMode ? "flex-[7]" : "w-full"}`}
+          className={`bg-muted/50 flex h-full min-w-fit flex-col rounded-lg p-6 ${testMode ? "flex-[7] lg:flex-[7]" : "w-full"}`}
         >
           <SubsectionHeading>Block Content</SubsectionHeading>
-          <div className="flex-grow overflow-y-auto p-1 overflow-x-hidden">
+          <div className="flex-grow overflow-x-hidden overflow-y-auto p-1">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={`block-${selectedBlock}`}
@@ -633,9 +623,8 @@ export const LinkComparisonVisualizer: React.FC = () => {
           </div>
         </div>
 
-        {/* Changed Inode Quiz Card - Only visible in test mode */}
         {testMode && (
-          <div className="bg-muted/50 flex w-full flex-[3] flex-col rounded-lg p-6">
+          <div className="bg-muted/50 flex w-full flex-col rounded-lg p-6 lg:min-w-0 lg:flex-[3]">
             <SubsectionHeading className="flex items-center">
               Changed Inodes
               <Badge className="mt-0.5 ml-4 border-blue-400 bg-blue-100 py-1 pt-[3px] text-blue-600">
@@ -746,15 +735,13 @@ export const LinkComparisonVisualizer: React.FC = () => {
                               setFoundInodes(newFoundInodes);
 
                               if (newFoundInodes.size === correctInodes.size) {
-                                toast.success(
-                                  "Congratulations! You've found all changed inodes."
-                                );
+                                toast.success("Congratulations! You've found all changed inodes.");
                               } else {
                                 toast.success("Correct! You found one. Keep going!");
                               }
                             } else {
                               toast.error(
-                                "Correct inode, but the selected attributes are wrong."
+                                "Correct inode, but the selected attributes are incomplete and/or incorrect."
                               );
                             }
                           }}

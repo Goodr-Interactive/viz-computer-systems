@@ -16,13 +16,13 @@ import type { Instruction } from "./types";
 import {
   PIPELINE_STAGES,
   STAGE_IMAGES,
+  STAGE_COLORS,
   DEFAULT_INSTRUCTIONS,
   AVAILABLE_COLORS,
   TIMING_CONFIG,
   LAYOUT_CONFIG,
   PERFORMANCE_CONFIG,
   getStageScalingFactor,
-  getStageTimingInfo,
   FEATURE_FLAGS,
 } from "./config";
 
@@ -68,9 +68,6 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   // Add instruction state
   const [newInstructionName, setNewInstructionName] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
-
-  // Get stage timing information for display
-  const stageTimingInfo = getStageTimingInfo();
 
   // Set initial dimensions based on container size
   useEffect(() => {
@@ -602,16 +599,17 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     return Math.max(maxCycle, cycles);
   };
 
-  // Convert clock cycles to actual times (starting from config)
+  // Convert clock cycles to time periods (classic H&P example format)
   const getTimeLabels = () => {
     const maxCycle = getMaxCycleNeeded();
     return d3.range(0, maxCycle + 1).map((cycle) => {
-      const minutes = cycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
-      const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
-      const mins = minutes % 60;
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
-      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+      const totalMinutes = TIMING_CONFIG.START_TIME_HOUR * 60 + cycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      const hours24 = hours % 24; // Handle day rollover
+      const ampm = hours24 >= 12 ? "PM" : "AM";
+      const hour12 = hours24 === 0 ? 12 : hours24 > 12 ? hours24 - 12 : hours24;
+      return minutes === 0 ? `${hour12} ${ampm}` : `${hour12}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
     });
   };
 
@@ -623,8 +621,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       (instr) => instr.isCompleted === true
     );
 
+    let cycleToUse = cycles;
+    
     // If all instructions are completed, show time based on actual completion
-    // rather than the current cycle counter which might be higher
     if (allInstructionsCompleted && pipelineInstructions.length > 0) {
       let maxCompletionCycle = 0;
       pipelineInstructions.forEach((instr) => {
@@ -634,22 +633,17 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
         }
       });
       // Use the actual completion cycle + 1 for final time display
-      const finalCycle = maxCompletionCycle + 1;
-      const minutes = finalCycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
-      const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
-      const mins = minutes % 60;
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
-      return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+      cycleToUse = maxCompletionCycle + 1;
     }
 
-    // Otherwise, use current cycle
-    const minutes = cycles * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
-    const hours = Math.floor(TIMING_CONFIG.START_TIME_HOUR + minutes / 60);
-    const mins = minutes % 60;
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
-    return `${hour12}:${mins === 0 ? "00" : mins} ${ampm}`;
+    // Calculate time based on cycle and cycle duration
+    const totalMinutes = TIMING_CONFIG.START_TIME_HOUR * 60 + cycleToUse * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const hours24 = hours % 24; // Handle day rollover
+    const ampm = hours24 >= 12 ? "PM" : "AM";
+    const hour12 = hours24 === 0 ? 12 : hours24 > 12 ? hours24 - 12 : hours24;
+    return minutes === 0 ? `${hour12} ${ampm}` : `${hour12}:${minutes < 10 ? '0' : ''}${minutes} ${ampm}`;
   };
 
   // Calculate laundry loads per hour performance metric
@@ -761,7 +755,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 orient="bottom"
                 transform={`translate(0,${innerHeight})`}
                 timeLabels={timeLabels}
-                label="Clock Cycle"
+                label="Time"
                 labelOffset={{ x: innerWidth / 2, y: 65 }}
               />
 
@@ -769,7 +763,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 scale={yScale}
                 orient="left"
                 instructions={pipelineInstructions}
-                label="Laundry Load"
+                label="Task Order"
                 labelOffset={{ x: -innerHeight / 2, y: -90 }}
               />
 
@@ -847,6 +841,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                       height={yScale.bandwidth()}
                       timeLabel={timeLabels[cycle]}
                       stageImage={STAGE_IMAGES[stageIndex]}
+                      color={STAGE_COLORS[stageIndex]}
                       onMouseEnter={handleStageMouseEnter}
                       onMouseLeave={handleStageMouseLeave}
                       isSuperscalarActive={isSuperscalarActive}
@@ -917,7 +912,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           {/* Mode Selection */}
           {FEATURE_FLAGS.SHOW_MODE_SELECTION && (
             <div className="mb-4">
-              <h3 className="mb-2 font-semibold">Mode Selection</h3>
+              <h3 className="mb-2 font-semibold">Execution Mode</h3>
               <div className="space-y-3">
                 <label className="inline-flex cursor-pointer items-center">
                   <input
@@ -928,36 +923,50 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                   />
                   <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                   <span className="ml-3 text-sm font-medium">
-                    {isPipelined ? "Pipelined Mode" : "Pipelined Mode"}
+                    {isPipelined ? "Pipelined Execution" : "Sequential Execution"}
                   </span>
                 </label>
+                <p className="text-xs text-gray-600 ml-14">
+                  {isPipelined 
+                    ? "Tasks overlap in time - stages execute in parallel"
+                    : "Tasks execute one at a time - each task completes before the next begins"
+                  }
+                </p>
 
                 {/* Superscalar toggle, only available in pipelined mode */}
                 {isPipelined && (
-                  <label className="inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      checked={isSuperscalarActive}
-                      onChange={() => {
-                        setIsSuperscalarActive(!isSuperscalarActive);
-                        handleReset();
-                      }}
-                      className="peer sr-only"
-                    />
-                    <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                    <span className="ml-3 text-sm font-medium">
-                      {isSuperscalarActive ? (
-                        <span className="flex items-center gap-2">
-                          Superscalar Mode ({superscalarFactor}-way)
-                          <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                            {superscalarFactor}x
+                  <>
+                    <label className="inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={isSuperscalarActive}
+                        onChange={() => {
+                          setIsSuperscalarActive(!isSuperscalarActive);
+                          handleReset();
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                      <span className="ml-3 text-sm font-medium">
+                        {isSuperscalarActive ? (
+                          <span className="flex items-center gap-2">
+                            Superscalar Mode ({superscalarFactor}-way)
+                            <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                              {superscalarFactor}x
+                            </span>
                           </span>
-                        </span>
-                      ) : (
-                        "Superscalar Mode"
-                      )}
-                    </span>
-                  </label>
+                        ) : (
+                          "Superscalar Mode"
+                        )}
+                      </span>
+                    </label>
+                    <p className="text-xs text-gray-600 ml-14">
+                      {isSuperscalarActive
+                        ? "Multiple tasks can start simultaneously"
+                        : "Only one task can start per time period"
+                      }
+                    </p>
+                  </>
                 )}
               </div>
             </div>
@@ -973,11 +982,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                   {PIPELINE_STAGES.map((stageName, index) => (
                     <div key={index} className="flex items-center space-x-2 rounded bg-gray-50 p-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white">
+                      <div 
+                        className="flex h-8 w-8 items-center justify-center rounded border border-gray-300" 
+                        style={{ backgroundColor: STAGE_COLORS[index], opacity: 0.7 }}
+                      >
                         <img src={STAGE_IMAGES[index]} alt={stageName} className="h-6 w-6" />
                       </div>
-                      <span className="text-xs">{stageName}</span>
-                      <span className="text-xs">{stageTimingInfo.stageLengths[index]} mins</span>
+                      <span className="text-xs font-medium">{stageName}</span>
                     </div>
                   ))}
                 </div>
@@ -988,13 +999,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           {/* Instruction Management UI */}
           <div className="mb-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-lg font-medium">Instructions</h3>
+              <h3 className="text-lg font-medium">Tasks</h3>
 
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="flex items-center rounded bg-purple-500 px-3 py-1 text-sm text-white hover:bg-purple-600"
               >
-                {showAddForm ? "Cancel" : "Add Instruction"}
+                {showAddForm ? "Cancel" : "Add Task"}
                 {!showAddForm && (
                   <svg
                     className="ml-1 h-4 w-4"
@@ -1020,7 +1031,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                   type="text"
                   value={newInstructionName}
                   onChange={(e) => setNewInstructionName(e.target.value)}
-                  placeholder="Enter laundry load (e.g., Sweaters Load)"
+                  placeholder="Enter task name (e.g., Task E)"
                   className="flex-grow rounded border border-gray-300 px-3 py-2"
                 />
                 <button
@@ -1038,18 +1049,15 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                 {pipelineInstructions.map((instr) => (
                   <li key={instr.id} className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-center">
-                      <div
-                        className="mr-2 h-4 w-4 rounded-full"
-                        style={{ backgroundColor: instr.color }}
-                      ></div>
+                      <div className="mr-2 h-4 w-4 rounded border border-gray-400 bg-gray-100"></div>
                       <span>
-                        <strong>{instr.id}:</strong> {instr.name}
+                        <strong>{instr.name}</strong>
                       </span>
                     </div>
                     <button
                       onClick={() => handleRemoveInstruction(instr.id)}
                       className="text-red-500 hover:text-red-700"
-                      title="Remove instruction"
+                      title="Remove task"
                     >
                       <svg
                         className="h-5 w-5"

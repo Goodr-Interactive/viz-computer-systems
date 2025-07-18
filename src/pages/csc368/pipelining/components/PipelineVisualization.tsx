@@ -56,6 +56,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     instructionName: string;
     stageName: string;
     timeLabel: string;
+    endTimeLabel: string;
   }>({
     visible: false,
     x: 0,
@@ -63,6 +64,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     instructionName: "",
     stageName: "",
     timeLabel: "",
+    endTimeLabel: "",
   });
 
   // Add instruction state
@@ -701,6 +703,20 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     const svgX = event.clientX - svgRect.left - margin.left;
     const svgY = event.clientY - svgRect.top - margin.top;
 
+    // Calculate end time for this stage
+    const stageIndex = PIPELINE_STAGES.indexOf(stageName);
+    const stageCycle = (instruction.startCycle || 0) + stageIndex;
+    const endCycle = stageCycle + 1; // Each stage lasts one cycle
+    
+    // Calculate end time label
+    const endTotalMinutes = TIMING_CONFIG.START_TIME_HOUR * 60 + endCycle * TIMING_CONFIG.CYCLE_DURATION_MINUTES;
+    const endHours = Math.floor(endTotalMinutes / 60);
+    const endMinutes = endTotalMinutes % 60;
+    const endHours24 = endHours % 24;
+    const endAmpm = endHours24 >= 12 ? "PM" : "AM";
+    const endHour12 = endHours24 === 0 ? 12 : endHours24 > 12 ? endHours24 - 12 : endHours24;
+    const endTimeLabel = endMinutes === 0 ? `${endHour12} ${endAmpm}` : `${endHour12}:${endMinutes < 10 ? '0' : ''}${endMinutes} ${endAmpm}`;
+
     setTooltip({
       visible: true,
       x: svgX,
@@ -708,6 +724,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       instructionName: instruction.name,
       stageName,
       timeLabel,
+      endTimeLabel,
     });
   };
 
@@ -860,6 +877,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                   instructionName={tooltip.instructionName}
                   stageName={tooltip.stageName}
                   timeLabel={tooltip.timeLabel}
+                  endTimeLabel={tooltip.endTimeLabel}
                   svgWidth={svgWidth}
                   svgHeight={svgHeight}
                   margin={margin}

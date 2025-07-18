@@ -26,10 +26,14 @@ export const LinkComparisonVisualizer: React.FC = () => {
   const [selectedChangedAttributes, setSelectedChangedAttributes] = useState<Set<string>>(
     new Set()
   );
+  const [shuffledFiles, setShuffledFiles] = useState<(typeof FILE_SYSTEM_CONFIG.files)[0][]>([]);
+  const [reservedBlock, setReservedBlock] = useState<number>(-1);
+  const [foundInodes, setFoundInodes] = useState<Set<number>>(new Set());
 
-  // Initialize file systems
-  useEffect(() => {
-    // Create the initial file system using the config
+  const createInitialFileSystem = (
+    files: (typeof FILE_SYSTEM_CONFIG.files)[0][],
+    blockToSkip: number
+  ): FileSystem => {
     const fs = new FileSystem(
       FILE_SYSTEM_CONFIG.dataBlocks,
       FILE_SYSTEM_CONFIG.totalInodes,
@@ -37,27 +41,60 @@ export const LinkComparisonVisualizer: React.FC = () => {
       FILE_SYSTEM_CONFIG.inodeSize
     );
 
-    // Create all files from the config
-    FILE_SYSTEM_CONFIG.files.forEach((file) => {
-      fs.createFile(`/${file.path}`, file.type || "text", file.content || "Default file content");
+    files.forEach((file) => {
+      fs.createFile(
+        `/${file.path}`,
+        file.type || "text",
+        file.content || "Default file content",
+        blockToSkip
+      );
     });
+    return fs;
+  };
 
-    // Generate a random link scenario
-    const scenario = generateRandomLinkScenario();
-    setLinkScenario(scenario);
+  const generateNewScenario = () => {
+    const newShuffledFiles = [...FILE_SYSTEM_CONFIG.files].sort(() => Math.random() - 0.5);
+    setShuffledFiles(newShuffledFiles);
 
-    setFileSystemBefore(fs);
+    const tempFs = new FileSystem(
+      FILE_SYSTEM_CONFIG.dataBlocks,
+      FILE_SYSTEM_CONFIG.totalInodes,
+      FILE_SYSTEM_CONFIG.blockSize,
+      FILE_SYSTEM_CONFIG.inodeSize
+    );
+    const sb = tempFs.getSuperBlock();
+    const firstDataBlock = sb.s_first_data_block;
+    const numDataBlocks = sb.s_blocks_count - firstDataBlock;
+    const newReservedBlock = firstDataBlock + Math.floor(Math.random() * numDataBlocks);
+    setReservedBlock(newReservedBlock);
 
-    // Create the "after" file system based on link type
-    updateAfterFileSystem(fs, linkType, scenario);
+    setLinkScenario(generateRandomLinkScenario());
+  };
+
+  // Initialize file systems
+  useEffect(() => {
+    generateNewScenario();
   }, []);
 
-  // Update the "after" file system when link type changes
+  // Update file systems when scenario changes
   useEffect(() => {
-    if (fileSystemBefore && linkScenario) {
-      updateAfterFileSystem(fileSystemBefore, linkType, linkScenario);
+    if (shuffledFiles.length > 0 && reservedBlock > -1) {
+      const fs = createInitialFileSystem(shuffledFiles, reservedBlock);
+      setFileSystemBefore(fs);
+
+      const afterFs = createInitialFileSystem(shuffledFiles, reservedBlock);
+      if (linkScenario) {
+        if (linkType === "hard") {
+          afterFs.createHardLink(linkScenario.targetFile, linkScenario.linkPath);
+        } else {
+          afterFs.createSymbolicLink(linkScenario.targetFile, linkScenario.linkPath);
+        }
+      }
+      setFileSystemAfter(afterFs);
+      setFoundInodes(new Set());
+      setSelectedChangedAttributes(new Set());
     }
-  }, [linkType, fileSystemBefore, linkScenario]);
+  }, [shuffledFiles, reservedBlock, linkType, linkScenario]);
 
   // Reset selected inode when switching between before/after if it's no longer valid
   useEffect(() => {
@@ -78,34 +115,6 @@ export const LinkComparisonVisualizer: React.FC = () => {
       }
     }
   }, [showingAfter, selectedInode, selectedBlock, fileSystemBefore, fileSystemAfter, testMode]);
-
-  const updateAfterFileSystem = (
-    _baseFsInstance: FileSystem,
-    type: "hard" | "soft",
-    scenario: LinkScenario
-  ) => {
-    // Clone the file system by creating a new one with the same structure using config
-    const fs = new FileSystem(
-      FILE_SYSTEM_CONFIG.dataBlocks,
-      FILE_SYSTEM_CONFIG.totalInodes,
-      FILE_SYSTEM_CONFIG.blockSize,
-      FILE_SYSTEM_CONFIG.inodeSize
-    );
-
-    // Recreate all files from the config
-    FILE_SYSTEM_CONFIG.files.forEach((file) => {
-      fs.createFile(`/${file.path}`, file.type || "text", file.content || "Default file content");
-    });
-
-    // Create the link based on type using the random scenario
-    if (type === "hard") {
-      fs.createHardLink(scenario.targetFile, scenario.linkPath);
-    } else {
-      fs.createSymbolicLink(scenario.targetFile, scenario.linkPath);
-    }
-
-    setFileSystemAfter(fs);
-  };
 
   const handleBlockClick = (blockIndex: number) => {
     setSelectedBlock(blockIndex);
@@ -141,6 +150,18 @@ export const LinkComparisonVisualizer: React.FC = () => {
     if (!fileSystemBefore || !fileSystemAfter || !linkScenario) return new Set();
 
     const highlightedInodes = new Set<number>();
+
+    // For both hard and soft links, the parent directory inode is modified.
+    try {
+      const parentPath =
+        linkScenario.linkPath.substring(0, linkScenario.linkPath.lastIndexOf("/")) || "/";
+      const parentDirInode = fileSystemAfter.findInodeByPath(parentPath);
+      if (parentDirInode !== -1) {
+        highlightedInodes.add(parentDirInode);
+      }
+    } catch {
+      // could fail if path is weird, just ignore.
+    }
 
     if (linkType === "hard") {
       // For hard links, highlight the target inode that the link points to
@@ -232,6 +253,18 @@ export const LinkComparisonVisualizer: React.FC = () => {
     if (!fileSystemBefore || !fileSystemAfter || !linkScenario) return new Map();
 
     const changedAttributes = new Map<number, Set<string>>();
+
+    // For both link types, the parent directory's mtime changes
+    try {
+      const parentPath =
+        linkScenario.linkPath.substring(0, linkScenario.linkPath.lastIndexOf("/")) || "/";
+      const parentDirInode = fileSystemAfter.findInodeByPath(parentPath);
+      if (parentDirInode !== -1) {
+        changedAttributes.set(parentDirInode, new Set(["mtime"]));
+      }
+    } catch {
+      // ignore
+    }
 
     if (linkType === "hard") {
       // For hard links, find the target inode and mark its attributes as changed
@@ -387,6 +420,21 @@ export const LinkComparisonVisualizer: React.FC = () => {
       }
     }
 
+    // Also highlight the parent directory's inode block since its mtime changed
+    if (linkScenario) {
+      try {
+        const parentPath =
+          linkScenario.linkPath.substring(0, linkScenario.linkPath.lastIndexOf("/")) || "/";
+        const parentDirInode = fileSystemAfter.findInodeByPath(parentPath);
+        if (parentDirInode !== -1) {
+          const parentInodeBlockIndex = 3 + Math.floor(parentDirInode / inodesPerBlock);
+          changes.add(parentInodeBlockIndex);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     // For hard links, also highlight the target inode block
     if (linkType === "hard" && linkScenario) {
       // Find the target file inode
@@ -468,11 +516,7 @@ export const LinkComparisonVisualizer: React.FC = () => {
             <Button
               variant="outline"
               onClick={() => {
-                const newScenario = generateRandomLinkScenario();
-                setLinkScenario(newScenario);
-                if (fileSystemBefore) {
-                  updateAfterFileSystem(fileSystemBefore, linkType, newScenario);
-                }
+                generateNewScenario();
               }}
             >
               New Scenario
@@ -548,7 +592,7 @@ export const LinkComparisonVisualizer: React.FC = () => {
           className={`bg-muted/50 flex h-full min-w-fit flex-col rounded-lg p-6 ${testMode ? "flex-[7]" : "w-full"}`}
         >
           <SubsectionHeading>Block Content</SubsectionHeading>
-          <div className="flex-grow overflow-y-auto p-1">
+          <div className="flex-grow overflow-y-auto p-1 overflow-x-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={`block-${selectedBlock}`}
@@ -592,7 +636,12 @@ export const LinkComparisonVisualizer: React.FC = () => {
         {/* Changed Inode Quiz Card - Only visible in test mode */}
         {testMode && (
           <div className="bg-muted/50 flex w-full flex-[3] flex-col rounded-lg p-6">
-            <SubsectionHeading>Changed Inode</SubsectionHeading>
+            <SubsectionHeading className="flex items-center">
+              Changed Inodes
+              <Badge className="mt-0.5 ml-4 border-blue-400 bg-blue-100 py-1 pt-[3px] text-blue-600">
+                {foundInodes.size} / {getHighlightedInodes().size} Found
+              </Badge>
+            </SubsectionHeading>
             <div className="h-full flex-grow overflow-y-auto">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
@@ -612,10 +661,12 @@ export const LinkComparisonVisualizer: React.FC = () => {
                   className="h-full origin-top"
                 >
                   <div className="flex h-full flex-col justify-between space-y-4">
-                    <p className="text-muted-foreground text-sm">
-                      Select the affected inode and the attributes that have changed after the link
-                      is created.
-                    </p>
+                    <div>
+                      <p className="text-muted-foreground text-sm">
+                        Select an affected inode and the attributes that have changed after the link
+                        is created.
+                      </p>
+                    </div>
 
                     {selectedInode !== null ? (
                       <>
@@ -648,10 +699,13 @@ export const LinkComparisonVisualizer: React.FC = () => {
                                     setSelectedChangedAttributes(newSet);
                                   }}
                                   className="h-4 w-4 rounded border-gray-300"
+                                  disabled={foundInodes.has(selectedInode)}
                                 />
                                 <label
                                   htmlFor={`attr-${attr}`}
-                                  className="cursor-pointer text-sm font-medium"
+                                  className={`cursor-pointer text-sm font-medium ${
+                                    foundInodes.has(selectedInode) ? "text-muted-foreground" : ""
+                                  }`}
                                 >
                                   {displayName}
                                 </label>
@@ -663,39 +717,52 @@ export const LinkComparisonVisualizer: React.FC = () => {
                         {/* Submit button */}
                         <Button
                           onClick={() => {
-                            // Get the highlighted (changed) inodes
-                            const highlightedInodesSet = getHighlightedInodes();
+                            if (selectedInode === null) return;
 
-                            // Check if the selected inode is one that actually changed
-                            const selectedCorrectInode = highlightedInodesSet.has(selectedInode);
+                            const correctInodes = getHighlightedInodes();
+                            const correctAttributesMap = getChangedInodeAttributes();
 
-                            // Get the actual changed attributes for the selected inode
+                            if (foundInodes.has(selectedInode)) {
+                              toast.info("You've already correctly identified this inode.");
+                              return;
+                            }
+
+                            if (!correctInodes.has(selectedInode)) {
+                              toast.error("Incorrect. This inode was not modified.");
+                              return;
+                            }
+
                             const actualChanges =
-                              changedInodeAttributes.get(selectedInode) || new Set();
-
-                            // Check if the user's attribute selection matches
+                              correctAttributesMap.get(selectedInode) || new Set();
                             const attributesCorrect =
                               actualChanges.size === selectedChangedAttributes.size &&
                               [...actualChanges].every((attr) =>
                                 selectedChangedAttributes.has(attr)
                               );
 
-                            if (selectedCorrectInode && attributesCorrect) {
-                              toast.success(
-                                "Correct! You identified the right inode and all the changed attributes."
-                              );
-                            } else if (!selectedCorrectInode) {
-                              toast.error(`Incorrect inode selected.`);
-                            } else if (selectedCorrectInode && !attributesCorrect) {
-                              toast.error(`Correct inode, but incorrect attributes.`);
+                            if (attributesCorrect) {
+                              const newFoundInodes = new Set(foundInodes);
+                              newFoundInodes.add(selectedInode);
+                              setFoundInodes(newFoundInodes);
+
+                              if (newFoundInodes.size === correctInodes.size) {
+                                toast.success(
+                                  "Congratulations! You've found all changed inodes."
+                                );
+                              } else {
+                                toast.success("Correct! You found one. Keep going!");
+                              }
                             } else {
-                              toast.error(`Incorrect. Try again.`);
+                              toast.error(
+                                "Correct inode, but the selected attributes are wrong."
+                              );
                             }
                           }}
                           className="w-full"
                           variant="default"
+                          disabled={foundInodes.has(selectedInode)}
                         >
-                          Submit
+                          Check Answer
                         </Button>
                       </>
                     ) : (

@@ -308,9 +308,14 @@ export const generateRandomLinkScenario = (): LinkScenario => {
   // Pick a random file to link to
   const targetFile = availableFiles[Math.floor(faker.number.float() * availableFiles.length)];
 
-  // Pick one of the three main directories for the link
-  const mainDirectories = ["/apple", "/banana", "/orange"];
-  const linkDirectory = mainDirectories[Math.floor(faker.number.float() * mainDirectories.length)];
+  // Pick one of the main directories or second-level directories for the link
+  const allDirectories = [
+    "/apple", "/banana", "/orange",
+    "/apple/mango", "/apple/cherry", "/apple/guava",
+    "/banana/grape", "/banana/peach", "/banana/melon",
+    "/orange/lime", "/orange/plum", "/orange/kiwi"
+  ];
+  const linkDirectory = allDirectories[Math.floor(faker.number.float() * allDirectories.length)];
 
   // Always name the link file "copy.txt"
   const linkFileName = "copy.txt";

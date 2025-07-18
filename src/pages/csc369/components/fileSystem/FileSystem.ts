@@ -161,12 +161,16 @@ export class FileSystem {
     this.addDefaultDirectoryEntries(0, 0);
   }
 
-  private addDefaultDirectoryEntries(dirInode: number, parentInode: number): void {
+  private addDefaultDirectoryEntries(
+    dirInode: number,
+    parentInode: number,
+    skipDataBlock = -1
+  ): void {
     // Add . entry (points to current directory)
-    this.addDirectoryEntry(dirInode, ".", dirInode);
+    this.addDirectoryEntry(dirInode, ".", dirInode, skipDataBlock);
 
     // Add .. entry (points to parent directory)
-    this.addDirectoryEntry(dirInode, "..", parentInode);
+    this.addDirectoryEntry(dirInode, "..", parentInode, skipDataBlock);
   }
 
   // Helper method to create a new directory inode with proper initialization
@@ -187,7 +191,11 @@ export class FileSystem {
   }
 
   // Helper method to navigate to parent directory, creating directories as needed
-  private navigateToParentDirectory(path: string, createMissing = false): number {
+  private navigateToParentDirectory(
+    path: string,
+    createMissing = false,
+    skipDataBlock = -1
+  ): number {
     const components = path.split("/").filter((c) => c !== "");
     if (components.length === 0) return this.superBlock.s_root_inode;
 
@@ -207,12 +215,12 @@ export class FileSystem {
         const newInode = this.createDirectoryInode();
         if (newInode === -1) return -1;
 
-        if (!this.addDirectoryEntry(currentInode, dirName, newInode)) {
+        if (!this.addDirectoryEntry(currentInode, dirName, newInode, skipDataBlock)) {
           this.inodeBitmap[newInode] = false;
           return -1;
         }
 
-        this.addDefaultDirectoryEntries(newInode, currentInode);
+        this.addDefaultDirectoryEntries(newInode, currentInode, skipDataBlock);
 
         // Increment parent directory's link count
         this.inodes[currentInode].i_nlink++;
@@ -235,8 +243,9 @@ export class FileSystem {
     return components[components.length - 1] || "";
   }
 
-  private allocateDataBlock(): number {
+  private allocateDataBlock(skipBlock = -1): number {
     for (let i = this.superBlock.s_first_data_block; i < this.superBlock.s_blocks_count; i++) {
+      if (i === skipBlock) continue;
       if (!this.dataBitmap[i]) {
         this.dataBitmap[i] = true;
         return i;
@@ -306,7 +315,12 @@ export class FileSystem {
     return entries;
   }
 
-  private addDirectoryEntry(inode: number, name: string, targetInode: number): boolean {
+  private addDirectoryEntry(
+    inode: number,
+    name: string,
+    targetInode: number,
+    skipDataBlock = -1
+  ): boolean {
     const inodeObj = this.inodes[inode];
 
     if (!this.isDirectory(inode)) {
@@ -318,7 +332,7 @@ export class FileSystem {
       const blockNum = inodeObj.i_block_pointers[i];
       if (blockNum === -1) {
         // No block allocated yet, allocate a new one
-        const newBlock = this.allocateDataBlock();
+        const newBlock = this.allocateDataBlock(skipDataBlock);
         if (newBlock === -1) return false;
 
         inodeObj.i_block_pointers[i] = newBlock;
@@ -368,31 +382,38 @@ export class FileSystem {
   }
 
   // Method overloads
-  public createFile(path: string, size: number): boolean;
-  public createFile(path: string, contentType: "text" | "base64", content: string): boolean;
+  public createFile(path: string, size: number, skipDataBlock?: number): boolean;
+  public createFile(
+    path: string,
+    contentType: "text" | "base64",
+    content: string,
+    skipDataBlock?: number
+  ): boolean;
   public createFile(
     path: string,
     sizeOrContentType: number | "text" | "base64",
-    content?: string
+    contentOrSkip?: string | number,
+    skipDataBlock?: number
   ): boolean {
     // Handle the content overload
-    if (typeof sizeOrContentType === "string" && content !== undefined) {
-      return this.createFileWithContent(path, sizeOrContentType, content);
+    if (typeof sizeOrContentType === "string" && typeof contentOrSkip === "string") {
+      return this.createFileWithContent(path, sizeOrContentType, contentOrSkip, skipDataBlock);
     }
 
     // Handle the original size-based overload
     if (typeof sizeOrContentType === "number") {
-      return this.createFileWithSize(path, sizeOrContentType);
+      const skip = typeof contentOrSkip === "number" ? contentOrSkip : undefined;
+      return this.createFileWithSize(path, sizeOrContentType, skip);
     }
 
     return false;
   }
 
-  private createFileWithSize(path: string, size: number): boolean {
+  private createFileWithSize(path: string, size: number, skipDataBlock = -1): boolean {
     if (!path) return false;
 
     // Navigate to parent directory, creating missing directories as needed
-    const parentInode = this.navigateToParentDirectory(path, true);
+    const parentInode = this.navigateToParentDirectory(path, true, skipDataBlock);
     if (parentInode === -1) return false;
 
     // Create the file
@@ -406,7 +427,7 @@ export class FileSystem {
 
     // Allocate blocks for the file
     for (let i = 0; i < blocksNeeded; i++) {
-      const block = this.allocateDataBlock();
+      const block = this.allocateDataBlock(skipDataBlock);
       if (block === -1) {
         // Cleanup allocated blocks
         for (let j = 0; j < i; j++) {
@@ -430,14 +451,15 @@ export class FileSystem {
     this.inodes[fileInode].i_nlink = 1; // Regular file has 1 link
 
     // Add directory entry
-    return this.addDirectoryEntry(parentInode, fileName, fileInode);
+    return this.addDirectoryEntry(parentInode, fileName, fileInode, skipDataBlock);
   }
 
   // Private method for creating files with content (limited to 1 block = 4KB max)
   private createFileWithContent(
     path: string,
     contentType: "text" | "base64",
-    content: string
+    content: string,
+    skipDataBlock = -1
   ): boolean {
     // Validate content size - must fit in 1 block (4KB)
     let contentBytes: Uint8Array;
@@ -469,7 +491,7 @@ export class FileSystem {
     }
 
     // Navigate to parent directory, creating missing directories as needed
-    const parentInode = this.navigateToParentDirectory(path, true);
+    const parentInode = this.navigateToParentDirectory(path, true, skipDataBlock);
     if (parentInode === -1) return false;
 
     // Create the file
@@ -478,7 +500,7 @@ export class FileSystem {
     if (fileInode === -1) return false;
 
     // Allocate exactly 1 data block
-    const dataBlock = this.allocateDataBlock();
+    const dataBlock = this.allocateDataBlock(skipDataBlock);
     if (dataBlock === -1) {
       this.inodeBitmap[fileInode] = false;
       return false;
@@ -505,7 +527,7 @@ export class FileSystem {
     this.inodes[fileInode].i_block_pointers[0] = dataBlock;
 
     // Add directory entry
-    return this.addDirectoryEntry(parentInode, fileName, fileInode);
+    return this.addDirectoryEntry(parentInode, fileName, fileInode, skipDataBlock);
   }
 
   // Helper method to check if an inode is a directory
@@ -526,7 +548,7 @@ export class FileSystem {
   // Create a hard link to an existing file
   public createHardLink(targetPath: string, linkPath: string): boolean {
     // Find the target file's inode
-    const targetInode = this.findFileInode(targetPath);
+    const targetInode = this.findInodeByPath(targetPath);
     if (targetInode === -1) {
       return false; // Target file doesn't exist
     }
@@ -556,8 +578,10 @@ export class FileSystem {
     // Increment the target file's link count
     this.inodes[targetInode].i_nlink++;
 
-    // Update the target file's modification time (slightly later to show recent modification)
-    this.inodes[targetInode].i_mtime = Date.now() + 10000; // 10 seconds later
+    // Update modification times
+    const newMtime = Date.now() + 1000 * 3600;
+    this.inodes[targetInode].i_mtime = newMtime;
+    this.inodes[parentInode].i_mtime = newMtime;
 
     return true;
   }
@@ -614,8 +638,13 @@ export class FileSystem {
     this.inodes[symlinkInode].i_nlink = 1; // Symlinks always have link count of 1
     this.inodes[symlinkInode].i_block_pointers[0] = dataBlock;
 
-    // Add directory entry
-    return this.addDirectoryEntry(parentInode, linkName, symlinkInode);
+    // Add directory entry for the symlink
+    if (this.addDirectoryEntry(parentInode, linkName, symlinkInode)) {
+      this.inodes[parentInode].i_mtime = laterTime;
+      return true;
+    }
+
+    return false;
   }
 
   // Helper method to read the target path from a symbolic link
@@ -639,7 +668,7 @@ export class FileSystem {
   }
 
   // Helper method to find a file's inode by path
-  private findFileInode(path: string): number {
+  public findInodeByPath(path: string): number {
     const components = path.split("/").filter((c) => c !== "");
     if (components.length === 0) return this.superBlock.s_root_inode;
 

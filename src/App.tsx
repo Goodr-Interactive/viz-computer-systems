@@ -12,6 +12,7 @@ import { FileSystemExample } from "./pages/csc369/components/fileSystem/FileSyst
 import { CSC368 } from "./pages/csc368/CSC368";
 import { Pipelining } from "./pages/csc368/pipelining";
 import { Caches } from "./pages/csc368/cache";
+import { Coherence } from "./pages/csc368/coherence";
 import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
 
 interface AppRoute {
@@ -47,6 +48,10 @@ const ROUTES: AppRoute[] = [
   {
     path: "/csc368/caches",
     element: <Caches />,
+  },
+  {
+    path: "/csc368/coherence",
+    element: <Coherence />,
   },
   {
     path: "/csc369/paging",

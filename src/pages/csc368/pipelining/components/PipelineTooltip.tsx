@@ -68,8 +68,8 @@ export const PipelineTooltip: React.FC<PipelineTooltipProps> = ({
     ? `Stage: ${stageName} (${timeLabel} to ${endTimeLabel})`
     : `Stage: ${stageName} (${timeLabel})`;
   
-  const taskLines = wrapText(taskText, 300); // Increased max width for wrapping
-  const stageLines = wrapText(stageText, 300); // Increased max width for wrapping
+  const taskLines = wrapText(taskText, 300); // Reduced max width for better wrapping
+  const stageLines = wrapText(stageText, 300); // Reduced max width for better wrapping
   
   // Calculate dynamic height based on text lines
   const lineHeight = 18; // Increased line height for larger font
@@ -78,8 +78,8 @@ export const PipelineTooltip: React.FC<PipelineTooltipProps> = ({
   const stallHeight = instruction?.stalled ? 22 : 0;
   const totalHeight = baseHeight + progressHeight + stallHeight;
 
-  // Tooltip dimensions - make it even wider to accommodate longer text
-  const tooltipWidth = 320;
+  // Tooltip dimensions - reduced width to encourage text wrapping
+  const tooltipWidth = 260;
   const tooltipHeight = totalHeight;
 
   // Calculate smart positioning to keep tooltip visible

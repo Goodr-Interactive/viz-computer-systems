@@ -87,7 +87,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
           >
             <span className="text-sm font-medium">Step Forward →</span>
           </button>
-          <button
+          {/* <button
             onClick={handleSharedToggleRun}
             className={`flex items-center justify-center rounded px-6 py-3 text-white ${
               isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-blue-500 hover:bg-blue-600"
@@ -95,7 +95,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
             title={isRunning ? "Pause Auto Run (Both)" : "Run Automatically (Both)"}
           >
             <span className="text-sm font-medium">{isRunning ? "Pause Both" : "Auto Run Both"}</span>
-          </button>
+          </button> */}
           <button
             onClick={handleSharedReset}
             className="flex items-center justify-center rounded bg-gray-500 px-6 py-3 text-white hover:bg-gray-600"
@@ -155,30 +155,6 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
               height={250}
               pipelined={true} // Explicitly set to pipelined
             />
-          </div>
-        </div>
-      </div>
-
-
-      Instructions
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">How to Use This Comparison</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">📚 Instructions:</h4>
-            <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
-              <li>Use the shared controls above to step through both simulations</li>
-              <li>Top shows sequential execution (non-pipelined)</li>
-              <li>Bottom shows pipelined execution</li>
-              <li>Compare execution times and throughput</li>
-            </ol>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">🎯 Key Insight:</h4>
-            <p className="text-sm text-gray-600">
-              <strong>Pipelining reduces total time by ~56%</strong> (from 8 hours to 3.5 hours) 
-              while keeping all resources busy - the same principle used in modern processors.
-            </p>
           </div>
         </div>
       </div>

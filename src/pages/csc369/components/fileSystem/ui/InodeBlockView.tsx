@@ -2,7 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { FileSystem } from "../FileSystem";
 import { MultiColorBinaryBlock } from "../../paging/ui/BinaryBlock";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 

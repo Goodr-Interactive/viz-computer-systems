@@ -1,5 +1,5 @@
 import React from "react";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 import { Badge } from "@/components/ui/badge";
 
 interface DataBlockViewProps {

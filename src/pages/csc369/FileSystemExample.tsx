@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { FileSystem } from "./FileSystem";
-import { FileSystemVisualizer } from "./FileSystemVisualizer";
-import { FILE_SYSTEM_CONFIG } from "./config";
+import { FileSystem } from "./components/fileSystem/FileSystem";
+import { FileSystemVisualizer } from "./components/fileSystem/FileSystemVisualizer";
+import { FILE_SYSTEM_CONFIG } from "./components/fileSystem/config";
 export const FileSystemExample: React.FC = () => {
   const [fileSystem, setFileSystem] = useState<FileSystem | null>(null);
 

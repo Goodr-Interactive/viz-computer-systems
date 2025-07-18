@@ -1,5 +1,5 @@
 import React from "react";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 
 interface EnhancedDataBlockViewProps {
   blockIndex: number;

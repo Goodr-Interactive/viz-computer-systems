@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Folder, File, ArrowRight } from "lucide-react";
 import type { FileSystem } from "../FileSystem";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 
 interface DirectoryDataViewProps {
   blockIndex: number;

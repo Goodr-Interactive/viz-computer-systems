@@ -2,7 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { FileSystem } from "../FileSystem";
 import { MultiColorBinaryBlock } from "../../paging/ui/BinaryBlock";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
@@ -116,7 +116,7 @@ export const EnhancedInodeBlockView: React.FC<EnhancedInodeBlockViewProps> = ({
             title={`Inode Block ${blockIndex} (Inodes ${inodeData.inodes[0]?.number} - ${
               inodeData.inodes[inodeData.inodes.length - 1]?.number
             })`}
-            tooltipText="Inode blocks store inodes, which contain metadata about files and directories (e.g., size, permissions, and pointers to data blocks)."
+            tooltipText="Inode blocks store inodes, which contain metadata about files and directories (e.g., number of links, modified time, and pointers to data blocks)."
             className="pt-1 text-start font-medium"
           />
           <div className="flex flex-col gap-2">{rows}</div>
@@ -194,12 +194,6 @@ export const EnhancedInodeBlockView: React.FC<EnhancedInodeBlockViewProps> = ({
                         <span className="font-mono">{inode.data.nlink}</span>
                       </div>
 
-                      {/* <div className="flex justify-between">
-                      <span className="font-medium">Created:</span>
-                      <span className="text-muted-foreground font-mono text-xs">
-                        {formatTimestamp(inode.data.ctime)}
-                      </span>
-                    </div> */}
                       <div className="flex justify-between">
                         <span
                           className={`font-medium ${changedAttributes.has("mtime") ? "font-bold text-orange-600" : ""}`}

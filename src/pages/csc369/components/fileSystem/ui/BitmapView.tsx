@@ -1,7 +1,7 @@
 import React from "react";
 import type { FileSystem } from "../FileSystem";
 import { MultiColorBinaryBlock } from "../../paging/ui/BinaryBlock";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 
 interface BitmapViewProps {
   fileSystem: FileSystem;

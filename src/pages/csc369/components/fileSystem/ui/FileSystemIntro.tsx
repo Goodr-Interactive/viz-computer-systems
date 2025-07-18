@@ -1,7 +1,7 @@
 import React from "react";
-import type { FileSystem } from "./FileSystem";
-import { SectionHeading } from "../paging/ui/SectionHeading";
-import { FILE_SYSTEM_CONFIG } from "./config";
+import type { FileSystem } from "../FileSystem";
+import { SectionHeading } from "../../paging/ui/SectionHeading";
+import { FILE_SYSTEM_CONFIG } from "../config";
 import { Button } from "@/components/ui/button";
 
 interface FileSystemIntroProps {

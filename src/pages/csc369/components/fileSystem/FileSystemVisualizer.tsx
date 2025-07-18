@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { FileSystem } from "./FileSystem";
 import { SubsectionHeading } from "../paging/ui/SubsectionHeading";
-import { FileSystemIntro } from "./FileSystemIntro";
+import { FileSystemIntro } from "./ui/FileSystemIntro";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DiskLayout } from "./ui/DiskLayout";
 import { BlockContentView } from "./ui/BlockContentView";

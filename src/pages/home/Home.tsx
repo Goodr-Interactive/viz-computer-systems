@@ -1,20 +1,77 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
+import type { AppRoute } from "../../App";
+import { partition } from "../csc369/components/scheduler/utils";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
-export const Home: React.FunctionComponent = () => {
+interface Props {
+  routes: AppRoute[];
+}
+
+export const Home: React.FunctionComponent<Props> = ({ routes }) => {
+  const [csc369, csc368] = partition(routes, (route) => route.path.includes("csc369"));
+
   return (
-    <div className="flex h-[100vh] w-full flex-col items-center justify-center gap-[24px]">
+    <div className="mt-[100px] flex h-[100vh] w-full flex-col items-center gap-[24px]">
       <h1 className="scroll-m-20 text-3xl font-bold tracking-tight">
-        Welcome to Viz-Computer-Systems by Goodr Interactive
+        Viz-Computer-Systems by Goodr Interactive
       </h1>
-      <span>Select your course below.</span>
-      <div className="flex gap-[16px]">
-        <Button asChild variant="outline">
-          <a href="/csc368">CSC368</a>
-        </Button>
-        <Button asChild variant="outline">
-          <a href="/csc369">CSC369</a>
-        </Button>
+      <span>Select a Topic Below.</span>
+      <div className="max-h-[100px]">
+        <NavigationMenu viewport={false}>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>CSC368</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                  {csc368.map(({ path, title, description }) => (
+                    <li className="row-span-3" key={path}>
+                      <NavigationMenuLink asChild>
+                        <a
+                          className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-3 no-underline outline-hidden select-none focus:shadow-md"
+                          href={path}
+                        >
+                          <div className="mt-2 mb-1 text-lg font-medium">{title}</div>
+                          <p className="text-muted-foreground text-sm leading-tight">
+                            {description}
+                          </p>
+                        </a>
+                      </NavigationMenuLink>
+                    </li>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>CSC369</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                  {csc369.map(({ path, title, description }) => (
+                    <li className="row-span-3" key={path}>
+                      <NavigationMenuLink asChild>
+                        <a
+                          className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-3 no-underline outline-hidden select-none focus:shadow-md"
+                          href={path}
+                        >
+                          <div className="mt-2 mb-1 text-lg font-medium">{title}</div>
+                          <p className="text-muted-foreground text-sm leading-tight">
+                            {description}
+                          </p>
+                        </a>
+                      </NavigationMenuLink>
+                    </li>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       </div>
     </div>
   );

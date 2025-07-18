@@ -1,30 +1,26 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "../../App";
 
 export const CSC368: React.FunctionComponent = () => {
+  const routes = ROUTES.filter(({ path }) => path.includes("csc368") && path.split("/").length > 2);
+
   return (
     <div className="flex h-[100vh] w-full flex-col items-center justify-center gap-[24px]">
       <h1 className="scroll-m-20 text-3xl font-bold tracking-tight">
-        CSC368 - Computer Architecture
+        CSC368 – Computer Architecture
       </h1>
       <span>Select a topic to explore below.</span>
-      <div className="flex gap-[16px]">
-        <Button asChild variant="outline">
-          <a href="/csc368/pipelining">Instruction Pipelining</a>
-        </Button>
-        <Button asChild variant="outline">
-          <a href="/csc368/caches">Cache Hierarchy</a>
-        </Button>
-        <Button asChild variant="outline">
-          <a href="/csc368/associativity">Cache Associativity</a>
-        </Button>
-        <Button asChild variant="outline">
-          <a href="/csc368/coherence">Coherence True vs False Sharing</a>
-        </Button>
-        <Button asChild variant="outline">
-          <a href="/">Back to Home</a>
-        </Button>
+      <div className="flex max-w-[500px] flex-wrap justify-center gap-[16px]">
+        {routes.map((route) => (
+          <Button asChild variant="outline">
+            <a href={route.path}>{route.title}</a>
+          </Button>
+        ))}
       </div>
+      <Button asChild>
+        <a href={"/"}>Back to Home</a>
+      </Button>
     </div>
   );
 };

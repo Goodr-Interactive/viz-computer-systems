@@ -35,20 +35,24 @@ export const SimpleFalseSharingViz: React.FC = () => {
   // Randomization function
   const randomizeConfiguration = () => {
     const getRandomRow = () => Math.floor(Math.random() * ROWS);
-    const getRandomCol = (maxCol = COLS - CACHE_LINE_LENGTH) => Math.floor(Math.random() * maxCol);
+    const getRandomCacheLineCol = () => {
+      // Ensure cache lines are aligned to CACHE_LINE_LENGTH boundaries
+      const maxCacheLines = Math.floor(COLS / CACHE_LINE_LENGTH);
+      const cacheLineIndex = Math.floor(Math.random() * maxCacheLines);
+      return cacheLineIndex * CACHE_LINE_LENGTH;
+    };
     
     const cacheLineRow = getRandomRow();
-    const cacheLineStartCol = getRandomCol();
+    const cacheLineStartCol = getRandomCacheLineCol();
     
     let secondCacheLineRow, secondCacheLineStartCol;
     // Ensure second cache line doesn't overlap with first
     do {
       secondCacheLineRow = getRandomRow();
-      secondCacheLineStartCol = getRandomCol();
+      secondCacheLineStartCol = getRandomCacheLineCol();
     } while (
       secondCacheLineRow === cacheLineRow &&
-      secondCacheLineStartCol < cacheLineStartCol + CACHE_LINE_LENGTH &&
-      secondCacheLineStartCol + CACHE_LINE_LENGTH > cacheLineStartCol
+      secondCacheLineStartCol === cacheLineStartCol
     );
     
     setRandomConfig({
@@ -218,6 +222,31 @@ export const SimpleFalseSharingViz: React.FC = () => {
           height={gridHeight + 100}
           className="border border-gray-200 rounded-lg"
         >
+          {/* Background cache line grid - show all possible cache lines */}
+          {Array.from({ length: ROWS }, (_, row) => 
+            Array.from({ length: Math.ceil(COLS / CACHE_LINE_LENGTH) }, (_, cacheLineIndex) => {
+              const startCol = cacheLineIndex * CACHE_LINE_LENGTH;
+              if (startCol >= COLS) return null;
+              
+              const actualLength = Math.min(CACHE_LINE_LENGTH, COLS - startCol);
+              
+              return (
+                <rect
+                  key={`cache-line-${row}-${cacheLineIndex}`}
+                  x={50 + startCol * cellSize}
+                  y={50 + row * cellSize}
+                  width={actualLength * cellSize}
+                  height={cellSize}
+                  fill="none"
+                  stroke="#e5e7eb"
+                  strokeWidth="1"
+                  strokeDasharray="2,2"
+                  rx="2"
+                />
+              );
+            })
+          )}
+          
           {/* Memory grid */}
           {memoryGrid.map((cell) => (
             <g key={cell.id}>
@@ -259,7 +288,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
             </g>
           ))}
 
-          {/* Cache line outline with animation - only animate for false sharing and true sharing */}
+          {/* Active cache line outlines with animation - only animate for false sharing and true sharing */}
           <rect
             x={50 + config.cacheLineStartCol * cellSize}
             y={50 + config.cacheLineRow * cellSize}
@@ -397,6 +426,31 @@ export const SimpleFalseSharingViz: React.FC = () => {
             </text>
           )}
         </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="flex justify-center mb-6">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 text-center">Legend</h4>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-1 border border-gray-300 bg-transparent" style={{ borderStyle: 'dashed', borderWidth: '1px' }}></div>
+              <span className="text-gray-600">Cache Line Boundaries</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-1 border-blue-500 bg-transparent" style={{ borderStyle: 'dashed', borderWidth: '2px' }}></div>
+              <span className="text-gray-600">Active Cache Lines</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+              <span className="text-gray-600">Processor Access</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+              <span className="text-gray-600">Memory Cell</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Explanation */}

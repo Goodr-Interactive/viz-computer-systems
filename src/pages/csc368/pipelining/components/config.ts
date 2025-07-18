@@ -105,10 +105,10 @@ export const STAGE_IMAGES = [
  * - Array length must match PIPELINE_STAGES length
  */
 export const STAGE_COLORS = [
-  "#87CEEB", // Washer - Light Blue (classic textbook wash color)
-  "#FFB6C1", // Dryer - Light Pink (classic textbook dry color)
-  "#98FB98", // Folder - Light Green (classic textbook fold color)
-  "#DDA0DD", // Storer - Light Purple (classic textbook put away color)
+  "#30a3cdff", // Washer - Light Blue (classic textbook wash color)
+  "#FFFFFF", // Dryer - Light Pink (classic textbook dry color)
+  "#ddf8fcff", // Folder - Light Green (classic textbook fold color)
+  "#605e5eff", // Storer - Light Purple (classic textbook put away color)
 ];
 
 /**

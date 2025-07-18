@@ -7,6 +7,7 @@ import resetSvg from "@/assets/reset.svg";
 // Import React components
 import { PipelineStage } from "./PipelineStage";
 import { PipelineTooltip } from "./PipelineTooltip";
+import { MetricTooltip } from "./MetricTooltip";
 import { Axis } from "./Axis";
 import { Grid } from "./Grid";
 import { StagePatterns } from "./StagePatterns";
@@ -65,6 +66,17 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     stageName: "",
     timeLabel: "",
     endTimeLabel: "",
+  });
+
+  // Metric tooltip state
+  const [metricTooltip, setMetricTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
   });
 
   // Add instruction state
@@ -747,7 +759,20 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
             <div className="flex items-center gap-2 text-center">
               <div>
-                <h3 className="text-lg font-medium">
+                <h3 
+                  className="text-lg font-medium cursor-help relative"
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setMetricTooltip({
+                      visible: true,
+                      x: rect.left + rect.width / 2,
+                      y: rect.top,
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    setMetricTooltip({ visible: false, x: 0, y: 0 });
+                  }}
+                >
                   {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour}{" "}
                   <span className="text-xs text-gray-500"></span>
                 </h3>
@@ -1099,6 +1124,15 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Metric Tooltip */}
+      <MetricTooltip
+        completedTasks={completedInstructions}
+        timeInHours={currentTimeInHours}
+        isVisible={metricTooltip.visible}
+        x={metricTooltip.x}
+        y={metricTooltip.y}
+      />
     </div>
   );
 };

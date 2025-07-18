@@ -90,9 +90,9 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
               }
             >
               {hasExited(thread)
-                ? "Exited"
+                ? `${thread.id} Exited`
                 : controller.isWaiting(thread)
-                  ? "Waiting..."
+                  ? `${thread.id} is waiting...`
                   : thread.id === controller.running?.id
                     ? `Suspend ${thread.id}`
                     : `Run ${thread.id}`}

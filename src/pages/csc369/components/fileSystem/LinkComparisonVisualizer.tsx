@@ -26,7 +26,9 @@ export const LinkComparisonVisualizer: React.FC = () => {
   const [selectedChangedAttributes, setSelectedChangedAttributes] = useState<Set<string>>(
     new Set()
   );
-  const [shuffledFiles, setShuffledFiles] = useState<Array<(typeof FILE_SYSTEM_CONFIG.files)[0]>>([]);
+  const [shuffledFiles, setShuffledFiles] = useState<Array<(typeof FILE_SYSTEM_CONFIG.files)[0]>>(
+    []
+  );
   const [reservedBlock, setReservedBlock] = useState<number>(-1);
   const [foundInodes, setFoundInodes] = useState<Set<number>>(new Set());
 

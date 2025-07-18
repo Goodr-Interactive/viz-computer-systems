@@ -7,8 +7,6 @@ interface MemoryVariable {
 }
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FalseSharingGrid } from "./FalseSharingGrid";
-import { InteractiveFalseSharing } from "./InteractiveFalseSharing";
-import { MSIFalseSharing } from "./MSIFalseSharing";
 
 const CACHE_BLOCK_SIZE = 8;
 

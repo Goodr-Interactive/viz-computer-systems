@@ -16,49 +16,89 @@ export const SimpleFalseSharingViz: React.FC = () => {
   const [animationState, setAnimationState] = useState<'p1' | 'p2'>('p1');
   const [containerWidth, setContainerWidth] = useState(800);
   const [scenario, setScenario] = useState<SharingScenario>('false-sharing');
+  const [randomConfig, setRandomConfig] = useState({
+    cacheLineRow: 3,
+    cacheLineStartCol: 6,
+    p1Row: 3,
+    p1Col: 6,
+    p2Row: 3,
+    p2Col: 9,
+    secondCacheLineRow: 5,
+    secondCacheLineStartCol: 12
+  });
   
   // Grid dimensions
   const ROWS = 8;
   const COLS = 16;
-  const CACHE_LINE_ROW = 3; // Middle row for cache line
-  const CACHE_LINE_START_COL = 6; // Start column for cache line
   const CACHE_LINE_LENGTH = 4; // Cache line spans 4 cells
+  
+  // Randomization function
+  const randomizeConfiguration = () => {
+    const getRandomRow = () => Math.floor(Math.random() * ROWS);
+    const getRandomCol = (maxCol = COLS - CACHE_LINE_LENGTH) => Math.floor(Math.random() * maxCol);
+    
+    const cacheLineRow = getRandomRow();
+    const cacheLineStartCol = getRandomCol();
+    
+    let secondCacheLineRow, secondCacheLineStartCol;
+    // Ensure second cache line doesn't overlap with first
+    do {
+      secondCacheLineRow = getRandomRow();
+      secondCacheLineStartCol = getRandomCol();
+    } while (
+      secondCacheLineRow === cacheLineRow &&
+      secondCacheLineStartCol < cacheLineStartCol + CACHE_LINE_LENGTH &&
+      secondCacheLineStartCol + CACHE_LINE_LENGTH > cacheLineStartCol
+    );
+    
+    setRandomConfig({
+      cacheLineRow,
+      cacheLineStartCol,
+      p1Row: cacheLineRow,
+      p1Col: cacheLineStartCol,
+      p2Row: cacheLineRow,
+      p2Col: cacheLineStartCol + CACHE_LINE_LENGTH - 1,
+      secondCacheLineRow,
+      secondCacheLineStartCol
+    });
+  };
   
   // Get scenario configuration
   const getScenarioConfig = () => {
     switch (scenario) {
       case 'false-sharing':
         return {
-          p1Row: CACHE_LINE_ROW,
-          p1Col: CACHE_LINE_START_COL,
-          p2Row: CACHE_LINE_ROW,
-          p2Col: CACHE_LINE_START_COL + CACHE_LINE_LENGTH - 1,
-          cacheLineRow: CACHE_LINE_ROW,
-          cacheLineStartCol: CACHE_LINE_START_COL,
+          p1Row: randomConfig.p1Row,
+          p1Col: randomConfig.p1Col,
+          p2Row: randomConfig.p2Row,
+          p2Col: randomConfig.p2Col,
+          cacheLineRow: randomConfig.cacheLineRow,
+          cacheLineStartCol: randomConfig.cacheLineStartCol,
           title: "False Sharing",
           description: "Two processors accessing different variables in the same cache line",
           explanation: "P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary coherence traffic as the cache line bounces between processors."
         };
       case 'true-sharing':
+        const sharedCol = randomConfig.cacheLineStartCol + Math.floor(CACHE_LINE_LENGTH / 2);
         return {
-          p1Row: CACHE_LINE_ROW,
-          p1Col: CACHE_LINE_START_COL + 1,
-          p2Row: CACHE_LINE_ROW,
-          p2Col: CACHE_LINE_START_COL + 1, // Same cell
-          cacheLineRow: CACHE_LINE_ROW,
-          cacheLineStartCol: CACHE_LINE_START_COL,
+          p1Row: randomConfig.cacheLineRow,
+          p1Col: sharedCol,
+          p2Row: randomConfig.cacheLineRow,
+          p2Col: sharedCol, // Same cell
+          cacheLineRow: randomConfig.cacheLineRow,
+          cacheLineStartCol: randomConfig.cacheLineStartCol,
           title: "True Sharing",
           description: "Two processors accessing the same variable in the same cache line",
           explanation: "P1 and P2 both access the same variable X. This is legitimate sharing where coherence traffic is necessary to maintain data consistency between processors."
         };
       case 'no-sharing':
         return {
-          p1Row: CACHE_LINE_ROW,
-          p1Col: CACHE_LINE_START_COL,
-          p2Row: CACHE_LINE_ROW + 2,
-          p2Col: CACHE_LINE_START_COL + 6, // Different cache line
-          cacheLineRow: CACHE_LINE_ROW,
-          cacheLineStartCol: CACHE_LINE_START_COL,
+          p1Row: randomConfig.cacheLineRow,
+          p1Col: randomConfig.cacheLineStartCol,
+          p2Row: randomConfig.secondCacheLineRow,
+          p2Col: randomConfig.secondCacheLineStartCol, // Different cache line
+          cacheLineRow: randomConfig.cacheLineRow,
+          cacheLineStartCol: randomConfig.cacheLineStartCol,
           title: "No Sharing",
           description: "Two processors accessing different variables in different cache lines",
           explanation: "P1 writes to variable A and P2 writes to variable B. Since they are in different cache lines, there is no coherence traffic between processors - this is the ideal scenario."
@@ -78,6 +118,13 @@ export const SimpleFalseSharingViz: React.FC = () => {
       const isInCacheLine = row === config.cacheLineRow && 
                            col >= config.cacheLineStartCol && 
                            col < config.cacheLineStartCol + CACHE_LINE_LENGTH;
+      
+      // For no-sharing scenario, also highlight the second cache line
+      const isInSecondCacheLine = scenario === 'no-sharing' && 
+                                 row === randomConfig.secondCacheLineRow && 
+                                 col >= randomConfig.secondCacheLineStartCol && 
+                                 col < randomConfig.secondCacheLineStartCol + CACHE_LINE_LENGTH;
+      
       const isP1Access = row === config.p1Row && col === config.p1Col;
       const isP2Access = row === config.p2Row && col === config.p2Col;
       
@@ -85,7 +132,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
         id,
         row,
         col,
-        isInCacheLine,
+        isInCacheLine: isInCacheLine || isInSecondCacheLine,
         isP1Access,
         isP2Access
       });
@@ -154,6 +201,17 @@ export const SimpleFalseSharingViz: React.FC = () => {
         </Button>
       </div>
 
+      {/* Randomize Button */}
+      <div className="flex justify-center mb-6">
+        <Button
+          onClick={randomizeConfiguration}
+          variant="secondary"
+          className="text-sm font-semibold"
+        >
+          Randomize Layout
+        </Button>
+      </div>
+
       <div className="flex justify-center mb-4">
         <svg 
           width={gridWidth + 100} 
@@ -218,8 +276,8 @@ export const SimpleFalseSharingViz: React.FC = () => {
           {/* Additional cache line for no-sharing scenario */}
           {scenario === 'no-sharing' && (
             <rect
-              x={50 + (config.cacheLineStartCol + 6) * cellSize}
-              y={50 + (config.cacheLineRow + 2) * cellSize}
+              x={50 + randomConfig.secondCacheLineStartCol * cellSize}
+              y={50 + randomConfig.secondCacheLineRow * cellSize}
               width={CACHE_LINE_LENGTH * cellSize}
               height={cellSize}
               fill="none"
@@ -328,8 +386,8 @@ export const SimpleFalseSharingViz: React.FC = () => {
           {/* Additional cache line label for no-sharing scenario */}
           {scenario === 'no-sharing' && (
             <text
-              x={50 + (config.cacheLineStartCol + 6) * cellSize + (CACHE_LINE_LENGTH * cellSize) / 2}
-              y={50 + (config.cacheLineRow + 2) * cellSize + cellSize + 20}
+              x={50 + randomConfig.secondCacheLineStartCol * cellSize + (CACHE_LINE_LENGTH * cellSize) / 2}
+              y={50 + randomConfig.secondCacheLineRow * cellSize + cellSize + 20}
               textAnchor="middle"
               fontSize="12"
               fill="#6b7280"

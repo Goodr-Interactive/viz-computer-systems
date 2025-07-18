@@ -7,6 +7,7 @@ interface PipelineTooltipProps {
   instructionName: string;
   stageName: string;
   timeLabel: string;
+  endTimeLabel?: string;
   instruction?: Instruction;
   stageDuration?: number;
   svgWidth?: number;
@@ -20,6 +21,7 @@ export const PipelineTooltip: React.FC<PipelineTooltipProps> = ({
   instructionName,
   stageName,
   timeLabel,
+  endTimeLabel,
   instruction,
   stageDuration,
   svgWidth = 800,
@@ -101,7 +103,7 @@ export const PipelineTooltip: React.FC<PipelineTooltipProps> = ({
         {`Instruction: ${instructionName}`}
       </text>
       <text x={10} y={40}>
-        {`Stage: ${stageName} (${timeLabel})`}
+        {`Stage: ${stageName} (${timeLabel}${endTimeLabel ? ` - ${endTimeLabel}` : ""})`}
       </text>
 
       {/* Show progress information for multi-cycle stages */}

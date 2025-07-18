@@ -7,7 +7,6 @@ interface PipelineTooltipProps {
   instructionName: string;
   stageName: string;
   timeLabel: string;
-  endTimeLabel?: string;
   instruction?: Instruction;
   stageDuration?: number;
   svgWidth?: number;
@@ -21,65 +20,20 @@ export const PipelineTooltip: React.FC<PipelineTooltipProps> = ({
   instructionName,
   stageName,
   timeLabel,
-  endTimeLabel,
   instruction,
   stageDuration,
   svgWidth = 800,
   svgHeight = 600,
   margin = { top: 50, right: 30, bottom: 50, left: 100 },
 }) => {
-  // Helper function to wrap text for SVG
-  const wrapText = (text: string, maxWidth: number) => {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-    
-    // Approximate character width for Arial font at 14px (larger font)
-    const charWidth = 8.5;
-    const maxChars = Math.floor(maxWidth / charWidth);
-    
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      
-      if (testLine.length <= maxChars) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
-        } else {
-          // Single word is too long, split it
-          lines.push(word);
-          currentLine = '';
-        }
-      }
-    }
-    
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    
-    return lines;
-  };
-
-  // Create wrapped text for the stage info
-  const taskText = `Task: ${instructionName}`;
-  const stageText = endTimeLabel 
-    ? `Stage: ${stageName} (${timeLabel} to ${endTimeLabel})`
-    : `Stage: ${stageName} (${timeLabel})`;
-  
-  const taskLines = wrapText(taskText, 300); // Reduced max width for better wrapping
-  const stageLines = wrapText(stageText, 300); // Reduced max width for better wrapping
-  
-  // Calculate dynamic height based on text lines
-  const lineHeight = 18; // Increased line height for larger font
-  const baseHeight = (taskLines.length + stageLines.length) * lineHeight + 24; // More padding
-  const progressHeight = instruction?.stageProgress && instruction?.stageProgress > 1 ? 22 : 0;
-  const stallHeight = instruction?.stalled ? 22 : 0;
+  // Calculate additional height if we need to show stall information
+  const baseHeight = 60;
+  const progressHeight = instruction?.stageProgress && instruction?.stageProgress > 1 ? 20 : 0;
+  const stallHeight = instruction?.stalled ? 20 : 0;
   const totalHeight = baseHeight + progressHeight + stallHeight;
 
-  // Tooltip dimensions - reduced width to encourage text wrapping
-  const tooltipWidth = 260;
+  // Tooltip dimensions
+  const tooltipWidth = 220;
   const tooltipHeight = totalHeight;
 
   // Calculate smart positioning to keep tooltip visible
@@ -143,56 +97,23 @@ export const PipelineTooltip: React.FC<PipelineTooltipProps> = ({
         height={tooltipHeight}
         opacity={0.9}
       />
-      
-      {/* Render wrapped task text */}
-      {taskLines.map((line, index) => (
-        <text 
-          key={`task-${index}`} 
-          x={12} 
-          y={22 + index * lineHeight}
-          fontSize={14}
-          fontFamily="Arial, sans-serif"
-          fontWeight="500"
-        >
-          {line}
-        </text>
-      ))}
-      
-      {/* Render wrapped stage text */}
-      {stageLines.map((line, index) => (
-        <text 
-          key={`stage-${index}`} 
-          x={12} 
-          y={22 + taskLines.length * lineHeight + index * lineHeight}
-          fontSize={14}
-          fontFamily="Arial, sans-serif"
-        >
-          {line}
-        </text>
-      ))}
+      <text x={10} y={20}>
+        {`Instruction: ${instructionName}`}
+      </text>
+      <text x={10} y={40}>
+        {`Stage: ${stageName} (${timeLabel})`}
+      </text>
 
       {/* Show progress information for multi-cycle stages */}
       {instruction?.stageProgress && instruction?.stageProgress > 1 && (
-        <text 
-          x={12} 
-          y={22 + (taskLines.length + stageLines.length) * lineHeight + 12}
-          fill={instruction.stalled ? "red" : "black"}
-          fontSize={14}
-          fontFamily="Arial, sans-serif"
-        >
+        <text x={10} y={60} fill={instruction.stalled ? "red" : "black"}>
           {`Progress: ${instruction.stageProgress}/${stageDuration || instruction.stageDuration || "?"} cycles`}
         </text>
       )}
 
       {/* Show stall information if the instruction is stalled */}
       {instruction?.stalled && (
-        <text 
-          x={12} 
-          y={22 + (taskLines.length + stageLines.length) * lineHeight + 12 + progressHeight}
-          fill="red"
-          fontSize={14}
-          fontFamily="Arial, sans-serif"
-        >
+        <text x={10} y={60 + progressHeight} fill="red">
           {`Stalled: ${instruction.stallReason || "Waiting for earlier stage"}`}
         </text>
       )}

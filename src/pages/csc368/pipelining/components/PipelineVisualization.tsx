@@ -32,12 +32,21 @@ interface PipelineVisualizationProps {
   height?: number;
   instructions?: Instruction[];
   superscalarWidth?: number;
+  pipelined?: boolean;
+  // External control props for shared control
+  externalCycles?: number;
+  externalIsRunning?: boolean;
+  onExternalControl?: boolean;
 }
 
 export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   width,
   height,
   instructions = DEFAULT_INSTRUCTIONS, // show only a subset of default instructions
+  pipelined = FEATURE_FLAGS.IS_PIPELINED_MODE,
+  externalCycles,
+  externalIsRunning,
+  onExternalControl = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
@@ -45,7 +54,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   const [cycles, setCycles] = useState<number>(-1);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [isPipelined, setIsPipelined] = useState<boolean>(FEATURE_FLAGS.IS_PIPELINED_MODE);
+  const [isPipelined, setIsPipelined] = useState<boolean>(pipelined);
+
+  // Use external control when provided
+  const currentCycles = onExternalControl ? (externalCycles ?? -1) : cycles;
+  const currentIsRunning = onExternalControl ? (externalIsRunning ?? false) : isRunning;
+
+  // Update local state when external control changes
+  useEffect(() => {
+    if (onExternalControl) {
+      setCycles(externalCycles ?? -1);
+      setIsRunning(externalIsRunning ?? false);
+    }
+  }, [externalCycles, externalIsRunning, onExternalControl]);
   const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(
     FEATURE_FLAGS.IS_SUPERSCALAR_MODE
   );
@@ -172,7 +193,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
   // Simulation logic (autoplay mode on)
   useEffect(() => {
-    if (!isRunning) return;
+    if (!currentIsRunning) return;
 
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
@@ -186,7 +207,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
     const timer = setTimeout(() => {
       // Increment cycle
-      const nextCycles = cycles + 1;
+      const nextCycles = currentCycles + 1;
       setCycles(nextCycles);
 
       // Update each instruction's position in the pipeline
@@ -316,7 +337,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     }, 1000); // Fixed delay of 1 second for automatic mode
 
     return () => clearTimeout(timer);
-  }, [isRunning, cycles, isPipelined, isSuperscalarActive]);
+  }, [currentIsRunning, currentCycles, isPipelined, isSuperscalarActive, pipelineInstructions]);
 
   const handleStepForward = () => {
     // Check if all instructions are completed
@@ -1016,7 +1037,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           )}
 
           {/* Visual Symbols Legend */}
-          <div className="mb-4">
+          <div className="mb-4 visual-elements-legend">
             <h3 className="mb-2 font-semibold">Visual Elements Legend</h3>
             <div className="space-y-3 text-sm">
               {/* Stage Icons Section */}
@@ -1040,7 +1061,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
 
           {/* Instruction Management UI */}
-          <div className="mb-4">
+          <div className="mb-4 pipeline-instructions-section">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-medium">Tasks</h3>
 

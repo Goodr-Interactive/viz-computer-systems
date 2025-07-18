@@ -77,11 +77,6 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
     <div className="w-full space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Pipeline vs Non-Pipeline Comparison</h1>
-        <p className="text-gray-600 mb-4">
-          Compare sequential vs pipelined execution using the classic laundry example
-        </p>
-        
         {/* Shared Controls */}
         <div className="flex justify-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg border">
           <h3 className="text-lg font-semibold mr-4 self-center">Shared Controls:</h3>

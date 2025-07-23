@@ -61,10 +61,10 @@ export const CombinedPipelining: React.FC<CombinedPipeliningProps> = ({
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-4">
+    <div className="w-full max-w-4xl mx-auto space-y-4">
       {/* Header with shared controls */}
       <div className="bg-gray-50 border rounded-lg p-3">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-center mb-">
           {/* Shared Controls */}
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-700">Controls:</span>
@@ -102,9 +102,9 @@ export const CombinedPipelining: React.FC<CombinedPipeliningProps> = ({
       </div>
 
       {/* Combined Visualization Container - Stacked Layout */}
-      <div className="space-y-3">
+      <div className="space-y-3 flex flex-col items-center">
         {/* Sequential (Non-Pipelined) Version */}
-        <div className="bg-white rounded border">
+        <div className="bg-white rounded border w-full max-w-3xl">
           <div className="combined-viz">
             <PipelineVisualization
               ref={sequentialRef}
@@ -118,7 +118,7 @@ export const CombinedPipelining: React.FC<CombinedPipeliningProps> = ({
         </div>
 
         {/* Pipelined Version */}
-        <div className="bg-white rounded border">
+        <div className="bg-white rounded border w-full max-w-3xl">
           <div className="combined-viz">
             <PipelineVisualization
               ref={pipelinedRef}

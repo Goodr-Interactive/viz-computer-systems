@@ -29,7 +29,7 @@ The main pipeline visualization code is located in `src/pages/csc368/pipelining/
 - **Component**: `PipelineThroughputComparison`
 - **Features**: Configurable task count (4-20), real-time speedup calculation, dynamic scaling
 
-![Throughput-viz](throughput.png)
+![Throughput](throughput.png)
 
 ### Core Components Structure
 

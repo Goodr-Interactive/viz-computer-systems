@@ -8,11 +8,11 @@ import resetSvg from "@/assets/reset.svg";
 import playSvg from "@/assets/play.svg";
 import pauseSvg from "@/assets/pause.svg";
 
-interface CombinedPipeliningProps {
+interface PipelineComparisonProps {
   instructions?: Instruction[];
 }
 
-export const CombinedPipelining: React.FC<CombinedPipeliningProps> = ({
+export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
   instructions = DEFAULT_INSTRUCTIONS,
 }) => {
   // Shared state for both visualizations

@@ -1,2 +1,2 @@
 export * from "./pipelining";
-export * from "./combined-pipelining";
+export * from "./pipelining-comparison";

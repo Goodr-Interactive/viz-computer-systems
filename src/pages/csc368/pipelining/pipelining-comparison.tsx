@@ -1,8 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { CombinedPipelining } from "./components";
+import { PipelineComparison } from "./components";
 
-export const CombinedPipeliningPage: React.FunctionComponent = () => {
+export const PipeliningComparisonPage: React.FunctionComponent = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="mx-auto max-w-7xl">
@@ -17,7 +17,7 @@ export const CombinedPipeliningPage: React.FunctionComponent = () => {
           </div>
         </div>
 
-        <CombinedPipelining />
+        <PipelineComparison />
 
         <div className="mt-6 flex justify-center gap-4">
           <Button asChild variant="outline">

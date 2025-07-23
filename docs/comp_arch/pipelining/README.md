@@ -6,30 +6,47 @@ This visualization system is built as a React/TypeScript application with modula
 
 ### Project Architecture
 
-The main pipeline visualization code is located in `src/pages/csc368/pipelining/` and consists of one primary visualization:
+The main pipeline visualization code is located in `src/pages/csc368/pipelining/` and consists of three primary visualizations:
 
 #### Laundry Analogy Pipeline Visualization (`pipelining.tsx`)
 
 - **Purpose**: Introduces pipelining concepts using a laundry analogy
 - **Component**: `PipelineVisualization`
-- **Features**:
-  - 5-stage pipeline simulation (Sort, Wash, Dry, Fold, Store)
-  - Pipelined vs non-pipelined execution comparison
-  - Superscalar execution mode (multiple instructions per cycle)
+- **Features**: 4-stage pipeline simulation (Washer, Dryer, Folder, Storer), pipelined vs non-pipelined execution modes
+
+
+#### Pipeline Comparison Visualization (`pipelining-comparison.tsx`)
+
+- **Purpose**: Side-by-side comparison of pipelined vs sequential execution
+- **Component**: `PipelineComparison`
+- **Features**: Synchronized dual visualizations showing efficiency differences
+
+![Pipeline Comparison](comparison.png)
+
+#### Pipeline Throughput Analysis (`pipelining-throughput.tsx`)
+
+- **Purpose**: Dynamic analysis of pipeline efficiency with variable task counts
+- **Component**: `PipelineThroughputComparison`
+- **Features**: Configurable task count (4-20), real-time speedup calculation, dynamic scaling
+
+![Throughput-viz](throughput.png)
 
 ### Core Components Structure
 
 ```
 components/
-├── config.ts                     # Configuration constants and defaults
-├── PipelineVisualization.tsx      # Main laundry analogy visualization
-├── PipelineStage.tsx             # Individual pipeline stage rendering
-├── PipelineTooltip.tsx           # Interactive hover information
-├── Axis.tsx                      # Chart axes (time/instruction labels)
-├── Grid.tsx                      # Background grid lines
-├── StagePatterns.tsx             # SVG pattern definitions
-├── types.ts                      # TypeScript interface definitions
-└── index.ts                      # Component exports
+├── config.ts                           # Configuration constants and defaults
+├── PipelineVisualization.tsx            # Main laundry analogy visualization
+├── PipelineComparison.tsx               # Side-by-side comparison component
+├── PipelineThroughputComparison.tsx     # Dynamic throughput analysis
+├── PipelineStage.tsx                   # Individual pipeline stage rendering
+├── PipelineTooltip.tsx                 # Interactive hover information
+├── MetricTooltip.tsx                   # Performance metrics tooltip
+├── Axis.tsx                            # Chart axes (time/instruction labels)
+├── Grid.tsx                            # Background grid lines
+├── StagePatterns.tsx                   # SVG pattern definitions
+├── types.ts                            # TypeScript interface definitions
+└── index.ts                            # Component exports
 ```
 
 ### Key Data Structures

@@ -56,9 +56,27 @@ export const PipelineThroughputComparison: React.FC = () => {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [simulationSpeed, setSimulationSpeed] = useState<number>(TIMING_CONFIG.DEFAULT_SPEED_MS);
 
+  // State for responsive dimensions
+  const [windowSize, setWindowSize] = useState<{ width: number; height: number }>(() => {
+    if (typeof window !== 'undefined') {
+      return { width: window.innerWidth, height: window.innerHeight };
+    }
+    return { width: 1200, height: 800 };
+  });
+
   // Refs to control the child components directly
   const sequentialRef = useRef<PipelineVisualizationRef>(null);
   const pipelinedRef = useRef<PipelineVisualizationRef>(null);
+
+  // Handle window resize for responsive dimensions
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Update instructions when task count changes
   useEffect(() => {
@@ -104,7 +122,7 @@ export const PipelineThroughputComparison: React.FC = () => {
 
   // Calculate visualization dimensions based on task count
   // Prioritize fitting everything on screen without horizontal scrolling
-  const getVisualizationDimensions = (taskCount: number) => {
+  const getVisualizationDimensions = (taskCount: number, windowSize?: { width: number; height: number }) => {
     // Calculate how many cycles we'll need for the visualization
     const pipelinedCycles = taskCount + 3; // Pipeline: startup + tasks (3 stages overlap)
     const sequentialCycles = taskCount * 4; // Sequential: 4 stages per task
@@ -116,9 +134,38 @@ export const PipelineThroughputComparison: React.FC = () => {
     const totalVerticalMargins = margins.top + margins.bottom;
 
     // Available viewport constraints - prioritize no horizontal scrolling
-    const maxViewportWidth = 1200; // Maximum width to avoid horizontal scrolling
-    const maxViewportHeight = 500; // Maximum height to ensure it fits on screen
-    const minViewportHeight = 200; // Minimum height for usability
+    // Use responsive breakpoints for different screen sizes
+    const getViewportConstraints = () => {
+      const screenWidth = windowSize?.width || (typeof window !== 'undefined' ? window.innerWidth : 1200);
+      
+      if (screenWidth < 480) { // Mobile
+        return { 
+          maxWidth: screenWidth - 32, // Account for page padding
+          maxHeight: 350, 
+          minHeight: 180 
+        };
+      } else if (screenWidth < 768) { // Tablet
+        return { 
+          maxWidth: screenWidth - 48, 
+          maxHeight: 400, 
+          minHeight: 200 
+        };
+      } else if (screenWidth < 1024) { // Small desktop
+        return { 
+          maxWidth: screenWidth - 64, 
+          maxHeight: 450, 
+          minHeight: 220 
+        };
+      } else { // Large screens
+        return { 
+          maxWidth: 1200, 
+          maxHeight: 500, 
+          minHeight: 200 
+        };
+      }
+    };
+
+    const { maxWidth: maxViewportWidth, maxHeight: maxViewportHeight, minHeight: minViewportHeight } = getViewportConstraints();
 
     // Calculate available space for the grid (subtract margins)
     const availableGridWidth = maxViewportWidth - totalMargins;
@@ -131,24 +178,30 @@ export const PipelineThroughputComparison: React.FC = () => {
     let stageHeight: number;
 
     // Start with calculated width that fits all cycles, with reasonable bounds
-    stageWidth = Math.max(12, Math.min(40, maxStageWidth));
+    // Use different minimum sizes for different screen sizes
+    const screenWidth = windowSize?.width || (typeof window !== 'undefined' ? window.innerWidth : 1200);
+    const minStageSize = screenWidth < 480 ? 8 : 12;
+    const maxStageSize = screenWidth < 480 ? 28 : 40;
+    
+    stageWidth = Math.max(minStageSize, Math.min(maxStageSize, maxStageWidth));
 
     // For height, balance between readability and fitting vertically
+    // Use more aggressive scaling on mobile
     if (taskCount <= 4) {
-      stageHeight = Math.min(stageWidth, 40); // Keep square, max 40px
+      stageHeight = Math.min(stageWidth, maxStageSize); // Keep square, max size
     } else if (taskCount <= 8) {
-      stageHeight = Math.min(stageWidth, 32); // Keep proportional
+      stageHeight = Math.min(stageWidth, Math.floor(maxStageSize * 0.8)); // Keep proportional
     } else if (taskCount <= 12) {
-      stageHeight = Math.min(stageWidth, 26); // Smaller for more tasks
+      stageHeight = Math.min(stageWidth, Math.floor(maxStageSize * 0.65)); // Smaller for more tasks
     } else if (taskCount <= 16) {
-      stageHeight = Math.min(stageWidth, 22); // Even smaller
+      stageHeight = Math.min(stageWidth, Math.floor(maxStageSize * 0.55)); // Even smaller
     } else {
-      stageHeight = Math.min(stageWidth, 18); // Minimal but readable
+      stageHeight = Math.min(stageWidth, Math.floor(maxStageSize * 0.45)); // Minimal but readable
     }
 
     // Ensure minimum readable size
-    stageWidth = Math.max(12, stageWidth);
-    stageHeight = Math.max(12, stageHeight);
+    stageWidth = Math.max(minStageSize, stageWidth);
+    stageHeight = Math.max(minStageSize, stageHeight);
 
     // Calculate actual grid dimensions
     const gridWidth = maxCycles * stageWidth;
@@ -164,8 +217,8 @@ export const PipelineThroughputComparison: React.FC = () => {
     if (height > maxViewportHeight) {
       // If calculated height is too large, scale everything down proportionally
       const scaleFactor = (maxViewportHeight - totalVerticalMargins) / gridHeight;
-      stageHeight = Math.max(10, Math.floor(stageHeight * scaleFactor));
-      stageWidth = Math.max(10, Math.floor(stageWidth * scaleFactor)); // Keep proportional
+      stageHeight = Math.max(minStageSize, Math.floor(stageHeight * scaleFactor));
+      stageWidth = Math.max(minStageSize, Math.floor(stageWidth * scaleFactor)); // Keep proportional
       const newGridHeight =
         taskCount * (stageHeight + Math.max(1, Math.floor(instructionSpacing * scaleFactor)));
       height = newGridHeight + totalVerticalMargins;
@@ -193,97 +246,108 @@ export const PipelineThroughputComparison: React.FC = () => {
     height: vizHeight,
     stageWidth,
     stageHeight,
-  } = getVisualizationDimensions(taskCount);
+  } = getVisualizationDimensions(taskCount, windowSize);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-2 sm:px-4">
       {/* Controls Header */}
       <div className="rounded-lg border bg-gray-50 p-4">
-        {/* Single Row with Task Selector, Speedup Metric, and Controls */}
-        <div className="flex items-center justify-between gap-6">
-          {/* Task Count Selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium whitespace-nowrap text-gray-700">
-              Number of Tasks:
-            </label>
-            <select
-              value={taskCount}
-              onChange={(e) => setTaskCount(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none"
-            >
-              {taskOptions.map((count) => (
-                <option key={count} value={count}>
-                  {count} tasks
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Speedup Metric */}
-          <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2">
-            <div className="text-sm font-medium text-blue-700">Pipeline Speedup:</div>
-            <div className="text-xl font-bold text-blue-900">
-              {(() => {
-                const sequentialCycles = taskCount * 4; // 4 stages per task
-                const pipelinedCycles = taskCount + 3; // Initial fill + tasks
-                const speedup = sequentialCycles / pipelinedCycles;
-                return speedup.toFixed(1);
-              })()}
-              ×
+        {/* Responsive Mobile-First Layout */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          
+          {/* Top Row: Task Count and Speedup Metric */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:flex-1">
+            {/* Task Count Selector */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="text-sm font-medium text-gray-700">
+                Number of Tasks:
+              </label>
+              <select
+                value={taskCount}
+                onChange={(e) => setTaskCount(Number(e.target.value))}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none sm:w-auto"
+              >
+                {taskOptions.map((count) => (
+                  <option key={count} value={count}>
+                    {count} tasks
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="text-xs text-blue-600">
-              {taskCount * 4} vs {taskCount + 3} cycles
+
+            {/* Speedup Metric */}
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:flex-row sm:gap-3">
+              <div className="text-sm font-medium text-blue-700">Pipeline Speedup:</div>
+              <div className="flex items-center gap-2">
+                <div className="text-xl font-bold text-blue-900">
+                  {(() => {
+                    const sequentialCycles = taskCount * 4; // 4 stages per task
+                    const pipelinedCycles = taskCount + 3; // Initial fill + tasks
+                    const speedup = sequentialCycles / pipelinedCycles;
+                    return speedup.toFixed(1);
+                  })()}
+                  ×
+                </div>
+                <div className="text-xs text-blue-600">
+                  {taskCount * 4} vs {taskCount + 3} cycles
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium whitespace-nowrap text-gray-700">Controls:</span>
-            <button
-              onClick={handleSharedStepForward}
-              className="flex items-center gap-2 rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
-              title="Step Forward One Cycle (Both Visualizations)"
-            >
-              <span>Step →</span>
-            </button>
-            <button
-              onClick={handleSharedToggleRun}
-              className={`flex items-center gap-2 rounded px-4 py-2 text-sm text-white ${
-                isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
-              }`}
-              title={isRunning ? "Pause Auto Run (Both)" : "Run Automatically (Both)"}
-            >
-              <img
-                src={isRunning ? pauseSvg : playSvg}
-                alt={isRunning ? "Pause" : "Play"}
-                className="h-4 w-4"
-              />
-              <span>{isRunning ? "Pause" : "Auto"}</span>
-            </button>
-            <button
-              onClick={handleSharedReset}
-              className="flex items-center gap-2 rounded bg-gray-500 px-4 py-2 text-sm text-white hover:bg-gray-600"
-              title="Reset Both Simulations"
-            >
-              <img src={resetSvg} alt="Reset" className="h-4 w-4" />
-              <span>Reset</span>
-            </button>
-          </div>
+          {/* Bottom Row: Controls and Speed */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:flex-shrink-0">
+            {/* Control Buttons */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <span className="text-sm font-medium text-gray-700 sm:hidden">Controls:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSharedStepForward}
+                  className="flex flex-1 items-center justify-center gap-2 rounded bg-blue-500 px-3 py-2 text-sm text-white hover:bg-blue-600 sm:flex-initial"
+                  title="Step Forward One Cycle (Both Visualizations)"
+                >
+                  <span>Step →</span>
+                </button>
+                <button
+                  onClick={handleSharedToggleRun}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded px-3 py-2 text-sm text-white sm:flex-initial ${
+                    isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
+                  }`}
+                  title={isRunning ? "Pause Auto Run (Both)" : "Run Automatically (Both)"}
+                >
+                  <img
+                    src={isRunning ? pauseSvg : playSvg}
+                    alt={isRunning ? "Pause" : "Play"}
+                    className="h-4 w-4"
+                  />
+                  <span className="hidden sm:inline">{isRunning ? "Pause" : "Auto"}</span>
+                </button>
+                <button
+                  onClick={handleSharedReset}
+                  className="flex flex-1 items-center justify-center gap-2 rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600 sm:flex-initial"
+                  title="Reset Both Simulations"
+                >
+                  <img src={resetSvg} alt="Reset" className="h-4 w-4" />
+                  <span className="hidden sm:inline">Reset</span>
+                </button>
+              </div>
+            </div>
 
-          {/* Speed Control */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium whitespace-nowrap text-gray-700">Speed:</span>
-            <select
-              value={simulationSpeed}
-              onChange={(e) => setSimulationSpeed(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring-purple-500 focus:outline-none"
-            >
-              {TIMING_CONFIG.SPEED_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {/* Speed Control */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <span className="text-sm font-medium text-gray-700">Speed:</span>
+              <select
+                value={simulationSpeed}
+                onChange={(e) => setSimulationSpeed(Number(e.target.value))}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-purple-500 focus:ring-purple-500 focus:outline-none sm:w-auto"
+              >
+                {TIMING_CONFIG.SPEED_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>

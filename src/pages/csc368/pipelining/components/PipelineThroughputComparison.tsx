@@ -306,6 +306,7 @@ export const PipelineThroughputComparison: React.FC = () => {
               compact={true}
               stageWidth={stageWidth}
               stageHeight={stageHeight}
+              externalControl={true}
             />
           </div>
         </div>
@@ -326,6 +327,7 @@ export const PipelineThroughputComparison: React.FC = () => {
               compact={true}
               stageWidth={stageWidth}
               stageHeight={stageHeight}
+              externalControl={true}
             />
           </div>
         </div>

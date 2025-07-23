@@ -37,6 +37,7 @@ interface PipelineVisualizationProps {
   compact?: boolean; // Add compact mode prop
   stageWidth?: number; // Custom stage width
   stageHeight?: number; // Custom stage height
+  externalControl?: boolean; // Disable internal auto-run when controlled externally
 }
 
 // Define the ref interface
@@ -61,6 +62,7 @@ export const PipelineVisualization = forwardRef<
       compact = false, // Add compact mode with default false
       stageWidth: customStageWidth, // Custom stage width
       stageHeight: customStageHeight, // Custom stage height
+      externalControl = false, // Disable internal auto-run when controlled externally
     },
     ref
   ) => {
@@ -211,7 +213,8 @@ export const PipelineVisualization = forwardRef<
 
     // Simulation logic (autoplay mode on)
     useEffect(() => {
-      if (!isRunning) return;
+      // Don't auto-run if controlled externally
+      if (externalControl || !isRunning) return;
 
       // Check if all instructions are completed
       const allInstructionsCompleted = pipelineInstructions.every(

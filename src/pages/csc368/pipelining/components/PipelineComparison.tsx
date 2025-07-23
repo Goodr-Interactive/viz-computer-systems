@@ -113,6 +113,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
               height={250}
               pipelined={false}
               compact={true}
+              externalControl={true}
             />
           </div>
         </div>
@@ -127,6 +128,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
               height={250}
               pipelined={true}
               compact={true}
+              externalControl={true}
             />
           </div>
         </div>

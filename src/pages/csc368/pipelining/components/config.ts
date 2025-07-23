@@ -215,6 +215,13 @@ export const TIMING_CONFIG = {
   CYCLE_DURATION_MINUTES: 30, // Each cycle = 30 minutes (textbook example)
   START_TIME_HOUR: 18, // Start at 6:00 PM (classic example)
   DEFAULT_SPEED_MS: 1000, // 1 second between cycles by default
+  SPEED_OPTIONS: [
+    { label: "0.5x", value: 2000, description: "Slow (2 seconds per cycle)" },
+    { label: "1x", value: 1000, description: "Normal (1 second per cycle)" },
+    { label: "2x", value: 500, description: "Fast (0.5 seconds per cycle)" },
+    { label: "4x", value: 250, description: "Very Fast (0.25 seconds per cycle)" },
+    { label: "8x", value: 125, description: "Extremely Fast (0.125 seconds per cycle)" },
+  ],
 };
 
 /**

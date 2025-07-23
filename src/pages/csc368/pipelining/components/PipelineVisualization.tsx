@@ -63,6 +63,7 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
   const [cycles, setCycles] = useState<number>(-1);
   const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [simulationSpeed, setSimulationSpeed] = useState<number>(TIMING_CONFIG.DEFAULT_SPEED_MS);
   const [isPipelined, setIsPipelined] = useState<boolean>(pipelined);
   const [isSuperscalarActive, setIsSuperscalarActive] = useState<boolean>(
     FEATURE_FLAGS.IS_SUPERSCALAR_MODE
@@ -344,10 +345,10 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
           return updatedInstructions;
         }
       });
-    }, 1000); // Fixed delay of 1 second for automatic mode
+    }, simulationSpeed); // Use configurable simulation speed
 
     return () => clearTimeout(timer);
-  }, [isRunning, cycles, isPipelined, isSuperscalarActive]);
+  }, [isRunning, cycles, isPipelined, isSuperscalarActive, simulationSpeed]);
 
   const handleStepForward = () => {
     // Check if all instructions are completed
@@ -1027,6 +1028,22 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
                   ? "Running..."
                   : "Ready"}
             </span>
+          </div>
+
+          {/* Speed Control */}
+          <div className="mb-4">
+            <h3 className="mb-2 font-semibold">Simulation Speed</h3>
+            <select
+              value={simulationSpeed}
+              onChange={(e) => setSimulationSpeed(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              {TIMING_CONFIG.SPEED_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label} - {option.description}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Mode Selection */}

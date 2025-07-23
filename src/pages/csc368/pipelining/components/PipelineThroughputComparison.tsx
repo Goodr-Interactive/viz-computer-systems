@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PipelineVisualization, type PipelineVisualizationRef } from "./PipelineVisualization";
 import type { Instruction } from "./types";
-import { AVAILABLE_COLORS } from "./config";
+import { AVAILABLE_COLORS, TIMING_CONFIG } from "./config";
 
 // Import control SVG icons
 import resetSvg from "@/assets/reset.svg";
@@ -32,8 +32,8 @@ export const PipelineThroughputComparison: React.FC = () => {
   const [instructions, setInstructions] = useState<Instruction[]>(generateInstructions(taskCount));
   
   // Shared state for both visualizations
-  const [sharedCycles, setSharedCycles] = useState<number>(-1);
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [simulationSpeed, setSimulationSpeed] = useState<number>(TIMING_CONFIG.DEFAULT_SPEED_MS);
   
   // Refs to control the child components directly
   const sequentialRef = useRef<PipelineVisualizationRef>(null);
@@ -50,35 +50,30 @@ export const PipelineThroughputComparison: React.FC = () => {
   useEffect(() => {
     if (!isRunning) return;
 
-    const timer = setTimeout(() => {
-      setSharedCycles(prev => prev + 1);
-      // Also step both visualizations
+    const timer = setInterval(() => {
+      // Only step the visualizations - they manage their own cycles
       sequentialRef.current?.stepForward();
       pipelinedRef.current?.stepForward();
-    }, 1000);
+    }, simulationSpeed);
 
-    return () => clearTimeout(timer);
-  }, [isRunning, sharedCycles]);
+    return () => clearInterval(timer);
+  }, [isRunning, simulationSpeed]);
 
   // Shared control handlers
   const handleSharedStepForward = () => {
-    setSharedCycles(prev => prev + 1);
-    // Directly call step forward on both visualizations
+    // Only call step forward on both visualizations
     sequentialRef.current?.stepForward();
     pipelinedRef.current?.stepForward();
   };
 
   const handleSharedToggleRun = () => {
     setIsRunning(prev => !prev);
-    // Directly call toggle run on both visualizations
-    sequentialRef.current?.toggleRun();
-    pipelinedRef.current?.toggleRun();
+    // Don't call toggleRun on the refs - manage our own running state
   };
 
   const handleSharedReset = () => {
     setIsRunning(false);
-    setSharedCycles(-1);
-    // Directly call reset on both visualizations
+    // Only call reset on both visualizations
     sequentialRef.current?.reset();
     pipelinedRef.current?.reset();
   };
@@ -245,6 +240,22 @@ export const PipelineThroughputComparison: React.FC = () => {
               <img src={resetSvg} alt="Reset" className="h-4 w-4" />
               <span>Reset</span>
             </button>
+          </div>
+
+          {/* Speed Control */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Speed:</span>
+            <select
+              value={simulationSpeed}
+              onChange={(e) => setSimulationSpeed(Number(e.target.value))}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+            >
+              {TIMING_CONFIG.SPEED_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

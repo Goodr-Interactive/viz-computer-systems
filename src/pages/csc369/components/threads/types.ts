@@ -140,6 +140,7 @@ export interface ThreadsController {
   conditionVariableState: Record<string, ConditionVariableState>;
   blockingEvent?: ThreadEvent;
   unblockEvent: () => void;
+  canRun: (thread: Thread) => boolean;
   isWaiting: (thread: Thread) => boolean;
   state: Record<string, State>;
 }

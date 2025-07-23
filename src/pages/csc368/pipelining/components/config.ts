@@ -296,10 +296,10 @@ export const LAYOUT_CONFIG = {
   MARGINS: {
     top: 50,
     right: 30,
-    bottom: 80, // Extra space for x-axis label
+    bottom: 110, // Extra space for x-axis label and rotated time text
     left: 120, // Extra space for y-axis labels
   },
-  CONTAINER_HEIGHT: 700, // Height in pixels
+  CONTAINER_HEIGHT: 600, // Height in pixels
   MIN_HEIGHT: 400, // Minimum height when resizing
   BAND_PADDING: {
     cycles: 0.02, // Padding between cycle columns
@@ -309,15 +309,15 @@ export const LAYOUT_CONFIG = {
     MARGINS: {
       top: 20,
       right: 15,
-      bottom: 30,
+      bottom: 50,
       left: 60,
     },
-    CONTAINER_HEIGHT: 250, // Much smaller height for compact mode
-    MIN_HEIGHT: 150,
+    CONTAINER_HEIGHT: 240, // Much smaller height for compact mode
+    MIN_HEIGHT: 200,
     STAGE_HEIGHT: 40, // Height of each stage rectangle
     STAGE_WIDTH: 40, // Width of each stage rectangle
     BAND_PADDING: {
-      cycles: 0.01,
+      cycles: 0.05,
       instructions: 0.05,
     },
     FONT_SIZE: {

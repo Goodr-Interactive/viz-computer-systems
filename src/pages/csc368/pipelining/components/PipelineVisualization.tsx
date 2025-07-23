@@ -35,6 +35,8 @@ interface PipelineVisualizationProps {
   superscalarWidth?: number;
   pipelined?: boolean;
   compact?: boolean; // Add compact mode prop
+  stageWidth?: number; // Custom stage width
+  stageHeight?: number; // Custom stage height
 }
 
 // Define the ref interface
@@ -52,6 +54,8 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
   instructions = DEFAULT_INSTRUCTIONS, // show only a subset of default instructions
   pipelined = FEATURE_FLAGS.IS_PIPELINED_MODE,
   compact = false, // Add compact mode with default false
+  stageWidth: customStageWidth, // Custom stage width
+  stageHeight: customStageHeight, // Custom stage height
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
@@ -722,23 +726,26 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
 
   // X scale for cycles - use fixed bandwidth in compact mode to prevent stretching
   const maxCycle = getMaxCycleNeeded();
-  const stageWidth = compact ? LAYOUT_CONFIG.COMPACT_MODE.STAGE_WIDTH : 60; // Default stage width for non-compact
+  
+  // Use custom stage dimensions if provided, otherwise fall back to defaults
+  const effectiveStageWidth = customStageWidth || (compact ? LAYOUT_CONFIG.COMPACT_MODE.STAGE_WIDTH : 60);
+  const effectiveStageHeight = customStageHeight || (compact ? LAYOUT_CONFIG.COMPACT_MODE.STAGE_HEIGHT : effectiveStageWidth);
+  
   const xScale = compact 
     ? d3.scaleBand()
         .domain(d3.range(0, maxCycle + 1).map(String))
-        .range([0, (maxCycle + 1) * stageWidth])
+        .range([0, (maxCycle + 1) * effectiveStageWidth])
         .padding(layoutConfig.BAND_PADDING.cycles)
     : d3.scaleBand()
         .domain(d3.range(0, maxCycle + 1).map(String))
         .range([0, innerWidth])
         .padding(layoutConfig.BAND_PADDING.cycles);
 
-  // Y scale for instructions - use fixed height in compact mode
-  const stageHeight = compact ? LAYOUT_CONFIG.COMPACT_MODE.STAGE_HEIGHT : undefined;
-  const yScale = compact && stageHeight
+  // Y scale for instructions - use custom height if provided
+  const yScale = (compact || customStageHeight) && effectiveStageHeight
     ? d3.scaleBand()
         .domain(pipelineInstructions.map((instr) => instr.id.toString()))
-        .range([0, pipelineInstructions.length * stageHeight])
+        .range([0, pipelineInstructions.length * effectiveStageHeight])
         .padding(layoutConfig.BAND_PADDING.instructions)
     : d3.scaleBand()
         .domain(pipelineInstructions.map((instr) => instr.id.toString()))
@@ -839,7 +846,7 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
           className={`mb-4 w-full rounded-lg border border-gray-300 shadow-lg ${compact ? 'overflow-x-auto' : 'overflow-hidden'}`}
           style={{ height: `${layoutConfig.CONTAINER_HEIGHT}px` }}
         >
-          <svg width={compact ? Math.max(svgWidth, (maxCycle + 1) * stageWidth + margin.left + margin.right) : svgWidth} height={svgHeight}>
+          <svg width={compact ? Math.max(svgWidth, (maxCycle + 1) * effectiveStageWidth + margin.left + margin.right) : svgWidth} height={svgHeight}>
             <g transform={`translate(${margin.left},${margin.top})`}>
               {/* Define patterns for stage icons */}
               <StagePatterns stageImages={STAGE_IMAGES} />
@@ -922,6 +929,10 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
                   const isFirstInGroup =
                     parallelInstructions.length > 0 && instr.id === parallelInstructions[0].id;
 
+                  // Calculate stage dimensions - use custom sizes if provided, otherwise use scale bandwidth
+                  const stageWidthToUse = customStageWidth || xScale.bandwidth();
+                  const stageHeightToUse = customStageHeight || yScale.bandwidth();
+
                   return (
                     <PipelineStage
                       key={`instr-${instr.id}-stage-${stageIndex}`}
@@ -932,8 +943,8 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
                       cycleLength={getStageScalingFactor(stageIndex)}
                       xPos={xScale(String(cycle))!}
                       yPos={yScale(instr.id.toString())!}
-                      width={xScale.bandwidth()}
-                      height={yScale.bandwidth()}
+                      width={stageWidthToUse}
+                      height={stageHeightToUse}
                       timeLabel={timeLabels[cycle]}
                       stageImage={STAGE_IMAGES[stageIndex]}
                       color={STAGE_COLORS[stageIndex]}

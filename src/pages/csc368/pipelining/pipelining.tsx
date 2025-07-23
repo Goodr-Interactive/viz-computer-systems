@@ -18,6 +18,9 @@ export const Pipelining: React.FunctionComponent = () => {
           <a href="/csc368/pipelining-comparison">View Comparison</a>
         </Button>
         <Button asChild variant="outline">
+          <a href="/csc368/pipelining-throughput">Throughput Analysis</a>
+        </Button>
+        <Button asChild variant="outline">
           <a href="/csc368">Back to CSC368</a>
         </Button>
       </div>

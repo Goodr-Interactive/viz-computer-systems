@@ -610,33 +610,47 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
   const getMaxCycleNeeded = () => {
     if (pipelineInstructions.length === 0) return Math.max(0, cycles);
 
+    // Calculate theoretical maximum cycles needed for both execution modes
+    // to ensure consistent axis labels when comparing sequential vs pipelined
+    const pipelinedMaxCycle = (pipelineInstructions.length - 1) + PIPELINE_STAGES.length - 1;
+    const sequentialMaxCycle = pipelineInstructions.length * PIPELINE_STAGES.length - 1;
+    
+    // Use the maximum of both modes to ensure consistent comparison
+    // This way both visualizations show the full time range
+    const theoreticalMaxCycle = Math.max(pipelinedMaxCycle, sequentialMaxCycle);
+
     // Check if all instructions are completed
     const allInstructionsCompleted = pipelineInstructions.every(
       (instr) => instr.isCompleted === true
     );
 
-    let maxCycle = 0;
-
+    // Calculate actual max cycle from completed/started instructions
+    let actualMaxCycle = 0;
     pipelineInstructions.forEach((instr) => {
       if (instr.startCycle !== undefined) {
         // Calculate when this instruction will complete all stages
         const completionCycle = instr.startCycle + PIPELINE_STAGES.length - 1;
-        maxCycle = Math.max(maxCycle, completionCycle);
+        actualMaxCycle = Math.max(actualMaxCycle, completionCycle);
       }
     });
 
-    // If all instructions are completed, don't show any extra cycles
+    // If all instructions are completed, still show the full theoretical range
+    // for consistent comparison between sequential and pipelined modes
     if (allInstructionsCompleted) {
-      return maxCycle;
+      return theoreticalMaxCycle;
     }
 
+    // Always show the theoretical maximum to ensure consistent axis labels
+    // but also account for current simulation state
+    const currentMaxCycle = Math.max(theoreticalMaxCycle, actualMaxCycle);
+    
     // If simulation is running, show current cycle + small buffer for next operations
     if (isRunning) {
-      return Math.max(maxCycle, cycles + 1);
+      return Math.max(currentMaxCycle, cycles + 1);
     }
 
-    // If simulation is paused but not complete, show up to current cycle
-    return Math.max(maxCycle, cycles);
+    // If simulation is paused but not complete, show the full theoretical range
+    return Math.max(currentMaxCycle, cycles);
   };
 
   // Convert clock cycles to time periods (classic H&P example format)

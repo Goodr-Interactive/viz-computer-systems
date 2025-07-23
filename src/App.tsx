@@ -107,7 +107,7 @@ export const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc368/combined-pipelining",
-    title: "Combined Pipelining Visualization",
+    title: "Pipelining Comparison",
     description: "",
     element: <CombinedPipeliningPage />,
   },

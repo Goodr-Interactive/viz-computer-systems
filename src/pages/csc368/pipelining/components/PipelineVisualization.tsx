@@ -1032,8 +1032,8 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
                   }
                 </p>
 
-                {/* Superscalar toggle, only available in pipelined mode */}
-                {isPipelined && (
+                {/* Superscalar toggle, only available in pipelined mode and when enabled by feature flag */}
+                {isPipelined && FEATURE_FLAGS.SHOW_SUPERSCALAR_TOGGLE && (
                   <>
                     <label className="inline-flex cursor-pointer items-center">
                       <input
@@ -1047,16 +1047,14 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
                       />
                       <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                       <span className="ml-3 text-sm font-medium">
-                        {isSuperscalarActive ? (
-                          <span className="flex items-center gap-2">
-                            Superscalar Mode ({superscalarFactor}-way)
+                        <span className="flex items-center gap-2">
+                          Superscalar Mode ({superscalarFactor}-way)
+                          {isSuperscalarActive && (
                             <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
                               {superscalarFactor}x
                             </span>
-                          </span>
-                        ) : (
-                          "Superscalar Mode"
-                        )}
+                          )}
+                        </span>
                       </span>
                     </label>
                     <p className="text-xs text-gray-600 ml-14">

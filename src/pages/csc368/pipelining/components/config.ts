@@ -31,6 +31,9 @@ export const FEATURE_FLAGS = {
   // Enable/disable ability to change modes in the UI
   SHOW_MODE_SELECTION: true,
 
+  // Enable/disable superscalar toggle in the UI
+  SHOW_SUPERSCALAR_TOGGLE: false,
+
   // Enable/disable current cycle indicator
   SHOW_CYCLES_INDICATOR: false,
 };

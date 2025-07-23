@@ -87,36 +87,87 @@ export const PipelineThroughputComparison: React.FC = () => {
   const taskOptions = [4, 8, 12, 16, 20];
 
   // Calculate visualization dimensions based on task count
-  // More tasks = smaller individual icons to fit horizontally
+  // Prioritize fitting everything on screen without horizontal scrolling
   const getVisualizationDimensions = (taskCount: number) => {
-    // Base dimensions for 4 tasks
-    const baseWidth = 800;
-    const baseHeight = 250;
+    // Calculate how many cycles we'll need for the visualization
+    const pipelinedCycles = taskCount + 3; // Pipeline: startup + tasks (3 stages overlap)
+    const sequentialCycles = taskCount * 4; // Sequential: 4 stages per task
+    const maxCycles = Math.max(pipelinedCycles, sequentialCycles);
     
-    // Calculate appropriate stage size based on task count
-    // We want to fit all tasks in a reasonable width while keeping stages visible
-    const maxCycles = taskCount + 3; // Approximate max cycles needed (startup + tasks)
-    const availableWidth = baseWidth - 200; // Leave space for margins and labels
+    // Base margins and spacing (from LAYOUT_CONFIG.COMPACT_MODE)
+    const margins = { left: 60, right: 15, top: 20, bottom: 50 };
+    const totalMargins = margins.left + margins.right;
+    const totalVerticalMargins = margins.top + margins.bottom;
     
-    // Calculate stage width to fit all cycles within available width
-    let stageWidth = Math.max(20, Math.min(40, availableWidth / maxCycles)); // Min 20px, Max 40px
+    // Available viewport constraints - prioritize no horizontal scrolling
+    const maxViewportWidth = 1200; // Maximum width to avoid horizontal scrolling
+    const maxViewportHeight = 500; // Maximum height to ensure it fits on screen
+    const minViewportHeight = 200; // Minimum height for usability
     
-    // For many tasks, make stages even smaller but readable
-    if (taskCount >= 16) {
-      stageWidth = Math.max(15, availableWidth / maxCycles);
+    // Calculate available space for the grid (subtract margins)
+    const availableGridWidth = maxViewportWidth - totalMargins;
+    
+    // Calculate stage width to fit all cycles horizontally without scrolling
+    const maxStageWidth = Math.floor(availableGridWidth / maxCycles);
+    
+    // Calculate stage dimensions based on available space and task count
+    let stageWidth: number;
+    let stageHeight: number;
+    
+    // Start with calculated width that fits all cycles, with reasonable bounds
+    stageWidth = Math.max(12, Math.min(40, maxStageWidth));
+    
+    // For height, balance between readability and fitting vertically
+    if (taskCount <= 4) {
+      stageHeight = Math.min(stageWidth, 40); // Keep square, max 40px
+    } else if (taskCount <= 8) {
+      stageHeight = Math.min(stageWidth, 32); // Keep proportional
+    } else if (taskCount <= 12) {
+      stageHeight = Math.min(stageWidth, 26); // Smaller for more tasks
+    } else if (taskCount <= 16) {
+      stageHeight = Math.min(stageWidth, 22); // Even smaller
+    } else {
+      stageHeight = Math.min(stageWidth, 18); // Minimal but readable
     }
     
-    // Stage height should maintain reasonable proportions but scale with width
-    const stageHeight = Math.max(15, Math.min(stageWidth, 40));
+    // Ensure minimum readable size
+    stageWidth = Math.max(12, stageWidth);
+    stageHeight = Math.max(12, stageHeight);
     
-    // Adjust total width based on calculated stage size
-    const width = Math.max(baseWidth, maxCycles * stageWidth + 200);
+    // Calculate actual grid dimensions
+    const gridWidth = maxCycles * stageWidth;
+    const totalWidth = gridWidth + totalMargins;
+    
+    // Calculate height based on number of tasks with proportional spacing
+    const instructionSpacing = Math.max(1, Math.floor(stageHeight * 0.05)); // Proportional spacing
+    const gridHeight = taskCount * (stageHeight + instructionSpacing) - instructionSpacing; // Remove last spacing
+    const calculatedHeight = gridHeight + totalVerticalMargins;
+    
+    // Scale height to fit within viewport constraints if needed
+    let height = calculatedHeight;
+    if (height > maxViewportHeight) {
+      // If calculated height is too large, scale everything down proportionally
+      const scaleFactor = (maxViewportHeight - totalVerticalMargins) / gridHeight;
+      stageHeight = Math.max(10, Math.floor(stageHeight * scaleFactor));
+      stageWidth = Math.max(10, Math.floor(stageWidth * scaleFactor)); // Keep proportional
+      const newGridHeight = taskCount * (stageHeight + Math.max(1, Math.floor(instructionSpacing * scaleFactor)));
+      height = newGridHeight + totalVerticalMargins;
+    }
+    
+    // Ensure minimum height
+    height = Math.max(minViewportHeight, height);
     
     return { 
-      width, 
-      height: baseHeight, 
+      width: Math.round(totalWidth), 
+      height: Math.round(height), 
       stageWidth: Math.round(stageWidth),
-      stageHeight: Math.round(stageHeight)
+      stageHeight: Math.round(stageHeight),
+      maxCycles,
+      gridDimensions: {
+        width: Math.round(gridWidth),
+        height: Math.round(height - totalVerticalMargins),
+        margins
+      }
     };
   };
 
@@ -126,32 +177,45 @@ export const PipelineThroughputComparison: React.FC = () => {
     <div className="w-full max-w-6xl mx-auto space-y-4">
       {/* Controls Header */}
       <div className="bg-gray-50 border rounded-lg p-4">
-        {/* Task Count Selector */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Number of Tasks: {taskCount} (Stage Size: {stageWidth}×{stageHeight}px)
-          </label>
-          <div className="flex gap-2 mb-3">
-            {taskOptions.map((count) => (
-              <button
-                key={count}
-                onClick={() => setTaskCount(count)}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  taskCount === count
-                    ? "bg-blue-500 text-white"
-                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {count} tasks
-              </button>
-            ))}
+        {/* Single Row with Task Selector, Speedup Metric, and Controls */}
+        <div className="flex items-center justify-between gap-6">
+          {/* Task Count Selector */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Number of Tasks:
+            </label>
+            <select
+              value={taskCount}
+              onChange={(e) => setTaskCount(Number(e.target.value))}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              {taskOptions.map((count) => (
+                <option key={count} value={count}>
+                  {count} tasks
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
 
-        {/* Shared Controls */}
-        <div className="flex items-center justify-center">
+          {/* Speedup Metric */}
+          <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm font-medium text-blue-700">Pipeline Speedup:</div>
+            <div className="text-xl font-bold text-blue-900">
+              {(() => {
+                const sequentialCycles = taskCount * 4; // 4 stages per task
+                const pipelinedCycles = taskCount + 3; // Initial fill + tasks
+                const speedup = sequentialCycles / pipelinedCycles;
+                return speedup.toFixed(1);
+              })()}×
+            </div>
+            <div className="text-xs text-blue-600">
+              {taskCount * 4} vs {taskCount + 3} cycles
+            </div>
+          </div>
+
+          {/* Controls */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">Controls:</span>
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Controls:</span>
             <button
               onClick={handleSharedStepForward}
               className="flex items-center gap-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 text-sm"
@@ -189,7 +253,11 @@ export const PipelineThroughputComparison: React.FC = () => {
       <div className="space-y-3 flex flex-col items-center">
         {/* Sequential (Non-Pipelined) */}
         <div className="bg-white border rounded w-full">
-          <div className="combined-viz overflow-x-auto">
+          <div className="p-3 text-center border-b bg-red-50">
+            <h3 className="text-lg font-semibold text-red-800">Sequential Execution</h3>
+            <p className="text-sm text-red-600">One task completes before the next begins</p>
+          </div>
+          <div className="combined-viz">
             <PipelineVisualization
               ref={sequentialRef}
               instructions={instructions}
@@ -202,7 +270,27 @@ export const PipelineThroughputComparison: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Pipelined */}
+        <div className="bg-white border rounded w-full">
+          <div className="p-3 text-center border-b bg-green-50">
+            <h3 className="text-lg font-semibold text-green-800">Pipelined Execution</h3>
+            <p className="text-sm text-green-600">Tasks overlap - stages execute in parallel</p>
+          </div>
+          <div className="combined-viz">
+            <PipelineVisualization
+              ref={pipelinedRef}
+              instructions={instructions}
+              width={vizWidth}
+              height={vizHeight}
+              pipelined={true}
+              compact={true}
+              stageWidth={stageWidth}
+              stageHeight={stageHeight}
+            />
+          </div>
         </div>
+      </div>
     </div>
   );
 };

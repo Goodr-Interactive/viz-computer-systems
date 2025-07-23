@@ -133,6 +133,16 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
     };
   }, []);
 
+  // Update dimensions when props change
+  useEffect(() => {
+    if (width !== undefined) {
+      setSvgWidth(width);
+    }
+    if (height !== undefined) {
+      setSvgHeight(height);
+    }
+  }, [width, height]);
+
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
@@ -844,7 +854,7 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
         <div
           ref={containerRef}
           className={`mb-4 w-full rounded-lg border border-gray-300 shadow-lg ${compact ? 'overflow-x-auto' : 'overflow-hidden'}`}
-          style={{ height: `${layoutConfig.CONTAINER_HEIGHT}px` }}
+          style={{ height: `${height || svgHeight || layoutConfig.CONTAINER_HEIGHT}px` }}
         >
           <svg width={compact ? Math.max(svgWidth, (maxCycle + 1) * effectiveStageWidth + margin.left + margin.right) : svgWidth} height={svgHeight}>
             <g transform={`translate(${margin.left},${margin.top})`}>

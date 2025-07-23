@@ -745,7 +745,7 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
   const xScale = compact 
     ? d3.scaleBand()
         .domain(d3.range(0, maxCycle + 1).map(String))
-        .range([0, (maxCycle + 1) * effectiveStageWidth])
+        .range([0, innerWidth]) // Use available inner width instead of expanding
         .padding(layoutConfig.BAND_PADDING.cycles)
     : d3.scaleBand()
         .domain(d3.range(0, maxCycle + 1).map(String))
@@ -854,10 +854,10 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
 
         <div
           ref={containerRef}
-          className={`mb-4 w-full rounded-lg border border-gray-300 shadow-lg ${compact ? 'overflow-x-auto' : 'overflow-hidden'}`}
+          className={`mb-4 w-full rounded-lg border border-gray-300 shadow-lg overflow-hidden`}
           style={{ height: `${height || svgHeight || layoutConfig.CONTAINER_HEIGHT}px` }}
         >
-          <svg width={compact ? Math.max(svgWidth, (maxCycle + 1) * effectiveStageWidth + margin.left + margin.right) : svgWidth} height={svgHeight}>
+          <svg width={svgWidth} height={svgHeight}>
             <g transform={`translate(${margin.left},${margin.top})`}>
               {/* Define patterns for stage icons */}
               <StagePatterns stageImages={STAGE_IMAGES} />

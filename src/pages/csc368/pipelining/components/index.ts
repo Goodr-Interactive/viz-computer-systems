@@ -1,5 +1,5 @@
 export * from "./PipelineVisualization";
-export * from "./PipelineComparison";
+export * from "./CombinedPipelining";
 export * from "./types";
 export * from "./PipelineStage";
 export * from "./PipelineTooltip";

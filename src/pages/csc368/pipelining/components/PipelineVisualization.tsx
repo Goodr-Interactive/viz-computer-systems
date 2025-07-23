@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import * as d3 from "d3";
 
 // Import SVG assets for controls
@@ -18,6 +18,7 @@ import {
   PIPELINE_STAGES,
   STAGE_IMAGES,
   STAGE_COLORS,
+  STAGE_ABBREVIATIONS,
   DEFAULT_INSTRUCTIONS,
   AVAILABLE_COLORS,
   TIMING_CONFIG,
@@ -33,14 +34,25 @@ interface PipelineVisualizationProps {
   instructions?: Instruction[];
   superscalarWidth?: number;
   pipelined?: boolean;
+  compact?: boolean; // Add compact mode prop
 }
 
-export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
+// Define the ref interface
+export interface PipelineVisualizationRef {
+  stepForward: () => void;
+  toggleRun: () => void;
+  reset: () => void;
+  getCycles: () => number;
+  getIsRunning: () => boolean;
+}
+
+export const PipelineVisualization = forwardRef<PipelineVisualizationRef, PipelineVisualizationProps>(({
   width,
   height,
   instructions = DEFAULT_INSTRUCTIONS, // show only a subset of default instructions
   pipelined = FEATURE_FLAGS.IS_PIPELINED_MODE,
-}) => {
+  compact = false, // Add compact mode with default false
+}, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgWidth, setSvgWidth] = useState<number>(width || 800);
   const [svgHeight, setSvgHeight] = useState<number>(height || 800);
@@ -95,6 +107,9 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   }, []);
 
   // Add dimension monitoring
+  // Get layout configuration based on compact mode
+  const layoutConfig = compact ? LAYOUT_CONFIG.COMPACT_MODE : LAYOUT_CONFIG;
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -103,7 +118,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
 
       const { width, height } = entries[0].contentRect;
       setSvgWidth(width);
-      setSvgHeight(Math.max(height, LAYOUT_CONFIG.MIN_HEIGHT)); // Minimum height from config
+      setSvgHeight(Math.max(height, layoutConfig.MIN_HEIGHT)); // Use layout config
     });
 
     resizeObserver.observe(containerRef.current);
@@ -120,7 +135,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
         setSvgWidth(width);
-        setSvgHeight(Math.max(height, LAYOUT_CONFIG.MIN_HEIGHT));
+        setSvgHeight(Math.max(height, layoutConfig.MIN_HEIGHT));
       }
     };
 
@@ -500,6 +515,15 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
     );
   };
 
+  // Expose methods through ref for parent component control
+  useImperativeHandle(ref, () => ({
+    stepForward: handleStepForward,
+    toggleRun: () => setIsRunning(prev => !prev),
+    reset: handleReset,
+    getCycles: () => cycles,
+    getIsRunning: () => isRunning,
+  }));
+
   const togglePipelineMode = () => {
     setIsRunning(false);
     setIsPipelined(!isPipelined);
@@ -678,24 +702,34 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       : "0.0";
 
   // Set up D3 scales for our chart
-  const margin = LAYOUT_CONFIG.MARGINS;
+  const margin = layoutConfig.MARGINS;
   const innerWidth = svgWidth - margin.left - margin.right;
   const innerHeight = svgHeight - margin.top - margin.bottom;
 
-  // X scale for cycles
+  // X scale for cycles - use fixed bandwidth in compact mode to prevent stretching
   const maxCycle = getMaxCycleNeeded();
-  const xScale = d3
-    .scaleBand()
-    .domain(d3.range(0, maxCycle + 1).map(String))
-    .range([0, innerWidth])
-    .padding(LAYOUT_CONFIG.BAND_PADDING.cycles);
+  const stageWidth = compact ? LAYOUT_CONFIG.COMPACT_MODE.STAGE_WIDTH : 60; // Default stage width for non-compact
+  const xScale = compact 
+    ? d3.scaleBand()
+        .domain(d3.range(0, maxCycle + 1).map(String))
+        .range([0, (maxCycle + 1) * stageWidth])
+        .padding(layoutConfig.BAND_PADDING.cycles)
+    : d3.scaleBand()
+        .domain(d3.range(0, maxCycle + 1).map(String))
+        .range([0, innerWidth])
+        .padding(layoutConfig.BAND_PADDING.cycles);
 
-  // Y scale for instructions
-  const yScale = d3
-    .scaleBand()
-    .domain(pipelineInstructions.map((instr) => instr.id.toString()))
-    .range([0, innerHeight])
-    .padding(LAYOUT_CONFIG.BAND_PADDING.instructions);
+  // Y scale for instructions - use fixed height in compact mode
+  const stageHeight = compact ? LAYOUT_CONFIG.COMPACT_MODE.STAGE_HEIGHT : undefined;
+  const yScale = compact && stageHeight
+    ? d3.scaleBand()
+        .domain(pipelineInstructions.map((instr) => instr.id.toString()))
+        .range([0, pipelineInstructions.length * stageHeight])
+        .padding(layoutConfig.BAND_PADDING.instructions)
+    : d3.scaleBand()
+        .domain(pipelineInstructions.map((instr) => instr.id.toString()))
+        .range([0, innerHeight])
+        .padding(layoutConfig.BAND_PADDING.instructions);
 
   const timeLabels = getTimeLabels();
 
@@ -747,48 +781,51 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
   };
 
   return (
-    <div className="flex w-full flex-col xl:flex-row xl:gap-6">
+    <div className={`flex w-full flex-col ${compact ? '' : 'xl:flex-row xl:gap-6'}`}>
       {/* Visualization Container - Left side on desktop */}
-      <div className="flex w-full flex-col items-center xl:w-3/4">
-        <div className="mb-2 flex w-full flex-col justify-between md:flex-row md:items-center">
-          <div className="flex items-center gap-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">
-                Current Time: {getCurrentTimeLabel()}
-                <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
-              </h3>
-            </div>
-
-            <div className="flex items-center gap-2 text-center">
-              <div>
-                <h3 
-                  className="text-lg font-medium cursor-help relative"
-                  onMouseEnter={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setMetricTooltip({
-                      visible: true,
-                      x: rect.left + rect.width / 2,
-                      y: rect.top,
-                    });
-                  }}
-                  onMouseLeave={() => {
-                    setMetricTooltip({ visible: false, x: 0, y: 0 });
-                  }}
-                >
-                  {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour}{" "}
-                  <span className="text-xs text-gray-500"></span>
+      <div className={`flex w-full flex-col items-center ${compact ? '' : 'xl:w-3/4'}`}>
+        {/* Header with time and metrics - hidden in compact mode */}
+        {!compact && (
+          <div className="mb-2 flex w-full flex-col justify-between md:flex-row md:items-center">
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <h3 className="text-lg font-medium">
+                  Current Time: {getCurrentTimeLabel()}
+                  <span className="text-xs text-gray-500"> (Cycle: {cycles})</span>
                 </h3>
+              </div>
+
+              <div className="flex items-center gap-2 text-center">
+                <div>
+                  <h3 
+                    className="text-lg font-medium cursor-help relative"
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setMetricTooltip({
+                        visible: true,
+                        x: rect.left + rect.width / 2,
+                        y: rect.top,
+                      });
+                    }}
+                    onMouseLeave={() => {
+                      setMetricTooltip({ visible: false, x: 0, y: 0 });
+                    }}
+                  >
+                    {PERFORMANCE_CONFIG.LOADS_PER_HOUR_LABEL}: {loadsPerHour}{" "}
+                    <span className="text-xs text-gray-500"></span>
+                  </h3>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div
           ref={containerRef}
-          className="mb-4 w-full overflow-hidden rounded-lg border border-gray-300 shadow-lg"
-          style={{ height: `${LAYOUT_CONFIG.CONTAINER_HEIGHT}px` }}
+          className={`mb-4 w-full rounded-lg border border-gray-300 shadow-lg ${compact ? 'overflow-x-auto' : 'overflow-hidden'}`}
+          style={{ height: `${layoutConfig.CONTAINER_HEIGHT}px` }}
         >
-          <svg width={svgWidth} height={svgHeight}>
+          <svg width={compact ? Math.max(svgWidth, (maxCycle + 1) * stageWidth + margin.left + margin.right) : svgWidth} height={svgHeight}>
             <g transform={`translate(${margin.left},${margin.top})`}>
               {/* Define patterns for stage icons */}
               <StagePatterns stageImages={STAGE_IMAGES} />
@@ -886,11 +923,13 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
                       timeLabel={timeLabels[cycle]}
                       stageImage={STAGE_IMAGES[stageIndex]}
                       color={STAGE_COLORS[stageIndex]}
+                      abbreviation={compact ? STAGE_ABBREVIATIONS[stageIndex] : undefined}
                       onMouseEnter={handleStageMouseEnter}
                       onMouseLeave={handleStageMouseLeave}
                       isSuperscalarActive={isSuperscalarActive}
                       parallelInstructions={parallelInstructions}
                       isFirstInGroup={isFirstInGroup}
+                      compact={compact}
                     />
                   );
                 });
@@ -916,18 +955,19 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       </div>
 
       {/* Controls and Instructions Container - Right side on desktop */}
+      {!compact && (
       <div className="flex w-full flex-col xl:sticky xl:top-4 xl:w-1/4 xl:self-start">
-        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
-          <div className="mb-4 flex flex-wrap gap-3">
-            <button
-              onClick={handleStepForward}
-              disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
-              className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
-              title="Step Forward One Cycle"
-            >
-              <span className="text-sm font-medium">Forward →</span>
-            </button>
+          <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
+            <div className="mb-4 flex flex-wrap gap-3">
+              <button
+                onClick={handleStepForward}
+                disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
+                className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+                title="Step Forward One Cycle"
+              >
+                <span className="text-sm font-medium">Forward →</span>
+              </button>
             <button
               onClick={() => setIsRunning(!isRunning)}
               disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
@@ -1126,8 +1166,7 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Metric Tooltip */}
+      )}
       <MetricTooltip
         completedTasks={completedInstructions}
         timeInHours={currentTimeInHours}
@@ -1137,4 +1176,4 @@ export const PipelineVisualization: React.FC<PipelineVisualizationProps> = ({
       />
     </div>
   );
-};
+});

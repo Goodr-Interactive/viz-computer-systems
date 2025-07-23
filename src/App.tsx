@@ -23,7 +23,7 @@ import {
 import { Caches } from "./pages/csc368/cache";
 import { Coherence } from "./pages/csc368/coherence";
 import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
-import { PipelineComparisonPage } from "./pages/csc368/pipelining/pipelining-comparison";
+import { CombinedPipeliningPage } from "./pages/csc368/pipelining/combined-pipelining";
 
 export interface AppRoute {
   path: string;
@@ -106,10 +106,10 @@ export const ROUTES: AppRoute[] = [
     element: <Pipelining />,
   },
   {
-    path: "/csc368/pipelining-comparison",
-    title: "Instruction Pipelining Comparison",
+    path: "/csc368/combined-pipelining",
+    title: "Combined Pipelining Visualization",
     description: "",
-    element: <PipelineComparisonPage />,
+    element: <CombinedPipeliningPage />,
   },
   {
     path: "/csc368/associativity",

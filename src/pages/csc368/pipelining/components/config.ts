@@ -112,6 +112,23 @@ export const STAGE_COLORS = [
 ];
 
 /**
+ * STAGE ABBREVIATIONS CONFIGURATION
+ *
+ * Short 1-2 letter abbreviations for each stage, useful for compact displays.
+ *
+ * Usage:
+ * - Each abbreviation corresponds to a stage in PIPELINE_STAGES
+ * - Keep abbreviations short (1-2 characters) for compact mode
+ * - Array length must match PIPELINE_STAGES length
+ */
+export const STAGE_ABBREVIATIONS = [
+  "W", // Washer
+  "D", // Dryer
+  "F", // Folder
+  "S", // Storer
+];
+
+/**
  * AVAILABLE_COLORS CONFIGURATION
  *
  * Color palette used when adding new instructions dynamically.
@@ -273,6 +290,7 @@ export const getStageTimingInfo = () => {
  * - CONTAINER_HEIGHT: Default height of the visualization container
  * - MIN_HEIGHT: Minimum height when resizing
  * - BAND_PADDING: Space between chart elements (0-1, where 1 = no padding)
+ * - COMPACT_MODE: Configuration for compact/small visualizations
  */
 export const LAYOUT_CONFIG = {
   MARGINS: {
@@ -286,5 +304,26 @@ export const LAYOUT_CONFIG = {
   BAND_PADDING: {
     cycles: 0.02, // Padding between cycle columns
     instructions: 0.1, // Padding between instruction rows
+  },
+  COMPACT_MODE: {
+    MARGINS: {
+      top: 20,
+      right: 15,
+      bottom: 30,
+      left: 60,
+    },
+    CONTAINER_HEIGHT: 250, // Much smaller height for compact mode
+    MIN_HEIGHT: 150,
+    STAGE_HEIGHT: 40, // Height of each stage rectangle
+    STAGE_WIDTH: 40, // Width of each stage rectangle
+    BAND_PADDING: {
+      cycles: 0.01,
+      instructions: 0.05,
+    },
+    FONT_SIZE: {
+      stage: "10px",
+      instruction: "12px",
+      label: "10px",
+    },
   },
 };

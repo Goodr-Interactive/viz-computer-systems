@@ -1022,7 +1022,7 @@ export const PipelineVisualization = forwardRef<PipelineVisualizationRef, Pipeli
                   />
                   <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                   <span className="ml-3 text-sm font-medium">
-                    {isPipelined ? "Pipelined Execution" : "Sequential Execution"}
+                    Pipelined Execution
                   </span>
                 </label>
                 <p className="text-xs text-gray-600 ml-14">

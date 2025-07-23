@@ -67,8 +67,8 @@ export const PipelineVisualization = forwardRef<
     ref
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [svgWidth, setSvgWidth] = useState<number>(width || 800);
-    const [svgHeight, setSvgHeight] = useState<number>(height || 800);
+    const [svgWidth, setSvgWidth] = useState<number>(width || (typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.7, 1000) : 800));
+    const [svgHeight, setSvgHeight] = useState<number>(height || 600);
     const [cycles, setCycles] = useState<number>(-1);
     const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
     const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -111,16 +111,6 @@ export const PipelineVisualization = forwardRef<
     const [newInstructionName, setNewInstructionName] = useState<string>("");
     const [showAddForm, setShowAddForm] = useState<boolean>(false);
 
-    // Set initial dimensions based on container size
-    useEffect(() => {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        setSvgWidth(width);
-        setSvgHeight(Math.max(height, 800));
-      }
-    }, []);
-
-    // Add dimension monitoring
     // Get layout configuration based on compact mode
     const layoutConfig = compact ? LAYOUT_CONFIG.COMPACT_MODE : LAYOUT_CONFIG;
 
@@ -131,8 +121,11 @@ export const PipelineVisualization = forwardRef<
         if (!entries.length) return;
 
         const { width, height } = entries[0].contentRect;
-        setSvgWidth(width);
-        setSvgHeight(Math.max(height, layoutConfig.MIN_HEIGHT)); // Use layout config
+        // Only update if dimensions are meaningful (avoid 0 width during initial render)
+        if (width > 0 && height > 0) {
+          setSvgWidth(width);
+          setSvgHeight(Math.max(height, layoutConfig.MIN_HEIGHT));
+        }
       });
 
       resizeObserver.observe(containerRef.current);
@@ -141,7 +134,7 @@ export const PipelineVisualization = forwardRef<
       return () => {
         resizeObserver.disconnect();
       };
-    }, []);
+    }, [layoutConfig.MIN_HEIGHT]);
 
     // Update dimensions when props change
     useEffect(() => {
@@ -878,9 +871,9 @@ export const PipelineVisualization = forwardRef<
     };
 
     return (
-      <div className={`flex w-full flex-col ${compact ? "" : "xl:flex-row xl:gap-6"}`}>
-        {/* Visualization Container - Left side on desktop */}
-        <div className={`flex w-full flex-col items-center ${compact ? "" : "xl:w-3/4"}`}>
+      <div className={`flex w-full flex-col ${compact ? "" : "gap-6"}`}>
+        {/* Visualization Container - Full width */}
+        <div className={`flex w-full flex-col items-center`}>
           {/* Header with time and metrics - hidden in compact mode */}
           {!compact && (
             <div className="mb-2 flex w-full flex-col justify-between md:flex-row md:items-center">
@@ -1055,11 +1048,13 @@ export const PipelineVisualization = forwardRef<
           </div>
         </div>
 
-        {/* Controls and Instructions Container - Right side on desktop */}
+        {/* Controls and Instructions Container - Bottom of visualization */}
         {!compact && (
-          <div className="flex w-full flex-col xl:sticky xl:top-4 xl:w-1/4 xl:self-start">
-            <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex w-full flex-col">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
+              
+              {/* Control buttons */}
               <div className="mb-4 flex flex-wrap gap-3">
                 <button
                   onClick={handleStepForward}
@@ -1097,207 +1092,39 @@ export const PipelineVisualization = forwardRef<
                 </span>
               </div>
 
-              {/* Speed Control */}
-              <div className="mb-4">
-                <h3 className="mb-2 font-semibold">Simulation Speed</h3>
-                <select
-                  value={simulationSpeed}
-                  onChange={(e) => setSimulationSpeed(Number(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none"
-                >
-                  {TIMING_CONFIG.SPEED_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} - {option.description}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Mode Selection */}
-              {FEATURE_FLAGS.SHOW_MODE_SELECTION && (
-                <div className="mb-4">
-                  <h3 className="mb-2 font-semibold">Execution Mode</h3>
-                  <div className="space-y-3">
-                    <label className="inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        checked={isPipelined}
-                        onChange={togglePipelineMode}
-                        className="peer sr-only"
-                      />
-                      <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                      <span className="ml-3 text-sm font-medium">Pipelined Execution</span>
-                    </label>
-                    <p className="ml-14 text-xs text-gray-600">
-                      {isPipelined
-                        ? "Tasks overlap in time - stages execute in parallel"
-                        : "Tasks execute one at a time - each task completes before the next begins"}
-                    </p>
-
-                    {/* Superscalar toggle, only available in pipelined mode and when enabled by feature flag */}
-                    {isPipelined && FEATURE_FLAGS.SHOW_SUPERSCALAR_TOGGLE && (
-                      <>
-                        <label className="inline-flex cursor-pointer items-center">
-                          <input
-                            type="checkbox"
-                            checked={isSuperscalarActive}
-                            onChange={() => {
-                              setIsSuperscalarActive(!isSuperscalarActive);
-                              // Reset simulation state but preserve current instruction list
-                              setCycles(-1);
-                              setIsRunning(false);
-                              setPipelineInstructions(prevInstructions =>
-                                prevInstructions.map((instr, index) => {
-                                  if (isPipelined) {
-                                    if (!isSuperscalarActive) { // Will be active after toggle
-                                      return {
-                                        ...instr,
-                                        currentStage: 0,
-                                        startCycle: Math.floor(index / superscalarFactor),
-                                        stalled: false,
-                                        isCompleted: false,
-                                        registers: instr.registers,
-                                      };
-                                    } else {
-                                      return {
-                                        ...instr,
-                                        currentStage: 0,
-                                        startCycle: index,
-                                        stalled: false,
-                                        isCompleted: false,
-                                        registers: instr.registers,
-                                      };
-                                    }
-                                  } else {
-                                    return {
-                                      ...instr,
-                                      currentStage: 0,
-                                      startCycle: undefined,
-                                      stalled: false,
-                                      isCompleted: false,
-                                      registers: instr.registers,
-                                    };
-                                  }
-                                })
-                              );
-                            }}
-                            className="peer sr-only"
-                          />
-                          <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                          <span className="ml-3 text-sm font-medium">
-                            <span className="flex items-center gap-2">
-                              Superscalar Mode ({superscalarFactor}-way)
-                              {isSuperscalarActive && (
-                                <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                                  {superscalarFactor}x
-                                </span>
-                              )}
-                            </span>
-                          </span>
-                        </label>
-                        <p className="ml-14 text-xs text-gray-600">
-                          {isSuperscalarActive
-                            ? "Multiple tasks can start simultaneously"
-                            : "Only one task can start per time period"}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Visual Symbols Legend */}
-              <div className="visual-elements-legend mb-4">
-                <h3 className="mb-2 font-semibold">Visual Elements Legend</h3>
-                <div className="space-y-3 text-sm">
-                  {/* Stage Icons Section */}
-                  <div>
-                    <div className="mb-2 font-medium">Pipeline Stages:</div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                      {PIPELINE_STAGES.map((stageName, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2 rounded bg-gray-50 p-2"
-                        >
-                          <div
-                            className="flex h-8 w-8 items-center justify-center rounded border border-gray-300"
-                            style={{ backgroundColor: STAGE_COLORS[index], opacity: 0.7 }}
-                          >
-                            <img src={STAGE_IMAGES[index]} alt={stageName} className="h-6 w-6" />
-                          </div>
-                          <span className="text-xs font-medium">{stageName}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Instruction Management UI */}
-              <div className="pipeline-instructions-section mb-4">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-lg font-medium">Tasks</h3>
-
-                  <button
-                    onClick={() => setShowAddForm(!showAddForm)}
-                    className="flex items-center rounded bg-purple-500 px-3 py-1 text-sm text-white hover:bg-purple-600"
-                  >
-                    {showAddForm ? "Cancel" : "Add Task"}
-                    {!showAddForm && (
-                      <svg
-                        className="ml-1 h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                        />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-
-                {showAddForm && (
-                  <div className="mb-4 flex flex-col gap-2 rounded bg-gray-50 p-3 md:flex-row">
-                    <input
-                      type="text"
-                      value={newInstructionName}
-                      onChange={(e) => setNewInstructionName(e.target.value)}
-                      placeholder="Enter task name (e.g., Task E)"
-                      className="flex-grow rounded border border-gray-300 px-3 py-2"
-                    />
-                    <button
-                      onClick={handleAddInstruction}
-                      disabled={!newInstructionName.trim()}
-                      className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+              {/* Grid layout for controls - 2 columns with tasks taking full height */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                
+                {/* First Column: Speed Control and Tasks */}
+                <div>
+                  {/* Speed Control */}
+                  <div className="mb-4">
+                    <h3 className="mb-2 font-semibold">Simulation Speed</h3>
+                    <select
+                      value={simulationSpeed}
+                      onChange={(e) => setSimulationSpeed(Number(e.target.value))}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none"
                     >
-                      Add
-                    </button>
+                      {TIMING_CONFIG.SPEED_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label} - {option.description}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                )}
 
-                <div className="max-h-40 overflow-y-auto rounded border border-gray-200">
-                  <ul className="divide-y divide-gray-200">
-                    {pipelineInstructions.map((instr) => (
-                      <li key={instr.id} className="flex items-center justify-between px-3 py-2">
-                        <div className="flex items-center">
-                          <div className="mr-2 h-4 w-4 rounded border border-gray-400 bg-gray-100"></div>
-                          <span>
-                            <strong>{instr.name}</strong>
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveInstruction(instr.id)}
-                          className="text-red-500 hover:text-red-700"
-                          title="Remove task"
-                        >
+                  {/* Task Management */}
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-semibold">Tasks</h3>
+                      <button
+                        onClick={() => setShowAddForm(!showAddForm)}
+                        className="flex items-center rounded bg-purple-500 px-3 py-1 text-sm text-white hover:bg-purple-600"
+                      >
+                        {showAddForm ? "Cancel" : "Add Task"}
+                        {!showAddForm && (
                           <svg
-                            className="h-5 w-5"
+                            className="ml-1 h-4 w-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1307,13 +1134,190 @@ export const PipelineVisualization = forwardRef<
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                             />
                           </svg>
+                        )}
+                      </button>
+                    </div>
+
+                    {showAddForm && (
+                      <div className="mb-4 flex flex-col gap-2 rounded bg-gray-50 p-3 md:flex-row">
+                        <input
+                          type="text"
+                          value={newInstructionName}
+                          onChange={(e) => setNewInstructionName(e.target.value)}
+                          placeholder="Enter task name (e.g., Task E)"
+                          className="flex-grow rounded border border-gray-300 px-3 py-2"
+                        />
+                        <button
+                          onClick={handleAddInstruction}
+                          disabled={!newInstructionName.trim()}
+                          className="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+                        >
+                          Add
                         </button>
-                      </li>
-                    ))}
-                  </ul>
+                      </div>
+                    )}
+
+                    <div className="max-h-48 overflow-y-auto rounded border border-gray-200">
+                      <ul className="divide-y divide-gray-200">
+                        {pipelineInstructions.map((instr) => (
+                          <li key={instr.id} className="flex items-center justify-between px-3 py-2">
+                            <div className="flex items-center">
+                              <div className="mr-2 h-4 w-4 rounded border border-gray-400 bg-gray-100"></div>
+                              <span>
+                                <strong>{instr.name}</strong>
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveInstruction(instr.id)}
+                              className="text-red-500 hover:text-red-700"
+                              title="Remove task"
+                            >
+                              <svg
+                                className="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Second Column: Execution Mode and Visual Elements */}
+                <div>
+                  {/* Mode Selection */}
+                  {FEATURE_FLAGS.SHOW_MODE_SELECTION && (
+                    <div className="mb-4">
+                      <h3 className="mb-2 font-semibold">Execution Mode</h3>
+                      <div className="space-y-3">
+                        <label className="inline-flex cursor-pointer items-center">
+                          <input
+                            type="checkbox"
+                            checked={isPipelined}
+                            onChange={togglePipelineMode}
+                            className="peer sr-only"
+                          />
+                          <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                          <span className="ml-3 text-sm font-medium">Pipelined Execution</span>
+                        </label>
+                        <p className="ml-14 text-xs text-gray-600">
+                          {isPipelined
+                            ? "Tasks overlap in time - stages execute in parallel"
+                            : "Tasks execute one at a time - each task completes before the next begins"}
+                        </p>
+
+                        {/* Superscalar toggle, only available in pipelined mode and when enabled by feature flag */}
+                        {isPipelined && FEATURE_FLAGS.SHOW_SUPERSCALAR_TOGGLE && (
+                          <>
+                            <label className="inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                checked={isSuperscalarActive}
+                                onChange={() => {
+                                  setIsSuperscalarActive(!isSuperscalarActive);
+                                  // Reset simulation state but preserve current instruction list
+                                  setCycles(-1);
+                                  setIsRunning(false);
+                                  setPipelineInstructions(prevInstructions =>
+                                    prevInstructions.map((instr, index) => {
+                                      if (isPipelined) {
+                                        if (!isSuperscalarActive) { // Will be active after toggle
+                                          return {
+                                            ...instr,
+                                            currentStage: 0,
+                                            startCycle: Math.floor(index / superscalarFactor),
+                                            stalled: false,
+                                            isCompleted: false,
+                                            registers: instr.registers,
+                                          };
+                                        } else {
+                                          return {
+                                            ...instr,
+                                            currentStage: 0,
+                                            startCycle: index,
+                                            stalled: false,
+                                            isCompleted: false,
+                                            registers: instr.registers,
+                                          };
+                                        }
+                                      } else {
+                                        return {
+                                          ...instr,
+                                          currentStage: 0,
+                                          startCycle: undefined,
+                                          stalled: false,
+                                          isCompleted: false,
+                                          registers: instr.registers,
+                                        };
+                                      }
+                                    })
+                                  );
+                                }}
+                                className="peer sr-only"
+                              />
+                              <div className="peer relative h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-purple-600 peer-focus:ring-4 peer-focus:ring-purple-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                              <span className="ml-3 text-sm font-medium">
+                                <span className="flex items-center gap-2">
+                                  Superscalar Mode ({superscalarFactor}-way)
+                                  {isSuperscalarActive && (
+                                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                                      {superscalarFactor}x
+                                    </span>
+                                  )}
+                                </span>
+                              </span>
+                            </label>
+                            <p className="ml-14 text-xs text-gray-600">
+                              {isSuperscalarActive
+                                ? "Multiple tasks can start simultaneously"
+                                : "Only one task can start per time period"}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Visual Symbols Legend */}
+                  <div className="visual-elements-legend">
+                    <h3 className="mb-2 font-semibold">Visual Elements Legend</h3>
+                    <div className="space-y-3 text-sm">
+                      {/* Stage Icons Section */}
+                      <div>
+                        <div className="mb-2 font-medium">Pipeline Stages:</div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {PIPELINE_STAGES.map((stageName, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center space-x-2 rounded bg-gray-50 p-2"
+                            >
+                              <div
+                                className="flex h-8 w-8 items-center justify-center rounded border border-gray-300"
+                                style={{ backgroundColor: STAGE_COLORS[index], opacity: 0.7 }}
+                              >
+                                <img src={STAGE_IMAGES[index]} alt={stageName} className="h-6 w-6" />
+                              </div>
+                              <span className="text-xs font-medium">{stageName}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

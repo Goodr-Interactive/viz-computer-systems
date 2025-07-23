@@ -18,4 +18,3 @@ The address range is limited (0–255), and input validation is minimal.
 Each core has its own list of variables, but variables can be assigned to the same address for sharing.
 
 The UI does not model cache coherence protocols (MESI, MOESI, etc.), only highlights sharing scenarios.
-

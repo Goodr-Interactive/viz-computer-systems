@@ -11,7 +11,7 @@ export const PipeliningComparisonPage: React.FunctionComponent = () => {
             Pipelining vs Sequential: Comparison
           </h1>
           <div className="mx-auto max-w-4xl">
-            <p className="text-lg text-gray-700 mb-2">
+            <p className="mb-2 text-lg text-gray-700">
               From Hennessy & Patterson's "Computer Organization and Design"
             </p>
           </div>

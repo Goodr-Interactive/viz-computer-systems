@@ -18,7 +18,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
   // Shared state for both visualizations
   const [sharedCycles, setSharedCycles] = useState<number>(-1);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  
+
   // Refs to control the child components directly
   const sequentialRef = useRef<PipelineVisualizationRef>(null);
   const pipelinedRef = useRef<PipelineVisualizationRef>(null);
@@ -28,7 +28,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
     if (!isRunning) return;
 
     const timer = setTimeout(() => {
-      setSharedCycles(prev => prev + 1);
+      setSharedCycles((prev) => prev + 1);
       // Also step both visualizations
       sequentialRef.current?.stepForward();
       pipelinedRef.current?.stepForward();
@@ -39,14 +39,14 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
 
   // Shared control handlers
   const handleSharedStepForward = () => {
-    setSharedCycles(prev => prev + 1);
+    setSharedCycles((prev) => prev + 1);
     // Directly call step forward on both visualizations
     sequentialRef.current?.stepForward();
     pipelinedRef.current?.stepForward();
   };
 
   const handleSharedToggleRun = () => {
-    setIsRunning(prev => !prev);
+    setIsRunning((prev) => !prev);
     // Directly call toggle run on both visualizations
     sequentialRef.current?.toggleRun();
     pipelinedRef.current?.toggleRun();
@@ -61,37 +61,37 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4">
+    <div className="mx-auto w-full max-w-4xl space-y-4">
       {/* Header with shared controls */}
-      <div className="bg-gray-50 border rounded-lg p-3">
-        <div className="flex items-center justify-center mb-">
+      <div className="rounded-lg border bg-gray-50 p-3">
+        <div className="mb- flex items-center justify-center">
           {/* Shared Controls */}
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-700">Controls:</span>
             <button
               onClick={handleSharedStepForward}
-              className="flex items-center gap-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 text-sm"
+              className="flex items-center gap-2 rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
               title="Step Forward One Cycle (Both Visualizations)"
             >
               <span>Step →</span>
             </button>
             <button
               onClick={handleSharedToggleRun}
-              className={`flex items-center gap-2 rounded px-4 py-2 text-white text-sm ${
+              className={`flex items-center gap-2 rounded px-4 py-2 text-sm text-white ${
                 isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
               }`}
               title={isRunning ? "Pause Auto Run (Both)" : "Run Automatically (Both)"}
             >
-              <img 
-                src={isRunning ? pauseSvg : playSvg} 
-                alt={isRunning ? "Pause" : "Play"} 
-                className="h-4 w-4" 
+              <img
+                src={isRunning ? pauseSvg : playSvg}
+                alt={isRunning ? "Pause" : "Play"}
+                className="h-4 w-4"
               />
               <span>{isRunning ? "Pause" : "Auto"}</span>
             </button>
             <button
               onClick={handleSharedReset}
-              className="flex items-center gap-2 rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600 text-sm"
+              className="flex items-center gap-2 rounded bg-gray-500 px-4 py-2 text-sm text-white hover:bg-gray-600"
               title="Reset Both Simulations"
             >
               <img src={resetSvg} alt="Reset" className="h-4 w-4" />
@@ -102,9 +102,9 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
       </div>
 
       {/* Combined Visualization Container - Stacked Layout */}
-      <div className="space-y-3 flex flex-col items-center">
+      <div className="flex flex-col items-center space-y-3">
         {/* Sequential (Non-Pipelined) Version */}
-        <div className="bg-white rounded border w-full max-w-3xl">
+        <div className="w-full max-w-3xl rounded border bg-white">
           <div className="combined-viz">
             <PipelineVisualization
               ref={sequentialRef}
@@ -118,7 +118,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
         </div>
 
         {/* Pipelined Version */}
-        <div className="bg-white rounded border w-full max-w-3xl">
+        <div className="w-full max-w-3xl rounded border bg-white">
           <div className="combined-viz">
             <PipelineVisualization
               ref={pipelinedRef}

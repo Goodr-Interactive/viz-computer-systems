@@ -11,7 +11,7 @@ export const PipeliningThroughputPage: React.FunctionComponent = () => {
             Pipeline Throughput: Impact of Workload Size
           </h1>
           <div className="mx-auto max-w-5xl">
-            <p className="text-lg text-gray-700 mb-4">
+            <p className="mb-4 text-lg text-gray-700">
               From Hennessy & Patterson's "Computer Organization and Design"
             </p>
           </div>

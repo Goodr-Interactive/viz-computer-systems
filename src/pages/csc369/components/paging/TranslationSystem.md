@@ -16,17 +16,20 @@ Everything is chosen randomly (within limits), so each run gives a new scenario.
 ## 2. Key Parameters and Derived Values
 
 1. **Page Size (bytes)**
+
    - Example: 4 KB (4 096 bytes)
    - Determines how many bits are used for the offset.
    - ‣ `offsetBits = log₂(4096) = 12 bits` (because 2¹² = 4096).
 
 2. **Physical Memory Size (bytes)**
+
    - Example: 16 MB (16 × 1 048 576 = 16 777 216 bytes)
    - Determines how many total pages fit in RAM.
    - ‣ `totalPages = 16 777 216 / 4096 = 4096 pages`
    - ‣ `pfnBits = log₂(4096) = 12 bits` (because PFN must identify one of those 4096 frames).
 
 3. **Entries per Page Table**
+
    - Each page table is one page in memory (4096 bytes).
    - Each entry is 4 bytes.
    - ‣ `numEntries = 4096 / 4 = 1024 entries per table`
@@ -44,10 +47,12 @@ Everything is chosen randomly (within limits), so each run gives a new scenario.
 To build a valid translation path, we need exactly one PFN for each level of page table + one PFN for the final data page.
 
 1. **Pick Random PFNs**
+
    - We draw random numbers between `0` and `totalPages – 1`.
    - In our example, that’s between `0` and `4095`.
 
 2. **Avoid Collisions**
+
    - If a PFN is already “taken,” we skip it and draw again.
    - We repeat until we have exactly `(levels + 1)` distinct PFNs.
 
@@ -64,14 +69,17 @@ To build a valid translation path, we need exactly one PFN for each level of pag
 For each level (starting at the root), we create one page-table page as follows:
 
 1. **Decide How Many Entries to Put (`numEntriesPerLevel`)**
+
    - By default, we pick 7 entries at each level (configurable).
    - These 7 entries will occupy a random contiguous block inside the 1024 possible slots.
 
 2. **Choose a Random `startIndex`**
+
    - `startIndex` is where this block of 7 entries begins.
    - We randomly pick `startIndex` between `0` and `(1024 – 7)` (here, up to 1017).
 
 3. **Fill Each of the 7 Entries**
+
    - For each of those 7 slots:
      1. **Pick a random candidate PFN** between `0` and `4095`.
      2. **Decide if it’s valid**:
@@ -84,6 +92,7 @@ For each level (starting at the root), we create one page-table page as follows:
         - If we’re an intermediate level (PDEs), `rwx = null`.
 
 4. **Insert the One “Correct” Entry**
+
    - Pick a random index among those 7.
    - Overwrite that entry with:
      - `pfn = nextLevelPfn` (the PFN we reserved for the next table or data page).
@@ -105,10 +114,12 @@ Repeat for each level until you’ve connected all levels down to the final data
 When you inspect an entry that wasn’t on the “correct” path, the system may not have built that table yet. In that case, it **generates a page table on demand**:
 
 1. **Check for Existing Table**
+
    - Call `getPageTableForDisplay(pfn, currentLevel)`.
    - If the map already has a populated `PageTable` for that `pfn`, return it.
 
 2. **Generate a New Table**
+
    - If there’s no existing table (or it’s empty), call `populatePageTableOnDemand(pfn, currentLevel)`.
    - This method does:
      1. **Ensure `currentLevel < pageTableLevels`** (no extra levels beyond the configured ones).

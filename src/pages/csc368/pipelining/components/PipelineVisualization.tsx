@@ -504,8 +504,9 @@ export const PipelineVisualization = forwardRef<
     const handleReset = () => {
       setIsRunning(false);
       setCycles(-1);
-      setPipelineInstructions(
-        instructions.map((instr, index) => {
+      // Reset simulation state while preserving current instruction list
+      setPipelineInstructions(prevInstructions =>
+        prevInstructions.map((instr, index) => {
           if (isPipelined) {
             if (isSuperscalarActive) {
               return {
@@ -556,7 +557,42 @@ export const PipelineVisualization = forwardRef<
       if (isPipelined) {
         setIsSuperscalarActive(false);
       }
-      handleReset();
+      // Reset simulation state but preserve current instruction list
+      setCycles(-1);
+      setPipelineInstructions(prevInstructions =>
+        prevInstructions.map((instr, index) => {
+          if (!isPipelined) { // Will be pipelined after toggle
+            if (isSuperscalarActive) {
+              return {
+                ...instr,
+                currentStage: 0,
+                startCycle: Math.floor(index / superscalarFactor),
+                stalled: false,
+                isCompleted: false,
+                registers: instr.registers,
+              };
+            } else {
+              return {
+                ...instr,
+                currentStage: 0,
+                startCycle: index,
+                stalled: false,
+                isCompleted: false,
+                registers: instr.registers,
+              };
+            }
+          } else {
+            return {
+              ...instr,
+              currentStage: 0,
+              startCycle: undefined,
+              stalled: false,
+              isCompleted: false,
+              registers: instr.registers,
+            };
+          }
+        })
+      );
     };
 
     // Add instruction handlers
@@ -1107,7 +1143,43 @@ export const PipelineVisualization = forwardRef<
                             checked={isSuperscalarActive}
                             onChange={() => {
                               setIsSuperscalarActive(!isSuperscalarActive);
-                              handleReset();
+                              // Reset simulation state but preserve current instruction list
+                              setCycles(-1);
+                              setIsRunning(false);
+                              setPipelineInstructions(prevInstructions =>
+                                prevInstructions.map((instr, index) => {
+                                  if (isPipelined) {
+                                    if (!isSuperscalarActive) { // Will be active after toggle
+                                      return {
+                                        ...instr,
+                                        currentStage: 0,
+                                        startCycle: Math.floor(index / superscalarFactor),
+                                        stalled: false,
+                                        isCompleted: false,
+                                        registers: instr.registers,
+                                      };
+                                    } else {
+                                      return {
+                                        ...instr,
+                                        currentStage: 0,
+                                        startCycle: index,
+                                        stalled: false,
+                                        isCompleted: false,
+                                        registers: instr.registers,
+                                      };
+                                    }
+                                  } else {
+                                    return {
+                                      ...instr,
+                                      currentStage: 0,
+                                      startCycle: undefined,
+                                      stalled: false,
+                                      isCompleted: false,
+                                      registers: instr.registers,
+                                    };
+                                  }
+                                })
+                              );
                             }}
                             className="peer sr-only"
                           />

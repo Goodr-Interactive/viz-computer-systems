@@ -7,6 +7,7 @@ interface Props {
 }
 
 export const Timeline: React.FunctionComponent<Props> = ({ controller }) => {
+  console.log(controller);
   const processEvents = _.groupBy(
     controller.events.filter((e) => e.type !== EventType.TIMER_INTERRUPT),
     (e) => e.pid
@@ -28,8 +29,6 @@ export const Timeline: React.FunctionComponent<Props> = ({ controller }) => {
   };
 
   const height = `${(100 / controller.processes.length).toFixed(2)}%`;
-
-  console.log(groupedEvents);
 
   if (
     groupedEvents.some((group) =>

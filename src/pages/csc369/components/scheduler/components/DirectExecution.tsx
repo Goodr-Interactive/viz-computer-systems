@@ -85,18 +85,18 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
       </div>
       <div className="flex h-full w-full items-center justify-center">
         {controller.processes.length && controller.processes.every((p) => p.completedAt) ? (
-            <Tabs defaultValue="metrics" className="w-full h-full">
-              <TabsList>
-                <TabsTrigger value="metrics">Metrics</TabsTrigger>
-                <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              </TabsList>
-              <TabsContent value="metrics">
-                <PerformanceChart processes={controller.processes} clock={controller.clock} />
-              </TabsContent>
-              <TabsContent value="timeline">
-                <Timeline controller={controller} />
-              </TabsContent>
-            </Tabs>
+          <Tabs defaultValue="metrics" className="h-full w-full">
+            <TabsList>
+              <TabsTrigger value="metrics">Metrics</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            </TabsList>
+            <TabsContent value="metrics">
+              <PerformanceChart processes={controller.processes} clock={controller.clock} />
+            </TabsContent>
+            <TabsContent value="timeline">
+              <Timeline controller={controller} />
+            </TabsContent>
+          </Tabs>
         ) : controller.quiz.question ? (
           <QuizDisplay question={controller.quiz.question} controller={controller} />
         ) : (

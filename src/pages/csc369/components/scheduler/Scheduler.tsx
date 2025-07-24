@@ -39,7 +39,7 @@ export const Scheduler: React.FunctionComponent<Props> = ({ allowedAlgorithms })
           </ResizablePanel>
         </ResizablePanelGroup>
         <ResizableHandle />
-        <ResizablePanelGroup className="max-h-[150px]" direction="horizontal">
+        <ResizablePanelGroup className="max-h-[170px]" direction="horizontal">
           <ResizablePanel>
             <SchedulerSettings controller={controller} />
           </ResizablePanel>

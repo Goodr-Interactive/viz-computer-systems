@@ -1,7 +1,7 @@
 import { EventType, ProcessStatus, type Process } from "./types";
 
 export const getWaitTime = (process: Process, now: number): number => {
-  return (process.completedAt ?? now) - process.enquedAt - process.vruntime;
+  return (process.completedAt ?? Math.max(now - 100, 0)) - process.enquedAt - process.vruntime;
 };
 
 export const getTurnaroundTime = (process: Process, now: number): number => {

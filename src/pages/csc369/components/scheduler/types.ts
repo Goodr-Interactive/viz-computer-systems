@@ -87,4 +87,6 @@ export interface SchedulerController {
   lastRun?: Process;
   nextRun?: Process;
   events: SchedulerEvent[];
+  contextSwitchDurationDisabled: boolean;
+  setContextSwitchDurationDisabled: (csd: boolean) => void;
 }

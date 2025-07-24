@@ -38,7 +38,7 @@ export const PerformanceChart: React.FunctionComponent<Props> = ({ processes, cl
   } satisfies ChartConfig;
 
   return (
-    <ChartContainer config={chartConfig} className="h-[200px] w-full">
+    <ChartContainer config={chartConfig} className="h-[300px] w-full">
       <BarChart accessibilityLayer data={chartData}>
         <CartesianGrid vertical={false} />
         <ChartLegend />

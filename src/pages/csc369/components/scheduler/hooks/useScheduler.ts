@@ -7,6 +7,7 @@ import {
   ProcessStatus,
   EventType,
   PREEMPTIVE_ALGORITHMS,
+  type SchedulerEvent,
 } from "../types";
 import { minBy, sampleSize, shuffle } from "lodash";
 import { useQuizMode } from "./useQuizMode";
@@ -26,6 +27,12 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
   ]);
   const [lastRun, setLastRun] = useState<Process>();
   const [nextRun, setNextRun] = useState<Process>();
+
+  const [events, setEvents] = useState<Array<SchedulerEvent>>([]);
+
+  const addEvent = (event: SchedulerEvent) => {
+    setEvents(e => [...e, event]);
+  }
 
   const setContextSwitchDuration = (csd: number) => {
     _setContextSwitchDuration(csd);
@@ -58,6 +65,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     setContextSwitchTimes([0, contextSwitchDuration * 1000]);
     setLastRun(undefined);
     setNextRun(undefined);
+    setEvents([]);
   };
 
   const skipForward = () => {};
@@ -127,6 +135,11 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
       p.map((process) => {
         if (process.pid === pid && process.status === ProcessStatus.RUNNING) {
           const isComplete = willComplete(process);
+          addEvent({
+            pid,
+            timestamp: now,
+            type: isComplete ? EventType.EXITED : EventType.SUSPENDED
+          });
           return {
             ...process,
             vruntime: isComplete ? process.duration * 1000 : process.vruntime,
@@ -144,6 +157,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
         return process;
       })
     );
+    
   };
 
   const execute = (pid: number, now: number) => {
@@ -165,6 +179,11 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
         return process;
       })
     );
+    addEvent({
+      pid,
+      timestamp: now,
+      type: EventType.EXECUTED
+    });
   };
 
   const willComplete = (process: Process) => {
@@ -198,6 +217,11 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     if (running) {
       setLastRun(running);
       suspend(running.pid, now);
+      addEvent({
+        pid: running.pid,
+        timestamp: now,
+        type: EventType.TIMER_INTERRUPT
+      })
     }
     const next =
       nextProcess(
@@ -248,5 +272,6 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     contextSwitchTimes,
     lastRun,
     nextRun,
+    events
   };
 };

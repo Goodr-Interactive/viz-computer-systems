@@ -6,7 +6,8 @@ import { Scheduler } from "./pages/csc369/components";
 // operating system pages
 import { SimplePaging } from "./pages/csc369/SimplePaging";
 import { TranslationExampleNew } from "./pages/csc369/TranslationExampleNew";
-import { FileSystemExample } from "./pages/csc369/components/fileSystem/FileSystemExample";
+import { FileSystemExample } from "./pages/csc369/FileSystemExample";
+import { LinkComparison } from "./pages/csc369/LinkComparison";
 
 // computer architecture pages
 import { CSC368 } from "./pages/csc368/CSC368";
@@ -141,6 +142,12 @@ export const ROUTES: AppRoute[] = [
     title: "File System Lookup",
     description: "",
     element: <FileSystemExample />,
+  },
+  {
+    path: "/csc369/filesystem/links",
+    title: "File System Links",
+    description: "",
+    element: <LinkComparison />,
   },
 ];
 

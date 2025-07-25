@@ -11,16 +11,18 @@ import { Folder, File, ArrowRight } from "lucide-react";
 import type { FileSystem } from "../FileSystem";
 import { TitleWithTooltip } from "./TitleWithTooltip";
 
-interface DirectoryDataViewProps {
+interface EnhancedDirectoryDataViewProps {
   blockIndex: number;
   fileSystem: FileSystem;
   onDirectoryRowClick: (inodeNumber: number) => void;
+  highlightedEntries?: Set<string>;
 }
 
-export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
+export const EnhancedDirectoryDataView: React.FC<EnhancedDirectoryDataViewProps> = ({
   blockIndex,
   fileSystem,
   onDirectoryRowClick,
+  highlightedEntries,
 }) => {
   const entries = fileSystem.getDirectoryEntriesFromBlock(blockIndex);
   const [hoveredEntry, setHoveredEntry] = useState<string | null>(null);
@@ -40,19 +42,37 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
             {entries.length > 0 ? (
               entries.map((entry) => {
                 const isDirectory = fileSystem.isDirectory(entry.inode);
+                const isHighlighted = highlightedEntries?.has(entry.name) || false;
                 const icon = isDirectory ? (
                   <Folder size={16} className="text-blue-400" />
                 ) : (
-                  <File size={16} className="text-pink-400" />
+                  <File
+                    size={16}
+                    className={`${isHighlighted ? "text-orange-400" : "text-pink-400"}`}
+                  />
                 );
+
+                // Determine styling based on highlighting
+                let borderColor, bgColor, hoverColor;
+                if (isHighlighted) {
+                  borderColor = "border-orange-400";
+                  bgColor = "bg-orange-50";
+                  hoverColor = "bg-orange-100";
+                } else if (isDirectory) {
+                  borderColor = "border-blue-200";
+                  bgColor = "bg-blue-50";
+                  hoverColor = "bg-blue-100";
+                } else {
+                  borderColor = "border-pink-200";
+                  bgColor = "bg-pink-50";
+                  hoverColor = "bg-pink-100";
+                }
 
                 return (
                   <div
                     key={entry.name}
-                    className={`flex h-8 items-center gap-2.5 border px-2 py-1 text-sm transition-colors ${
-                      isDirectory ? "border-blue-200 bg-blue-50" : "border-pink-200 bg-pink-50"
-                    } ${
-                      hoveredEntry === entry.name && (isDirectory ? "bg-blue-100" : "bg-pink-100")
+                    className={`flex h-8 items-center gap-2.5 border px-2 py-1 text-sm transition-colors ${borderColor} ${bgColor} ${
+                      hoveredEntry === entry.name ? hoverColor : ""
                     }`}
                     onMouseEnter={() => setHoveredEntry(entry.name)}
                     onMouseLeave={() => setHoveredEntry(null)}
@@ -61,6 +81,9 @@ export const DirectoryDataView: React.FC<DirectoryDataViewProps> = ({
                     <span className="truncate font-mono font-medium" title={entry.name}>
                       {entry.name}
                     </span>
+                    {isHighlighted && (
+                      <span className="font-mono text-xs font-medium text-orange-600">NEW</span>
+                    )}
                     <div className="flex-grow" />
                     <ArrowRight
                       size={16}

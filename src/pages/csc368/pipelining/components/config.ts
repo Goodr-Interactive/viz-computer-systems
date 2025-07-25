@@ -35,7 +35,7 @@ export const FEATURE_FLAGS = {
   SHOW_SUPERSCALAR_TOGGLE: false,
 
   // Enable/disable current cycle indicator
-  SHOW_CYCLES_INDICATOR: false,
+  SHOW_CYCLES_INDICATOR: true,
 };
 
 /**

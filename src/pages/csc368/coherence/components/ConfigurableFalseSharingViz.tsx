@@ -322,7 +322,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
               } else if (hasP1Access) {
                 lineColor = animationState === "p1" ? "#ef4444" : "#6b7280"; // Red when P1 active
               } else if (hasP2Access) {
-                lineColor = animationState === "p2" ? "#ef4444" : "#6b7280"; // Red when P2 active
+                lineColor = animationState === "p2" ? "#3b82f6" : "#6b7280"; // Blue when P2 active
               } else {
                 lineColor = "#3b82f6"; // Blue for active but no access
               }
@@ -457,7 +457,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
                         scenario === "no-sharing"
                           ? "#6b7280"
                           : animationState === "p2"
-                            ? "#ef4444"
+                            ? "#3b82f6"
                             : "#6b7280"
                       }
                       fontWeight="bold"
@@ -475,7 +475,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
                         scenario === "no-sharing"
                           ? "#6b7280"
                           : animationState === "p2"
-                            ? "#ef4444"
+                            ? "#3b82f6"
                             : "#6b7280"
                       }
                       strokeWidth="2"
@@ -524,7 +524,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
                   scenario === "no-sharing"
                     ? "#6b7280"
                     : animationState === "p2"
-                      ? "#ef4444"
+                      ? "#3b82f6"
                       : "#6b7280"
                 }
                 className={scenario === "no-sharing" ? "" : "transition-all duration-500"}
@@ -548,7 +548,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <div
-                className="h-1 w-4 border-blue-500 bg-transparent"
+                className="h-1 w-4 border-gray-500 bg-transparent"
                 style={{ borderStyle: "dashed", borderWidth: "2px" }}
               ></div>
               <span className="text-gray-600">Active Cache Line</span>

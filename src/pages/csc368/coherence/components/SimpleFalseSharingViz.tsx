@@ -214,7 +214,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
           variant="secondary"
           className="text-sm font-semibold"
         >
-          Generate New Layout
+          Randomize Layout
         </Button>
       </div>
 
@@ -374,7 +374,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
                 scenario === "no-sharing"
                   ? "#6b7280"
                   : animationState === "p2"
-                    ? "#ef4444"
+                    ? "#3b82f6"
                     : "#6b7280"
               }
               fontWeight="bold"
@@ -391,7 +391,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
                 scenario === "no-sharing"
                   ? "#6b7280"
                   : animationState === "p2"
-                    ? "#ef4444"
+                    ? "#3b82f6"
                     : "#6b7280"
               }
               strokeWidth="2"
@@ -436,7 +436,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
                   scenario === "no-sharing"
                     ? "#6b7280"
                     : animationState === "p2"
-                      ? "#ef4444"
+                      ? "#3b82f6"
                       : "#6b7280"
                 }
                 className={scenario === "no-sharing" ? "" : "transition-all duration-500"}
@@ -490,7 +490,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <div
-                className="h-1 w-4 border-blue-500 bg-transparent"
+                className="h-1 w-4 border-gray-500 bg-transparent"
                 style={{ borderStyle: "dashed", borderWidth: "2px" }}
               ></div>
               <span className="text-gray-600">Active Cache Lines</span>

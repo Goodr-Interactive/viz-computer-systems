@@ -14,7 +14,6 @@ The main pipeline visualization code is located in `src/pages/csc368/pipelining/
 - **Component**: `PipelineVisualization`
 - **Features**: 4-stage pipeline simulation (Washer, Dryer, Folder, Storer), pipelined vs non-pipelined execution modes
 
-
 #### Pipeline Comparison Visualization (`pipelining-comparison.tsx`)
 
 - **Purpose**: Side-by-side comparison of pipelined vs sequential execution

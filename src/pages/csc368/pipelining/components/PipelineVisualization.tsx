@@ -69,7 +69,9 @@ export const PipelineVisualization = forwardRef<
     ref
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [svgWidth, setSvgWidth] = useState<number>(width || (typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.7, 1000) : 800));
+    const [svgWidth, setSvgWidth] = useState<number>(
+      width || (typeof window !== "undefined" ? Math.min(window.innerWidth * 0.7, 1000) : 800)
+    );
     const [svgHeight, setSvgHeight] = useState<number>(height || 600);
     const [cycles, setCycles] = useState<number>(-1);
     const [pipelineInstructions, setPipelineInstructions] = useState<Instruction[]>([]);
@@ -500,7 +502,7 @@ export const PipelineVisualization = forwardRef<
       setIsRunning(false);
       setCycles(-1);
       // Reset simulation state while preserving current instruction list
-      setPipelineInstructions(prevInstructions =>
+      setPipelineInstructions((prevInstructions) =>
         prevInstructions.map((instr, index) => {
           if (isPipelined) {
             if (isSuperscalarActive) {
@@ -554,9 +556,10 @@ export const PipelineVisualization = forwardRef<
       }
       // Reset simulation state but preserve current instruction list
       setCycles(-1);
-      setPipelineInstructions(prevInstructions =>
+      setPipelineInstructions((prevInstructions) =>
         prevInstructions.map((instr, index) => {
-          if (!isPipelined) { // Will be pipelined after toggle
+          if (!isPipelined) {
+            // Will be pipelined after toggle
             if (isSuperscalarActive) {
               return {
                 ...instr,
@@ -1055,7 +1058,7 @@ export const PipelineVisualization = forwardRef<
           <div className="flex w-full flex-col">
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <h2 className="mb-4 text-xl font-bold">Pipeline Controls</h2>
-              
+
               {/* Control buttons */}
               <div className="mb-4 flex flex-wrap gap-3">
                 <button
@@ -1102,7 +1105,6 @@ export const PipelineVisualization = forwardRef<
 
               {/* Grid layout for controls - 2 columns with tasks taking full height */}
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                
                 {/* First Column: Speed Control and Tasks */}
                 <div>
                   {/* Speed Control */}
@@ -1171,7 +1173,10 @@ export const PipelineVisualization = forwardRef<
                     <div className="max-h-48 overflow-y-auto rounded border border-gray-200">
                       <ul className="divide-y divide-gray-200">
                         {pipelineInstructions.map((instr) => (
-                          <li key={instr.id} className="flex items-center justify-between px-3 py-2">
+                          <li
+                            key={instr.id}
+                            className="flex items-center justify-between px-3 py-2"
+                          >
                             <div className="flex items-center">
                               <span>
                                 <strong>{instr.name}</strong>
@@ -1239,10 +1244,11 @@ export const PipelineVisualization = forwardRef<
                                   // Reset simulation state but preserve current instruction list
                                   setCycles(-1);
                                   setIsRunning(false);
-                                  setPipelineInstructions(prevInstructions =>
+                                  setPipelineInstructions((prevInstructions) =>
                                     prevInstructions.map((instr, index) => {
                                       if (isPipelined) {
-                                        if (!isSuperscalarActive) { // Will be active after toggle
+                                        if (!isSuperscalarActive) {
+                                          // Will be active after toggle
                                           return {
                                             ...instr,
                                             currentStage: 0,
@@ -1316,7 +1322,11 @@ export const PipelineVisualization = forwardRef<
                                 className="flex h-8 w-8 items-center justify-center rounded border border-gray-300"
                                 style={{ backgroundColor: STAGE_COLORS[index], opacity: 0.7 }}
                               >
-                                <img src={STAGE_IMAGES[index]} alt={stageName} className="h-6 w-6" />
+                                <img
+                                  src={STAGE_IMAGES[index]}
+                                  alt={stageName}
+                                  className="h-6 w-6"
+                                />
                               </div>
                               <span className="text-xs font-medium">{stageName}</span>
                             </div>

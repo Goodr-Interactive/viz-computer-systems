@@ -58,7 +58,7 @@ export const PipelineThroughputComparison: React.FC = () => {
 
   // State for responsive dimensions
   const [windowSize, setWindowSize] = useState<{ width: number; height: number }>(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       return { width: window.innerWidth, height: window.innerHeight };
     }
     return { width: 1200, height: 800 };
@@ -74,8 +74,8 @@ export const PipelineThroughputComparison: React.FC = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Update instructions when task count changes
@@ -122,7 +122,10 @@ export const PipelineThroughputComparison: React.FC = () => {
 
   // Calculate visualization dimensions based on task count
   // Prioritize fitting everything on screen without horizontal scrolling
-  const getVisualizationDimensions = (taskCount: number, windowSize?: { width: number; height: number }) => {
+  const getVisualizationDimensions = (
+    taskCount: number,
+    windowSize?: { width: number; height: number }
+  ) => {
     // Calculate how many cycles we'll need for the visualization
     const pipelinedCycles = taskCount + 3; // Pipeline: startup + tasks (3 stages overlap)
     const sequentialCycles = taskCount * 4; // Sequential: 4 stages per task
@@ -136,36 +139,45 @@ export const PipelineThroughputComparison: React.FC = () => {
     // Available viewport constraints - prioritize no horizontal scrolling
     // Use responsive breakpoints for different screen sizes
     const getViewportConstraints = () => {
-      const screenWidth = windowSize?.width || (typeof window !== 'undefined' ? window.innerWidth : 1200);
-      
-      if (screenWidth < 480) { // Mobile
-        return { 
+      const screenWidth =
+        windowSize?.width || (typeof window !== "undefined" ? window.innerWidth : 1200);
+
+      if (screenWidth < 480) {
+        // Mobile
+        return {
           maxWidth: screenWidth - 32, // Account for page padding
-          maxHeight: 350, 
-          minHeight: 180 
+          maxHeight: 350,
+          minHeight: 180,
         };
-      } else if (screenWidth < 768) { // Tablet
-        return { 
-          maxWidth: screenWidth - 48, 
-          maxHeight: 400, 
-          minHeight: 200 
+      } else if (screenWidth < 768) {
+        // Tablet
+        return {
+          maxWidth: screenWidth - 48,
+          maxHeight: 400,
+          minHeight: 200,
         };
-      } else if (screenWidth < 1024) { // Small desktop
-        return { 
-          maxWidth: screenWidth - 64, 
-          maxHeight: 450, 
-          minHeight: 220 
+      } else if (screenWidth < 1024) {
+        // Small desktop
+        return {
+          maxWidth: screenWidth - 64,
+          maxHeight: 450,
+          minHeight: 220,
         };
-      } else { // Large screens
-        return { 
-          maxWidth: 1200, 
-          maxHeight: 500, 
-          minHeight: 200 
+      } else {
+        // Large screens
+        return {
+          maxWidth: 1200,
+          maxHeight: 500,
+          minHeight: 200,
         };
       }
     };
 
-    const { maxWidth: maxViewportWidth, maxHeight: maxViewportHeight, minHeight: minViewportHeight } = getViewportConstraints();
+    const {
+      maxWidth: maxViewportWidth,
+      maxHeight: maxViewportHeight,
+      minHeight: minViewportHeight,
+    } = getViewportConstraints();
 
     // Calculate available space for the grid (subtract margins)
     const availableGridWidth = maxViewportWidth - totalMargins;
@@ -179,10 +191,11 @@ export const PipelineThroughputComparison: React.FC = () => {
 
     // Start with calculated width that fits all cycles, with reasonable bounds
     // Use different minimum sizes for different screen sizes
-    const screenWidth = windowSize?.width || (typeof window !== 'undefined' ? window.innerWidth : 1200);
+    const screenWidth =
+      windowSize?.width || (typeof window !== "undefined" ? window.innerWidth : 1200);
     const minStageSize = screenWidth < 480 ? 8 : 12;
     const maxStageSize = screenWidth < 480 ? 28 : 40;
-    
+
     stageWidth = Math.max(minStageSize, Math.min(maxStageSize, maxStageWidth));
 
     // For height, balance between readability and fitting vertically
@@ -254,14 +267,11 @@ export const PipelineThroughputComparison: React.FC = () => {
       <div className="rounded-lg border bg-gray-50 p-4">
         {/* Responsive Mobile-First Layout */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          
           {/* Top Row: Task Count and Speedup Metric */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:flex-1">
             {/* Task Count Selector */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <label className="text-sm font-medium text-gray-700">
-                Number of Tasks:
-              </label>
+              <label className="text-sm font-medium text-gray-700">Number of Tasks:</label>
               <select
                 value={taskCount}
                 onChange={(e) => setTaskCount(Number(e.target.value))}
@@ -319,7 +329,9 @@ export const PipelineThroughputComparison: React.FC = () => {
                 <button
                   onClick={handleSharedToggleRun}
                   className={`flex flex-1 items-center justify-center gap-2 rounded px-3 py-2 text-sm text-white sm:flex-initial ${
-                    isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
+                    isRunning
+                      ? "bg-orange-500 hover:bg-orange-600"
+                      : "bg-green-500 hover:bg-green-600"
                   }`}
                   title={isRunning ? "Pause Auto Run (Both)" : "Play Automatically (Both)"}
                 >

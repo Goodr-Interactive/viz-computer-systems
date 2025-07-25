@@ -45,7 +45,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
 
   // Filter out words per line options that would result in only 1 cache line
   const getValidWordsPerLineOptions = () => {
-    return cacheConfig.wordsPerLineOptions.filter(option => {
+    return cacheConfig.wordsPerLineOptions.filter((option) => {
       const resultingLines = cacheSize / option.value;
       return resultingLines > 1; // Ensure we have at least 2 cache lines
     });
@@ -202,7 +202,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
 
   // Validate and reset wordsPerLine if it would result in only 1 cache line
   useEffect(() => {
-    const validOptions = validWordsPerLineOptions.map(opt => opt.value);
+    const validOptions = validWordsPerLineOptions.map((opt) => opt.value);
     if (!validOptions.includes(wordsPerLine)) {
       // Reset to the smallest valid option (most cache lines)
       const smallestValid = validOptions[0];
@@ -221,8 +221,8 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
     <div id="configurable-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
       <div className="mb-6 text-center">
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{config.title}</h2>
-        <p className="text-gray-600 mb-3">{config.description}</p>
-        <p className="text-gray-700 text-sm max-w-4xl mx-auto">{config.explanation}</p>
+        <p className="mb-3 text-gray-600">{config.description}</p>
+        <p className="mx-auto max-w-4xl text-sm text-gray-700">{config.explanation}</p>
       </div>
 
       {/* Scenario Selection */}
@@ -604,7 +604,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
               </>
             )}
             {scenario === "no-sharing" && (
-              <div className="flex items-center gap-2 col-span-2">
+              <div className="col-span-2 flex items-center gap-2">
                 <div className="h-3 w-3 rounded bg-gray-500"></div>
                 <span className="text-gray-600">No coherence traffic</span>
               </div>
@@ -620,7 +620,8 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
               <strong>Total Words:</strong> {metrics.totalWords} ({metrics.totalBytes} bytes)
             </div>
             <div>
-              <strong>Organization:</strong> {metrics.totalLines} cache lines × {metrics.wordsPerLine} words/line
+              <strong>Organization:</strong> {metrics.totalLines} cache lines ×{" "}
+              {metrics.wordsPerLine} words/line
             </div>
             <div>
               <strong>Word Size:</strong> {metrics.bytesPerWord} bytes per word

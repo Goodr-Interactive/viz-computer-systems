@@ -46,7 +46,7 @@ export const LinearFalseSharingViz: React.FC = () => {
 
   // Filter out options that would result in only 1 cache line (for no-sharing scenarios)
   const getValidWordsPerLineOptions = () => {
-    return WORDS_PER_LINE_OPTIONS.filter(option => {
+    return WORDS_PER_LINE_OPTIONS.filter((option) => {
       const resultingLines = TOTAL_WORDS / option;
       return resultingLines > 1; // Ensure we have at least 2 cache lines
     });
@@ -207,8 +207,8 @@ export const LinearFalseSharingViz: React.FC = () => {
     <div id="linear-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
       <div className="mb-6 text-center">
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{config.title}</h2>
-        <p className="text-gray-600 mb-3">{config.description}</p>
-        <p className="text-gray-700 text-sm max-w-4xl mx-auto">{config.explanation}</p>
+        <p className="mb-3 text-gray-600">{config.description}</p>
+        <p className="mx-auto max-w-4xl text-sm text-gray-700">{config.explanation}</p>
       </div>
 
       {/* Scenario Selection */}
@@ -543,7 +543,7 @@ export const LinearFalseSharingViz: React.FC = () => {
               </>
             )}
             {scenario === "no-sharing" && (
-              <div className="flex items-center gap-2 col-span-2">
+              <div className="col-span-2 flex items-center gap-2">
                 <div className="h-3 w-3 rounded bg-gray-500"></div>
                 <span className="text-gray-600">No coherence traffic</span>
               </div>

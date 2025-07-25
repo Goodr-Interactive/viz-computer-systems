@@ -25,6 +25,7 @@ interface PipelineStageProps {
   isFirstInGroup?: boolean;
   color?: string; // Add color prop
   abbreviation?: string; // Add abbreviation prop
+  compact?: boolean; // Add compact prop
 }
 
 export const PipelineStage: React.FC<PipelineStageProps> = ({
@@ -46,6 +47,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
   isFirstInGroup = false,
   color, // Add color prop
   abbreviation, // Add abbreviation prop
+  compact = false, // Add compact prop with default false
 }) => {
   const displayableCycleLength = cycleLength || 1;
   const actualWidth = width * displayableCycleLength; // Calculate the true width for the stage
@@ -55,6 +57,11 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
   const innerHeight = height * 0.8;
   const innerX = (width - innerWidth) / 2;
   const innerY = (height - innerHeight) / 2;
+
+  // Font sizes based on compact mode
+  const stageFontSize = compact ? "12px" : "16px";
+  const progressFontSize = compact ? "10px" : "12px";
+  const superscalarFontSize = compact ? "8px" : "10px";
 
   return (
     <g
@@ -128,7 +135,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
             textAnchor="middle"
             dominantBaseline="middle"
             fill={color || instruction.color}
-            fontSize="16px"
+            fontSize={stageFontSize}
             fontWeight="bold"
           >
             {abbreviation}
@@ -144,7 +151,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill={color || instruction.color}
-                fontSize="12px"
+                fontSize={progressFontSize}
                 fontWeight="bold"
               >
                 {`${instruction.stageProgress}/${instruction.stageDuration || "?"}`}
@@ -174,7 +181,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
             textAnchor="middle"
             dominantBaseline="middle"
             fill="white"
-            fontSize="10px"
+            fontSize={superscalarFontSize}
             fontWeight="bold"
           >
             {parallelInstructions.length}x

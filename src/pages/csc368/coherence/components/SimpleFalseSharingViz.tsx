@@ -214,7 +214,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
           variant="secondary"
           className="text-sm font-semibold"
         >
-          Randomize Layout
+          Generate New Layout
         </Button>
       </div>
 

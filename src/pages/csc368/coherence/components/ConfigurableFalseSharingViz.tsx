@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { CacheSystem } from "./CacheSystem";
+import { cacheConfig } from "./config";
+import type { CacheSize, WordsPerLine, BytesPerWord } from "./types";
 
 interface MemoryWord {
   id: number;
@@ -19,11 +23,20 @@ interface CacheLine {
 
 type SharingScenario = "false-sharing" | "true-sharing" | "no-sharing";
 
-export const LinearFalseSharingViz: React.FC = () => {
+export const ConfigurableFalseSharingViz: React.FC = () => {
   const [animationState, setAnimationState] = useState<"p1" | "p2">("p1");
   const [containerWidth, setContainerWidth] = useState(800);
   const [scenario, setScenario] = useState<SharingScenario>("false-sharing");
-  const [wordsPerLine, setWordsPerLine] = useState<number>(4);
+  
+  // Cache configuration state
+  const [cacheSize, setCacheSize] = useState<CacheSize>(cacheConfig.defaults.cacheSize);
+  const [wordsPerLine, setWordsPerLine] = useState<WordsPerLine>(cacheConfig.defaults.wordsPerLine);
+  const [bytesPerWord, setBytesPerWord] = useState<BytesPerWord>(cacheConfig.defaults.bytesPerWord);
+  
+  // Create cache system
+  const cacheSystem = new CacheSystem({ cacheSize, wordsPerLine, bytesPerWord });
+  const metrics = cacheSystem.getMetrics();
+  
   const [randomConfig, setRandomConfig] = useState({
     line1Index: 2,
     p1WordIndex: 0,
@@ -32,11 +45,8 @@ export const LinearFalseSharingViz: React.FC = () => {
     p2Line2WordIndex: 0,
   });
 
-  // Fixed configuration constants
-  const TOTAL_WORDS = 32;
-  const WORDS_PER_LINE_OPTIONS = [2, 4, 8, 16];
-  const BYTES_PER_WORD = 4;
-  const TOTAL_LINES = TOTAL_WORDS / wordsPerLine;
+  // Constants
+  const TOTAL_LINES = metrics.totalLines;
 
   // Randomization function
   const randomizeConfiguration = () => {
@@ -46,13 +56,13 @@ export const LinearFalseSharingViz: React.FC = () => {
       line2Index = Math.floor(Math.random() * TOTAL_LINES);
     } while (line2Index === line1Index);
 
-    const p1WordIndex = Math.floor(Math.random() * wordsPerLine);
+    const p1WordIndex = Math.floor(Math.random() * metrics.wordsPerLine);
     let p2WordIndex;
     do {
-      p2WordIndex = Math.floor(Math.random() * wordsPerLine);
+      p2WordIndex = Math.floor(Math.random() * metrics.wordsPerLine);
     } while (p2WordIndex === p1WordIndex && scenario === "false-sharing");
 
-    const p2Line2WordIndex = Math.floor(Math.random() * wordsPerLine);
+    const p2Line2WordIndex = Math.floor(Math.random() * metrics.wordsPerLine);
 
     setRandomConfig({
       line1Index,
@@ -116,7 +126,7 @@ export const LinearFalseSharingViz: React.FC = () => {
   const cacheLines: CacheLine[] = [];
   for (let lineIndex = 0; lineIndex < TOTAL_LINES; lineIndex++) {
     const words: MemoryWord[] = [];
-    for (let wordIndex = 0; wordIndex < wordsPerLine; wordIndex++) {
+    for (let wordIndex = 0; wordIndex < metrics.wordsPerLine; wordIndex++) {
       const isP1Access = lineIndex === config.p1LineIndex && wordIndex === config.p1WordIndex;
       const isP2Access = lineIndex === config.p2LineIndex && wordIndex === config.p2WordIndex;
       
@@ -128,7 +138,7 @@ export const LinearFalseSharingViz: React.FC = () => {
       }
 
       words.push({
-        id: lineIndex * wordsPerLine + wordIndex,
+        id: lineIndex * metrics.wordsPerLine + wordIndex,
         lineIndex,
         wordIndex,
         isP1Access,
@@ -158,7 +168,7 @@ export const LinearFalseSharingViz: React.FC = () => {
   // Responsive width handling
   useEffect(() => {
     const handleResize = () => {
-      const container = document.getElementById("linear-false-sharing-container");
+      const container = document.getElementById("configurable-false-sharing-container");
       if (container) {
         setContainerWidth(container.offsetWidth);
       }
@@ -169,18 +179,18 @@ export const LinearFalseSharingViz: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Re-randomize when words per line or scenario changes
+  // Re-randomize when cache configuration changes
   useEffect(() => {
     randomizeConfiguration();
-  }, [wordsPerLine, scenario]);
+  }, [cacheSize, wordsPerLine, bytesPerWord, scenario]);
 
   // Calculate dimensions
-  const wordSize = Math.min(containerWidth / (wordsPerLine + 4), 50); // +4 for padding and labels
+  const wordSize = Math.min(containerWidth / (metrics.wordsPerLine + 4), 50); // +4 for padding and labels
   const lineHeight = wordSize + 50; // Extra space between lines for P1 above and P2 below
-  const lineWidth = wordsPerLine * wordSize;
+  const lineWidth = metrics.wordsPerLine * wordSize;
 
   return (
-    <div id="linear-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
+    <div id="configurable-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
       <div className="mb-6 text-center">
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{config.title}</h2>
         <p className="text-gray-600">{config.description}</p>
@@ -211,30 +221,80 @@ export const LinearFalseSharingViz: React.FC = () => {
         </Button>
       </div>
 
-      {/* Simple Controls - Only Words per Line */}
-      <div className="mb-6 flex justify-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Words per Cache Line:</label>
-          <Select value={wordsPerLine.toString()} onValueChange={(value) => setWordsPerLine(parseInt(value))}>
-            <SelectTrigger className="w-32">
+      {/* Configuration Controls */}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="cache-size" className="text-sm font-medium text-gray-700">
+            Total Cache Size
+          </Label>
+          <Select
+            value={cacheSize.toString()}
+            onValueChange={(value) => setCacheSize(Number(value) as CacheSize)}
+          >
+            <SelectTrigger id="cache-size" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {WORDS_PER_LINE_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option.toString()}>
-                  {option}
+              {cacheConfig.cacheSizeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value.toString()}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button
-          onClick={randomizeConfiguration}
-          variant="secondary"
-          className="text-sm font-semibold"
-        >
-          Generate New Layout
-        </Button>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="words-per-line" className="text-sm font-medium text-gray-700">
+            Words per Cache Line
+          </Label>
+          <Select
+            value={wordsPerLine.toString()}
+            onValueChange={(value) => setWordsPerLine(Number(value) as WordsPerLine)}
+          >
+            <SelectTrigger id="words-per-line" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {cacheConfig.wordsPerLineOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value.toString()}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="bytes-per-word" className="text-sm font-medium text-gray-700">
+            Bytes per Word
+          </Label>
+          <Select
+            value={bytesPerWord.toString()}
+            onValueChange={(value) => setBytesPerWord(Number(value) as BytesPerWord)}
+          >
+            <SelectTrigger id="bytes-per-word" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {cacheConfig.bytesPerWordOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value.toString()}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col justify-end">
+          <Button
+            onClick={randomizeConfiguration}
+            variant="secondary"
+            className="text-sm font-semibold"
+          >
+            Generate New Layout
+          </Button>
+        </div>
       </div>
 
       {/* Cache Lines Visualization */}
@@ -511,13 +571,13 @@ export const LinearFalseSharingViz: React.FC = () => {
         <p className="text-yellow-700">{config.explanation}</p>
         <div className="mt-2 text-sm text-yellow-600 space-y-1">
           <div>
-            <strong>Cache Configuration:</strong> {TOTAL_WORDS} words total ({TOTAL_WORDS * BYTES_PER_WORD} bytes)
+            <strong>Cache Configuration:</strong> {metrics.totalWords} words total ({cacheSystem.getFormattedSize()})
           </div>
           <div>
-            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {wordsPerLine} words/line × {BYTES_PER_WORD} bytes/word
+            <strong>Organization:</strong> {metrics.totalLines} cache lines × {metrics.wordsPerLine} words/line × {metrics.bytesPerWord} bytes/word
           </div>
           <div>
-            <strong>Line Size:</strong> {wordsPerLine * BYTES_PER_WORD} bytes per cache line
+            <strong>Line Size:</strong> {metrics.bytesPerLine} bytes per cache line
           </div>
         </div>
         {scenario !== "no-sharing" && (

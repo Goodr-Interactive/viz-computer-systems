@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface MemoryWord {
   id: number;
@@ -19,11 +18,10 @@ interface CacheLine {
 
 type SharingScenario = "false-sharing" | "true-sharing" | "no-sharing";
 
-export const LinearFalseSharingViz: React.FC = () => {
+export const BasicFalseSharingViz: React.FC = () => {
   const [animationState, setAnimationState] = useState<"p1" | "p2">("p1");
   const [containerWidth, setContainerWidth] = useState(800);
   const [scenario, setScenario] = useState<SharingScenario>("false-sharing");
-  const [wordsPerLine, setWordsPerLine] = useState<number>(4);
   const [randomConfig, setRandomConfig] = useState({
     line1Index: 2,
     p1WordIndex: 0,
@@ -32,11 +30,11 @@ export const LinearFalseSharingViz: React.FC = () => {
     p2Line2WordIndex: 0,
   });
 
-  // Fixed configuration constants
-  const TOTAL_WORDS = 32;
-  const WORDS_PER_LINE_OPTIONS = [2, 4, 8, 16];
+  // Fixed constants - no configuration
+  const TOTAL_WORDS = 16;
+  const WORDS_PER_LINE = 4;
   const BYTES_PER_WORD = 4;
-  const TOTAL_LINES = TOTAL_WORDS / wordsPerLine;
+  const TOTAL_LINES = TOTAL_WORDS / WORDS_PER_LINE;
 
   // Randomization function
   const randomizeConfiguration = () => {
@@ -46,13 +44,13 @@ export const LinearFalseSharingViz: React.FC = () => {
       line2Index = Math.floor(Math.random() * TOTAL_LINES);
     } while (line2Index === line1Index);
 
-    const p1WordIndex = Math.floor(Math.random() * wordsPerLine);
+    const p1WordIndex = Math.floor(Math.random() * WORDS_PER_LINE);
     let p2WordIndex;
     do {
-      p2WordIndex = Math.floor(Math.random() * wordsPerLine);
+      p2WordIndex = Math.floor(Math.random() * WORDS_PER_LINE);
     } while (p2WordIndex === p1WordIndex && scenario === "false-sharing");
 
-    const p2Line2WordIndex = Math.floor(Math.random() * wordsPerLine);
+    const p2Line2WordIndex = Math.floor(Math.random() * WORDS_PER_LINE);
 
     setRandomConfig({
       line1Index,
@@ -116,7 +114,7 @@ export const LinearFalseSharingViz: React.FC = () => {
   const cacheLines: CacheLine[] = [];
   for (let lineIndex = 0; lineIndex < TOTAL_LINES; lineIndex++) {
     const words: MemoryWord[] = [];
-    for (let wordIndex = 0; wordIndex < wordsPerLine; wordIndex++) {
+    for (let wordIndex = 0; wordIndex < WORDS_PER_LINE; wordIndex++) {
       const isP1Access = lineIndex === config.p1LineIndex && wordIndex === config.p1WordIndex;
       const isP2Access = lineIndex === config.p2LineIndex && wordIndex === config.p2WordIndex;
       
@@ -128,7 +126,7 @@ export const LinearFalseSharingViz: React.FC = () => {
       }
 
       words.push({
-        id: lineIndex * wordsPerLine + wordIndex,
+        id: lineIndex * WORDS_PER_LINE + wordIndex,
         lineIndex,
         wordIndex,
         isP1Access,
@@ -158,7 +156,7 @@ export const LinearFalseSharingViz: React.FC = () => {
   // Responsive width handling
   useEffect(() => {
     const handleResize = () => {
-      const container = document.getElementById("linear-false-sharing-container");
+      const container = document.getElementById("basic-false-sharing-container");
       if (container) {
         setContainerWidth(container.offsetWidth);
       }
@@ -169,18 +167,18 @@ export const LinearFalseSharingViz: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Re-randomize when words per line or scenario changes
+  // Re-randomize when scenario changes
   useEffect(() => {
     randomizeConfiguration();
-  }, [wordsPerLine, scenario]);
+  }, [scenario]);
 
   // Calculate dimensions
-  const wordSize = Math.min(containerWidth / (wordsPerLine + 4), 50); // +4 for padding and labels
+  const wordSize = Math.min(containerWidth / (WORDS_PER_LINE + 4), 50); // +4 for padding and labels
   const lineHeight = wordSize + 50; // Extra space between lines for P1 above and P2 below
-  const lineWidth = wordsPerLine * wordSize;
+  const lineWidth = WORDS_PER_LINE * wordSize;
 
   return (
-    <div id="linear-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
+    <div id="basic-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
       <div className="mb-6 text-center">
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{config.title}</h2>
         <p className="text-gray-600">{config.description}</p>
@@ -211,23 +209,8 @@ export const LinearFalseSharingViz: React.FC = () => {
         </Button>
       </div>
 
-      {/* Simple Controls - Only Words per Line */}
-      <div className="mb-6 flex justify-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Words per Cache Line:</label>
-          <Select value={wordsPerLine.toString()} onValueChange={(value) => setWordsPerLine(parseInt(value))}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {WORDS_PER_LINE_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option.toString()}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Randomize Button */}
+      <div className="mb-6 flex justify-center">
         <Button
           onClick={randomizeConfiguration}
           variant="secondary"
@@ -514,10 +497,10 @@ export const LinearFalseSharingViz: React.FC = () => {
             <strong>Cache Configuration:</strong> {TOTAL_WORDS} words total ({TOTAL_WORDS * BYTES_PER_WORD} bytes)
           </div>
           <div>
-            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {wordsPerLine} words/line × {BYTES_PER_WORD} bytes/word
+            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {WORDS_PER_LINE} words/line × {BYTES_PER_WORD} bytes/word
           </div>
           <div>
-            <strong>Line Size:</strong> {wordsPerLine * BYTES_PER_WORD} bytes per cache line
+            <strong>Line Size:</strong> {WORDS_PER_LINE * BYTES_PER_WORD} bytes per cache line
           </div>
         </div>
         {scenario !== "no-sharing" && (

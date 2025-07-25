@@ -6,7 +6,8 @@ import { Scheduler } from "./pages/csc369/components";
 // operating system pages
 import { SimplePaging } from "./pages/csc369/SimplePaging";
 import { TranslationExampleNew } from "./pages/csc369/TranslationExampleNew";
-import { FileSystemExample } from "./pages/csc369/components/fileSystem/FileSystemExample";
+import { FileSystemExample } from "./pages/csc369/FileSystemExample";
+import { LinkComparison } from "./pages/csc369/LinkComparison";
 
 // computer architecture pages
 import { CSC368 } from "./pages/csc368/CSC368";
@@ -23,6 +24,8 @@ import {
 import { Caches } from "./pages/csc368/cache";
 import { Coherence } from "./pages/csc368/coherence";
 import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
+import { PipeliningThroughputPage } from "./pages/csc368/pipelining/pipelining-throughput";
+import { PipeliningComparisonPage } from "./pages/csc368/pipelining/pipelining-comparison";
 
 export interface AppRoute {
   path: string;
@@ -105,6 +108,18 @@ export const ROUTES: AppRoute[] = [
     element: <Pipelining />,
   },
   {
+    path: "/csc368/pipelining-comparison",
+    title: "Pipelining Comparison",
+    description: "",
+    element: <PipeliningComparisonPage />,
+  },
+  {
+    path: "/csc368/pipelining-throughput",
+    title: "Pipelining Throughput",
+    description: "",
+    element: <PipeliningThroughputPage />,
+  },
+  {
     path: "/csc368/associativity",
     title: "Associativity",
     description: "",
@@ -127,6 +142,12 @@ export const ROUTES: AppRoute[] = [
     title: "File System Lookup",
     description: "",
     element: <FileSystemExample />,
+  },
+  {
+    path: "/csc369/filesystem/links",
+    title: "File System Links",
+    description: "",
+    element: <LinkComparison />,
   },
 ];
 

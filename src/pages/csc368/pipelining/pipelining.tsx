@@ -15,6 +15,12 @@ export const Pipelining: React.FunctionComponent = () => {
 
       <div className="mt-4 flex gap-[16px]">
         <Button asChild variant="outline">
+          <a href="/csc368/pipelining-comparison">Basic Comparison</a>
+        </Button>
+        <Button asChild variant="outline">
+          <a href="/csc368/pipelining-throughput">Throughput Analysis</a>
+        </Button>
+        <Button asChild variant="outline">
           <a href="/csc368">Back to CSC368</a>
         </Button>
       </div>

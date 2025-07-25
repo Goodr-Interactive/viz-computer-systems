@@ -8,12 +8,14 @@ interface DiskLayoutProps {
   fileSystem: FileSystem;
   selectedBlock: number | null;
   onBlockClick: (blockIndex: number) => void;
+  highlightedBlocks?: Set<number>;
 }
 
 export const DiskLayout: React.FC<DiskLayoutProps> = ({
   fileSystem,
   selectedBlock,
   onBlockClick,
+  highlightedBlocks,
 }) => {
   const blocks: ReactElement[] = [];
   const totalBlocks = fileSystem.getTotalBlocks();
@@ -47,7 +49,13 @@ export const DiskLayout: React.FC<DiskLayoutProps> = ({
             <div className="flex flex-col items-center">
               <div
                 onClick={() => onBlockClick(blockIndex)}
-                className={selectedBlock === blockIndex ? "ring-2 ring-blue-500" : ""}
+                className={`${
+                  selectedBlock === blockIndex
+                    ? "ring-2 ring-blue-500"
+                    : highlightedBlocks?.has(blockIndex)
+                      ? "ring-2 ring-orange-500"
+                      : ""
+                }`}
               >
                 <MultiColorBinaryBlock
                   blocks={1}

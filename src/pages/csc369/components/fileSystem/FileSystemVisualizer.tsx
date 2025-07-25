@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { FileSystem } from "./FileSystem";
 import { SubsectionHeading } from "../paging/ui/SubsectionHeading";
-import { FileSystemIntro } from "./FileSystemIntro";
+import { FileSystemIntro } from "./ui/FileSystemIntro";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DiskLayout } from "./ui/DiskLayout";
 import { BlockContentView } from "./ui/BlockContentView";
+import { FILE_SYSTEM_CONFIG } from "./config";
 
 interface FileSystemVisualizerProps {
   fileSystem: FileSystem;
@@ -16,6 +17,24 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
   const [selectedInode, setSelectedInode] = useState<number | null>(null);
   const [previousInode, setPreviousInode] = useState<number | null>(null);
   const [, setIsFirstSelection] = useState<boolean>(false);
+  const [randomPath, setRandomPath] = useState(
+    FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)].path
+  );
+  const [correctBlock, setCorrectBlock] = useState<number | null>(null);
+
+  // Log the block number where the randomPath file is stored
+  useEffect(() => {
+    const inodeNumber = fileSystem.findInodeByPath(randomPath);
+    console.log(inodeNumber);
+    if (inodeNumber !== -1) {
+      const inode = fileSystem
+        .getInodeBlockData(Math.floor(inodeNumber / 16) + 3)
+        .inodes.find((i) => i.number === inodeNumber);
+      if (inode?.data?.blockPointers) {
+        setCorrectBlock(inode.data.blockPointers[0]);
+      }
+    }
+  }, [randomPath, fileSystem]);
 
   const handleBlockClick = (blockIndex: number) => {
     setSelectedBlock(blockIndex);
@@ -49,7 +68,11 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
 
   return (
     <>
-      <FileSystemIntro fileSystem={fileSystem} />
+      <FileSystemIntro
+        fileSystem={fileSystem}
+        randomPath={randomPath}
+        onRandomPathChange={setRandomPath}
+      />
       <section className="w-full max-w-7xl overflow-x-auto">
         <TooltipProvider>
           <div className="bg-muted/50 min-w-fit rounded-lg p-6">
@@ -95,6 +118,7 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
                   onCloseInodeInfo={() => setSelectedInode(null)}
                   onBlockClick={handleBlockClick}
                   onDirectoryRowClick={handleDirectoryRowClick}
+                  correctBlock={correctBlock}
                 />
               </motion.div>
             </AnimatePresence>

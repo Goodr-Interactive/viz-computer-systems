@@ -7,7 +7,6 @@
  */
 
 // Import SVG assets for pipeline stages
-import shirtSvg from "@/assets/shirt.svg";
 import washingMachineSvg from "@/assets/washing-machine.svg";
 import tumbleDrySvg from "@/assets/tumble-dry.svg";
 import handDrySvg from "@/assets/hand-dry.svg";
@@ -19,20 +18,24 @@ import type { Instruction } from "./types";
  * FEATURE FLAGS CONFIGURATION
  */
 export const FEATURE_FLAGS = {
-  // Enable/disable pipelined mode by defaults
-  IS_PIPELINED_MODE: true,
+  // Enable/disable pipelined mode by default
+  // Start with non-pipelined to show the contrast like in the textbook
+  IS_PIPELINED_MODE: false,
 
   // Enable/disable superscalar mode by default. Requires IS_PIPELINED_MODE to be true.
   IS_SUPERSCALAR_MODE: false,
 
   // Default superscalar width
-  DEFAULT_SUPERSCALAR_WIDTH: 3,
+  DEFAULT_SUPERSCALAR_WIDTH: 2,
 
   // Enable/disable ability to change modes in the UI
   SHOW_MODE_SELECTION: true,
 
+  // Enable/disable superscalar toggle in the UI
+  SHOW_SUPERSCALAR_TOGGLE: false,
+
   // Enable/disable current cycle indicator
-  SHOW_CYCLES_INDICATOR: false,
+  SHOW_CYCLES_INDICATOR: true,
 };
 
 /**
@@ -40,6 +43,7 @@ export const FEATURE_FLAGS = {
  *
  * These define the stages of the pipeline that instructions go through.
  * The order matters - instructions will progress through stages in this sequence.
+ * These match the exact naming from the Hennessy & Patterson textbook.
  *
  * Usage:
  * - Add/remove stages by modifying this array
@@ -48,36 +52,29 @@ export const FEATURE_FLAGS = {
  * - Make sure STAGE_LENGTHS array has corresponding durations for each stage
  */
 export const PIPELINE_STAGES = [
-  "Sort", // Stage 0: Initial sorting/preparation
-  "Wash", // Stage 1: Washing process
-  "Dry", // Stage 2: Drying process
-  "Fold", // Stage 3: Folding/organizing
-  "Put Away", // Stage 4: Final storage
+  "Washer", // Stage 0: Washing process
+  "Dryer", // Stage 1: Drying process
+  "Fold", // Stage 2: Folding/organizing
+  "Store", // Stage 3: Final storage
 ];
 
 /**
  * STAGE LENGTHS CONFIGURATION
  *
  * Defines the relative duration of each pipeline stage.
- * The longest stage determines the clock period (worst-case timing).
- * All other stages scale proportionally in the visualization.
+ * In the classic Hennessy & Patterson textbook, each stage takes exactly 30 minutes.
+ * This matches the textbook example exactly.
  *
  * Usage:
- * - Values represent relative time units (e.g., nanoseconds, cycles, etc.)
+ * - Values represent relative time units (e.g., minutes, cycles, etc.)
  * - The array length must match PIPELINE_STAGES length
- * - The largest value becomes 1.0 (full cycle width) in the visualization
- * - Smaller values scale proportionally (e.g., 0.5 = half cycle width)
- *
- * Example: If Wash takes 100ns and Dry takes 50ns, Wash gets full width,
- * Dry gets half width, and the clock period is 100ns.
+ * - All stages have equal duration as specified in the textbook
  */
 export const STAGE_LENGTHS = [
-  // at least one should be 30 mins for viz to work/make sense
-  5, // Sort: 5 minutes
-  30, // Wash: 30 minutes (longest - determines clock period)
-  30, // Dry: 30 minutes
-  15, // Fold total minutes
-  5, // Put Away: 5 minutes
+  30, // Washer: 30 minutes
+  30, // Dryer: 30 minutes
+  30, // Fold: 30 minutes
+  30, // Store: 30 minutes
 ];
 
 /**
@@ -92,18 +89,53 @@ export const STAGE_LENGTHS = [
  * - Icons should be SVG format for best scalability
  */
 export const STAGE_IMAGES = [
-  shirtSvg, // Icon for "Sort" stage
-  washingMachineSvg, // Icon for "Wash" stage
-  tumbleDrySvg, // Icon for "Dry" stage
+  washingMachineSvg, // Icon for "Washer" stage
+  tumbleDrySvg, // Icon for "Dryer" stage
   handDrySvg, // Icon for "Fold" stage
-  closetSvg, // Icon for "Put Away" stage
+  closetSvg, // Icon for "Store" stage
 ];
 
 /**
- * AVAILABLE COLORS CONFIGURATION
+ * STAGE COLORS CONFIGURATION
+ *
+ * Each pipeline stage has its own consistent color, matching the
+ * Hennessy & Patterson textbook approach where stages are color-coded
+ * rather than individual tasks. These colors match the classic textbook.
+ *
+ * Usage:
+ * - Each color corresponds to a stage in PIPELINE_STAGES
+ * - Colors should be visually distinct for accessibility
+ * - Array length must match PIPELINE_STAGES length
+ */
+export const STAGE_COLORS = [
+  "#3ba8cfff", // Washer - Light Blue (classic textbook wash color)
+  "#FFFFFF", // Dryer - Light Pink (classic textbook dry color)
+  "#ddf8fcff", // Fold - Light Green (classic textbook fold color)
+  "#605e5eff", // Store - Light Purple (classic textbook put away color)
+];
+
+/**
+ * STAGE ABBREVIATIONS CONFIGURATION
+ *
+ * Short 1-2 letter abbreviations for each stage, useful for compact displays.
+ *
+ * Usage:
+ * - Each abbreviation corresponds to a stage in PIPELINE_STAGES
+ * - Keep abbreviations short (1-2 characters) for compact mode
+ * - Array length must match PIPELINE_STAGES length
+ */
+export const STAGE_ABBREVIATIONS = [
+  "W", // Washer
+  "D", // Dryer
+  "F", // Fold
+  "S", // Store
+];
+
+/**
+ * AVAILABLE_COLORS CONFIGURATION
  *
  * Color palette used when adding new instructions dynamically.
- * Colors are cycled through when users add new instructions.
+ * These are neutral colors for the task labels/borders.
  *
  * Usage:
  * - Add/remove hex color codes to expand/limit the palette
@@ -111,10 +143,10 @@ export const STAGE_IMAGES = [
  * - Consider color-blind friendly palettes if needed
  */
 export const AVAILABLE_COLORS = [
-  "#4285F4", // Google Blue
-  "#EA4335", // Google Red
-  "#FBBC05", // Google Yellow
-  "#34A853", // Google Green
+  "#666666", // Dark Gray - Task A
+  "#666666", // Dark Gray - Task B
+  "#666666", // Dark Gray - Task C
+  "#666666", // Dark Gray - Task D
   "#8F44AD", // Purple
   "#FF5722", // Deep Orange
   "#009688", // Teal
@@ -133,6 +165,7 @@ export const AVAILABLE_COLORS = [
  *
  * These are the initial instructions that appear when the visualization loads.
  * Each instruction represents a "load" of laundry that goes through the pipeline.
+ * These match the classic Hennessy & Patterson example (Task A, B, C, D).
  *
  * Usage:
  * - Add/remove instructions by modifying this array
@@ -143,73 +176,35 @@ export const AVAILABLE_COLORS = [
 export const DEFAULT_INSTRUCTIONS: Instruction[] = [
   {
     id: 1,
-    name: "Shirts",
-    color: AVAILABLE_COLORS[0], // Google Blue
+    name: "Task A",
+    color: AVAILABLE_COLORS[0], // Blue
     registers: { src: [], dest: [] },
   },
   {
     id: 2,
-    name: "Pants",
-    color: AVAILABLE_COLORS[1], // Google Red
+    name: "Task B",
+    color: AVAILABLE_COLORS[1], // Red
     registers: { src: [], dest: [] },
   },
   {
     id: 3,
-    name: "Socks",
-    color: AVAILABLE_COLORS[2], // Google Yellow
+    name: "Task C",
+    color: AVAILABLE_COLORS[2], // Yellow
     registers: { src: [], dest: [] },
   },
   {
     id: 4,
-    name: "Sheets",
-    color: AVAILABLE_COLORS[3], // Google Green
+    name: "Task D",
+    color: AVAILABLE_COLORS[3], // Green
     registers: { src: [], dest: [] },
   },
-  {
-    id: 5,
-    name: "Jackets",
-    color: AVAILABLE_COLORS[4], // Purple
-    registers: { src: [], dest: [] },
-  },
-  // loads for showing additional features (uncomment to use)
-  /** 
-  {
-    id: 6, 
-    name: "Friend's Socks", 
-    color: AVAILABLE_COLORS[5],  // Google Yellow
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 7, 
-    name: "Friend's Pants", 
-    color: AVAILABLE_COLORS[6],  // Google Green
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 8, 
-    name: "Friend's Socks", 
-    color: AVAILABLE_COLORS[7],  // Google Yellow
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 9, 
-    name: "Friend's Sheets", 
-    color: AVAILABLE_COLORS[8],  // Google Green
-    registers: { src: [], dest: [] } 
-  },
-  { 
-    id: 10, 
-    name: "Friend's Jackets", 
-    color: AVAILABLE_COLORS[9],  // Purple
-    registers: { src: [], dest: [] } 
-  },
-  */
 ];
 
 /**
  * TIMING CONFIGURATION
  *
  * Configuration for the time display and cycle timing.
+ * Matches the classic Hennessy & Patterson laundry example exactly.
  *
  * Usage:
  * - CYCLE_DURATION_MINUTES: How many real-world minutes each cycle represents
@@ -217,9 +212,16 @@ export const DEFAULT_INSTRUCTIONS: Instruction[] = [
  * - DEFAULT_SPEED_MS: Default animation speed in milliseconds between cycles
  */
 export const TIMING_CONFIG = {
-  CYCLE_DURATION_MINUTES: 30, // Each cycle = 30 minutes of real time
-  START_TIME_HOUR: 9, // Start at 9:00 AM
+  CYCLE_DURATION_MINUTES: 30, // Each cycle = 30 minutes (textbook example)
+  START_TIME_HOUR: 18, // Start at 6:00 PM (classic example)
   DEFAULT_SPEED_MS: 1000, // 1 second between cycles by default
+  SPEED_OPTIONS: [
+    { label: "0.5x", value: 2000, description: "Slow (2 seconds per cycle)" },
+    { label: "1x", value: 1000, description: "Normal (1 second per cycle)" },
+    { label: "2x", value: 500, description: "Fast (0.5 seconds per cycle)" },
+    { label: "4x", value: 250, description: "Very Fast (0.25 seconds per cycle)" },
+    { label: "8x", value: 125, description: "Extremely Fast (0.125 seconds per cycle)" },
+  ],
 };
 
 /**
@@ -234,7 +236,7 @@ export const TIMING_CONFIG = {
  */
 export const PERFORMANCE_CONFIG = {
   SHOW_LOADS_PER_HOUR: true, // Show loads per hour metric
-  LOADS_PER_HOUR_LABEL: "Loads Per Hour", // Label for the metric
+  LOADS_PER_HOUR_LABEL: "Tasks Per Hour", // Label for the metric
   METRIC_DISPLAY_PRECISION: 1, // Show 1 decimal place
 };
 
@@ -298,18 +300,40 @@ export const getStageTimingInfo = () => {
  * - CONTAINER_HEIGHT: Default height of the visualization container
  * - MIN_HEIGHT: Minimum height when resizing
  * - BAND_PADDING: Space between chart elements (0-1, where 1 = no padding)
+ * - COMPACT_MODE: Configuration for compact/small visualizations
  */
 export const LAYOUT_CONFIG = {
   MARGINS: {
     top: 50,
     right: 30,
-    bottom: 80, // Extra space for x-axis label
+    bottom: 110, // Extra space for x-axis label and rotated time text
     left: 120, // Extra space for y-axis labels
   },
-  CONTAINER_HEIGHT: 700, // Height in pixels
+  CONTAINER_HEIGHT: 600, // Height in pixels
   MIN_HEIGHT: 400, // Minimum height when resizing
   BAND_PADDING: {
     cycles: 0.02, // Padding between cycle columns
     instructions: 0.1, // Padding between instruction rows
+  },
+  COMPACT_MODE: {
+    MARGINS: {
+      top: 20,
+      right: 15,
+      bottom: 50,
+      left: 60,
+    },
+    CONTAINER_HEIGHT: 240, // Much smaller height for compact mode
+    MIN_HEIGHT: 200,
+    STAGE_HEIGHT: 40, // Height of each stage rectangle
+    STAGE_WIDTH: 40, // Width of each stage rectangle
+    BAND_PADDING: {
+      cycles: 0.05,
+      instructions: 0.05,
+    },
+    FONT_SIZE: {
+      stage: "10px",
+      instruction: "12px",
+      label: "10px",
+    },
   },
 };

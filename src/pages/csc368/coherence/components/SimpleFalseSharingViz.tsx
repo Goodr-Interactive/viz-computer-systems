@@ -18,13 +18,13 @@ export const SimpleFalseSharingViz: React.FC = () => {
   const [scenario, setScenario] = useState<SharingScenario>("false-sharing");
   const [randomConfig, setRandomConfig] = useState({
     cacheLineRow: 3,
-    cacheLineStartCol: 6,
+    cacheLineStartCol: 4, // Ensure cache line fits: 4 + 4 = 8, which is < 16
     p1Row: 3,
-    p1Col: 6,
+    p1Col: 4,
     p2Row: 3,
-    p2Col: 9,
+    p2Col: 7, // 4 + 4 - 1 = 7, last cell in cache line
     secondCacheLineRow: 5,
-    secondCacheLineStartCol: 12,
+    secondCacheLineStartCol: 8, // Ensure second cache line fits: 8 + 4 = 12, which is < 16
   });
 
   // Grid dimensions
@@ -36,10 +36,12 @@ export const SimpleFalseSharingViz: React.FC = () => {
   const randomizeConfiguration = () => {
     const getRandomRow = () => Math.floor(Math.random() * ROWS);
     const getRandomCacheLineCol = () => {
-      // Ensure cache lines are aligned to CACHE_LINE_LENGTH boundaries
+      // Ensure cache lines are aligned to CACHE_LINE_LENGTH boundaries and fit within grid
       const maxCacheLines = Math.floor(COLS / CACHE_LINE_LENGTH);
       const cacheLineIndex = Math.floor(Math.random() * maxCacheLines);
-      return cacheLineIndex * CACHE_LINE_LENGTH;
+      const startCol = cacheLineIndex * CACHE_LINE_LENGTH;
+      // Double check that the cache line fits within bounds
+      return startCol + CACHE_LINE_LENGTH <= COLS ? startCol : 0;
     };
 
     const cacheLineRow = getRandomRow();

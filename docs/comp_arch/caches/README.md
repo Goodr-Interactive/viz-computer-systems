@@ -85,26 +85,22 @@ For example, one parse for a 16 bit cache line could be as follows
 There are multiple feature flags in the `Config.ts` file which allow for configuration of the following features:
 
 - **Memory Access Patterns**: Three different instruction sequences demonstrating:
-
   - **Temporal Locality**: Repeated access to same memory addresses
   - **Spatial Locality**: Sequential access to nearby memory addresses
   - **No Locality**: Random access causing frequent cache conflicts
 
 - **Interactive Cache State**: Real-time visualization of cache contents including:
-
   - Valid/invalid block status
   - Tag values and stored data
   - Last access timestamps
   - Memory address range mapping
 
 - **Address Visualization**: Binary breakdown showing how memory addresses map to cache:
-
   - Color-coded bit fields (tag, set, word, byte)
   - Hover effects for enhanced interactivity
   - Aligned display for clear visual hierarchy
 
 - **Performance Metrics**: Comprehensive statistics including:
-
   - Total memory accesses and hit/miss counts
   - L1 cache hit rate and miss penalties
   - AMAT calculation based on actual simulation
@@ -112,14 +108,12 @@ There are multiple feature flags in the `Config.ts` file which allow for configu
   - Chart visualization with stacked bar graph indicating results on each stage
 
 - **Latency Configuration**: Configurable memory hierarchy latencies (disabled by default)
-
   - L1 cache: 1 cycle
   - L2 cache: 10 cycles
   - RAM: 300 cycles
   - Set `latencyConfigUIEnabled = true` in Config.ts to enable
 
 - **Access Counts Visualization**: Hit/miss breakdown charts (enabled by default)
-
   - Stacked bar charts showing hit/miss distribution
   - Real-time updates during simulation
   - Set `accessCountsUIEnabled = false` in Config.ts to disable

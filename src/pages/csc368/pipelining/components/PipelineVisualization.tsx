@@ -1165,7 +1165,6 @@ export const PipelineVisualization = forwardRef<
                         {pipelineInstructions.map((instr) => (
                           <li key={instr.id} className="flex items-center justify-between px-3 py-2">
                             <div className="flex items-center">
-                              <div className="mr-2 h-4 w-4 rounded border border-gray-400 bg-gray-100"></div>
                               <span>
                                 <strong>{instr.name}</strong>
                               </span>

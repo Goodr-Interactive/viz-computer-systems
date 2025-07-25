@@ -7,7 +7,11 @@ export const Coherence: React.FunctionComponent = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center gap-6 p-8">
-      {/* View Mode Toggle */}
+      <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
+        {viewMode === "grid" ? <SimpleFalseSharingViz /> : <LinearFalseSharingViz />}
+      </div>
+
+      {/* View Mode Toggle - Moved to bottom */}
       <div className="flex gap-2">
         <Button
           variant={viewMode === "grid" ? "default" : "outline"}
@@ -23,9 +27,6 @@ export const Coherence: React.FunctionComponent = () => {
         </Button>
       </div>
 
-      <div className="w-full max-w-7xl rounded-lg bg-white p-6 shadow-md">
-        {viewMode === "grid" ? <SimpleFalseSharingViz /> : <LinearFalseSharingViz />}
-      </div>
       <div className="mt-4 flex gap-[16px]">
         <Button asChild variant="outline">
           <a href="/csc368">Back to CSC368</a>

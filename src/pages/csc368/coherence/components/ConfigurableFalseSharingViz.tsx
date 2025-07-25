@@ -199,7 +199,8 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
     <div id="configurable-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
       <div className="mb-6 text-center">
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{config.title}</h2>
-        <p className="text-gray-600">{config.description}</p>
+        <p className="text-gray-600 mb-3">{config.description}</p>
+        <p className="text-gray-700 text-sm max-w-4xl mx-auto">{config.explanation}</p>
       </div>
 
       {/* Scenario Selection */}
@@ -321,7 +322,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
             let lineColor = "#e5e7eb"; // Default gray
             if (isActiveLine) {
               if (scenario === "no-sharing") {
-                lineColor = "#3b82f6"; // Blue for no-sharing
+                lineColor = "#6b7280"; // Gray for no-sharing
               } else if (hasP1Access && hasP2Access) {
                 // Both processors access this line
                 lineColor = animationState === "p1" ? "#ef4444" : "#3b82f6"; // Red for P1, Blue for P2
@@ -569,45 +570,6 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Explanation */}
-      <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="mb-2 text-lg font-semibold text-yellow-800">{config.title} Explained</h3>
-        <p className="text-yellow-700">{config.explanation}</p>
-        <div className="mt-2 space-y-1 text-sm text-yellow-600">
-          <div>
-            <strong>Cache Configuration:</strong> {metrics.totalWords} words total (
-            {cacheSystem.getFormattedSize()})
-          </div>
-          <div>
-            <strong>Organization:</strong> {metrics.totalLines} cache lines × {metrics.wordsPerLine}{" "}
-            words/line × {metrics.bytesPerWord} bytes/word
-          </div>
-          <div>
-            <strong>Line Size:</strong> {metrics.bytesPerLine} bytes per cache line
-          </div>
-        </div>
-        {scenario !== "no-sharing" && (
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-red-500"></div>
-              <span className="text-sm text-yellow-700">P1 active</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-blue-500"></div>
-              <span className="text-sm text-yellow-700">P2 active</span>
-            </div>
-          </div>
-        )}
-        {scenario === "no-sharing" && (
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-gray-500"></div>
-              <span className="text-sm text-yellow-700">No coherence traffic</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

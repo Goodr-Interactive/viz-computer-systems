@@ -300,7 +300,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
             fill="none"
             stroke={
               scenario === "no-sharing"
-                ? "#3b82f6"
+                ? "#6b7280"
                 : animationState === "p1"
                   ? "#ef4444"
                   : "#3b82f6"
@@ -319,7 +319,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
               width={CACHE_LINE_LENGTH * cellSize}
               height={cellSize}
               fill="none"
-              stroke="#3b82f6"
+              stroke="#6b7280"
               strokeWidth="3"
               strokeDasharray="5,5"
               rx="4"

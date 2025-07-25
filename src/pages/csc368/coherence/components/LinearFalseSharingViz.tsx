@@ -265,7 +265,7 @@ export const LinearFalseSharingViz: React.FC = () => {
             let lineColor = "#e5e7eb"; // Default gray
             if (isActiveLine) {
               if (scenario === "no-sharing") {
-                lineColor = "#3b82f6"; // Blue for no-sharing
+                lineColor = "#6b7280"; // Gray for no-sharing
               } else if (hasP1Access && hasP2Access) {
                 // Both processors access this line
                 lineColor = animationState === "p1" ? "#ef4444" : "#3b82f6"; // Red for P1, Blue for P2

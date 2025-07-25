@@ -181,7 +181,8 @@ export const BasicFalseSharingViz: React.FC = () => {
     <div id="basic-false-sharing-container" className="mx-auto w-full max-w-5xl p-4">
       <div className="mb-6 text-center">
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{config.title}</h2>
-        <p className="text-gray-600">{config.description}</p>
+        <p className="text-gray-600 mb-3">{config.description}</p>
+        <p className="text-gray-700 text-sm max-w-4xl mx-auto">{config.explanation}</p>
       </div>
 
       {/* Scenario Selection */}
@@ -457,8 +458,9 @@ export const BasicFalseSharingViz: React.FC = () => {
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="mb-6 flex justify-center">
+      {/* Legend and Configuration */}
+      <div className="mb-6 flex justify-center gap-6">
+        {/* Legend */}
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
           <h4 className="mb-3 text-center text-sm font-semibold text-gray-700">Legend</h4>
           <div className="grid grid-cols-2 gap-4 text-xs">
@@ -484,47 +486,45 @@ export const BasicFalseSharingViz: React.FC = () => {
               <div className="h-3 w-3 rounded bg-gray-300"></div>
               <span className="text-gray-600">Memory Word</span>
             </div>
+            {scenario !== "no-sharing" && (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-red-500"></div>
+                  <span className="text-gray-600">P1 active</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-blue-500"></div>
+                  <span className="text-gray-600">P2 active</span>
+                </div>
+              </>
+            )}
+            {scenario === "no-sharing" && (
+              <div className="flex items-center gap-2 col-span-2">
+                <div className="h-3 w-3 rounded bg-gray-500"></div>
+                <span className="text-gray-600">No coherence traffic</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Explanation */}
-      <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="mb-2 text-lg font-semibold text-yellow-800">{config.title} Explained</h3>
-        <p className="text-yellow-700">{config.explanation}</p>
-        <div className="mt-2 space-y-1 text-sm text-yellow-600">
-          <div>
-            <strong>Cache Configuration:</strong> {TOTAL_WORDS} words total (
-            {TOTAL_WORDS * BYTES_PER_WORD} bytes)
-          </div>
-          <div>
-            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {WORDS_PER_LINE} words/line ×{" "}
-            {BYTES_PER_WORD} bytes/word
-          </div>
-          <div>
-            <strong>Line Size:</strong> {WORDS_PER_LINE * BYTES_PER_WORD} bytes per cache line
+        {/* Configuration Information */}
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h4 className="mb-3 text-center text-sm font-semibold text-gray-700">Configuration</h4>
+          <div className="space-y-1 text-xs">
+            <div>
+              <strong>Total Words:</strong> {TOTAL_WORDS} ({TOTAL_WORDS * BYTES_PER_WORD} bytes)
+            </div>
+            <div>
+              <strong>Organization:</strong> {TOTAL_LINES} cache lines × {WORDS_PER_LINE} words/line
+            </div>
+            <div>
+              <strong>Word Size:</strong> {BYTES_PER_WORD} bytes per word
+            </div>
+            <div>
+              <strong>Line Size:</strong> {WORDS_PER_LINE * BYTES_PER_WORD} bytes per cache line
+            </div>
           </div>
         </div>
-        {scenario !== "no-sharing" && (
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-red-500"></div>
-              <span className="text-sm text-yellow-700">P1 active</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-blue-500"></div>
-              <span className="text-sm text-yellow-700">P2 active</span>
-            </div>
-          </div>
-        )}
-        {scenario === "no-sharing" && (
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-gray-500"></div>
-              <span className="text-sm text-yellow-700">No coherence traffic</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

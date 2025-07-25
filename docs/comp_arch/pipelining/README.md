@@ -107,6 +107,7 @@ The visualizations use **D3.js** for SVG rendering and scale management, **React
 
 ### Future Development Items
 
+- enable backward functionality
 - improve performance analysis and impact on CPI/IPC
 - add interaction with explainers on why some stages cannot begin even though they are finished
 - branch prediction visualization

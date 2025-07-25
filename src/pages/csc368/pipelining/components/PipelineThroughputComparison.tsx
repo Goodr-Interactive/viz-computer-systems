@@ -306,21 +306,7 @@ export const PipelineThroughputComparison: React.FC = () => {
                   className="flex flex-1 items-center justify-center gap-2 rounded bg-blue-500 px-3 py-2 text-sm text-white hover:bg-blue-600 sm:flex-initial"
                   title="Step Forward One Cycle (Both Visualizations)"
                 >
-                  <span>Step →</span>
-                </button>
-                <button
-                  onClick={handleSharedToggleRun}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded px-3 py-2 text-sm text-white sm:flex-initial ${
-                    isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
-                  }`}
-                  title={isRunning ? "Pause Auto Run (Both)" : "Run Automatically (Both)"}
-                >
-                  <img
-                    src={isRunning ? pauseSvg : playSvg}
-                    alt={isRunning ? "Pause" : "Play"}
-                    className="h-4 w-4"
-                  />
-                  <span className="hidden sm:inline">{isRunning ? "Pause" : "Auto"}</span>
+                  <span>Forward →</span>
                 </button>
                 <button
                   onClick={handleSharedReset}
@@ -329,6 +315,20 @@ export const PipelineThroughputComparison: React.FC = () => {
                 >
                   <img src={resetSvg} alt="Reset" className="h-4 w-4" />
                   <span className="hidden sm:inline">Reset</span>
+                </button>
+                <button
+                  onClick={handleSharedToggleRun}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded px-3 py-2 text-sm text-white sm:flex-initial ${
+                    isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
+                  }`}
+                  title={isRunning ? "Pause Auto Run (Both)" : "Play Automatically (Both)"}
+                >
+                  <img
+                    src={isRunning ? pauseSvg : playSvg}
+                    alt={isRunning ? "Pause" : "Play"}
+                    className="h-4 w-4"
+                  />
+                  <span className="hidden sm:inline">{isRunning ? "Pause" : "Play"}</span>
                 </button>
               </div>
             </div>

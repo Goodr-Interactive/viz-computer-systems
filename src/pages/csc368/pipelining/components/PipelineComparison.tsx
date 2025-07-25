@@ -73,21 +73,7 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
               className="flex items-center gap-2 rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
               title="Step Forward One Cycle (Both Visualizations)"
             >
-              <span>Step →</span>
-            </button>
-            <button
-              onClick={handleSharedToggleRun}
-              className={`flex items-center gap-2 rounded px-4 py-2 text-sm text-white ${
-                isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
-              }`}
-              title={isRunning ? "Pause Auto Run (Both)" : "Run Automatically (Both)"}
-            >
-              <img
-                src={isRunning ? pauseSvg : playSvg}
-                alt={isRunning ? "Pause" : "Play"}
-                className="h-4 w-4"
-              />
-              <span>{isRunning ? "Pause" : "Auto"}</span>
+              <span>Forward →</span>
             </button>
             <button
               onClick={handleSharedReset}
@@ -96,6 +82,20 @@ export const PipelineComparison: React.FC<PipelineComparisonProps> = ({
             >
               <img src={resetSvg} alt="Reset" className="h-4 w-4" />
               <span>Reset</span>
+            </button>
+            <button
+              onClick={handleSharedToggleRun}
+              className={`flex items-center gap-2 rounded px-4 py-2 text-sm text-white ${
+                isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
+              }`}
+              title={isRunning ? "Pause Auto Run (Both)" : "Play Automatically (Both)"}
+            >
+              <img
+                src={isRunning ? pauseSvg : playSvg}
+                alt={isRunning ? "Pause" : "Play"}
+                className="h-4 w-4"
+              />
+              <span>{isRunning ? "Pause" : "Play"}</span>
             </button>
           </div>
         </div>

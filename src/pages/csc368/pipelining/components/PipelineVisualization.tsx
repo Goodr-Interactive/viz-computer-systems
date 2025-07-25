@@ -3,6 +3,8 @@ import * as d3 from "d3";
 
 // Import SVG assets for controls
 import resetSvg from "@/assets/reset.svg";
+import playSvg from "@/assets/play.svg";
+import pauseSvg from "@/assets/pause.svg";
 
 // Import React components
 import { PipelineStage } from "./PipelineStage";
@@ -1059,29 +1061,35 @@ export const PipelineVisualization = forwardRef<
                 <button
                   onClick={handleStepForward}
                   disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
-                  className="flex items-center justify-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
                   title="Step Forward One Cycle"
                 >
                   <span className="text-sm font-medium">Forward →</span>
                 </button>
                 <button
+                  onClick={handleReset}
+                  className="flex items-center justify-center gap-2 rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+                  title="Reset to Beginning"
+                >
+                  <img src={resetSvg} alt="Reset" className="h-4 w-4" />
+                  <span className="text-sm font-medium">Reset</span>
+                </button>
+                <button
                   onClick={() => setIsRunning(!isRunning)}
                   disabled={pipelineInstructions.every((instr) => instr.isCompleted === true)}
-                  className={`flex items-center justify-center rounded px-4 py-2 text-white disabled:opacity-50 ${
+                  className={`flex items-center justify-center gap-2 rounded px-4 py-2 text-white disabled:opacity-50 ${
                     isRunning
                       ? "bg-orange-500 hover:bg-orange-600"
                       : "bg-blue-500 hover:bg-blue-600"
                   }`}
-                  title={isRunning ? "Pause Auto Run" : "Run Automatically"}
+                  title={isRunning ? "Pause Auto Run" : "Play Automatically"}
                 >
-                  <span className="text-sm font-medium">{isRunning ? "Pause" : "Auto"}</span>
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="flex items-center justify-center rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
-                  title="Reset to Beginning"
-                >
-                  <img src={resetSvg} alt="Reset" className="h-6 w-6" />
+                  <img
+                    src={isRunning ? pauseSvg : playSvg}
+                    alt={isRunning ? "Pause" : "Play"}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm font-medium">{isRunning ? "Pause" : "Play"}</span>
                 </button>
                 <span className="ml-2 self-center text-sm">
                   {pipelineInstructions.every((instr) => instr.isCompleted === true)

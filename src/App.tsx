@@ -22,6 +22,7 @@ import {
 } from "./pages/csc369/components/threads";
 import { Caches } from "./pages/csc368/cache";
 import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
+import { ContextSwitch } from "./pages/csc369/components/contextSwitch";
 
 export interface AppRoute {
   path: string;
@@ -67,12 +68,12 @@ export const ROUTES: AppRoute[] = [
     description: "",
     element: <Threads {...ZEMAPHORES} />,
   },
-  // {
-  //   path: "/csc369/threads-multi-reader-writer",
-  //   title: "Threads – Multiple Reader & Single Writer",
-  //   description: "",
-  //   element: <Threads {...MULTI_READER_WRITER} />,
-  // },
+  {
+    path: "/csc369/context-switch",
+    title: "Context Switch",
+    description: "",
+    element: <ContextSwitch />,
+  },
   {
     path: "/csc369/threads-cv-producer-consumer",
     title: "Threads – Producer & Consumer with Condition Variables",

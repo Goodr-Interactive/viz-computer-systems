@@ -1,31 +1,31 @@
 export enum ProcessState { 
-    UNUSED, 
-    EMBRYO, 
-    SLEEPING,
-    RUNNABLE, 
-    RUNNING, 
-    ZOMBIE 
+    UNUSED = "UNUSED", 
+    EMBRYO = "EMBRYO", 
+    SLEEPING = "SLEEPING",
+    RUNNABLE = "RUNNABLE", 
+    RUNNING = "RUNNING", 
+    ZOMBIE = "ZOMBIE"
 };
 
 export interface Context {
-    eip: number;
-    esp: number;
-    ebx: number;
-    ecx: number;
-    edx: number;
-    esi: number;
-    edi: number;
-    ebp: number;
+    eip: string;
+    esp: string;
+    ebx: string;
+    ecx: string;
+    edx: string;
+    esi: string;
+    edi: string;
+    ebp: string;
 }
 
 export interface Process {
     pid: number;
-    parent: string;
+    parent: number;
     mem: string;
     sz: number;
     kstack: string;
     state: ProcessState;
-    chan: string;
+    chan: number;
     killed: number;
     ofile: Array<string>;
     cwd: string;
@@ -34,29 +34,23 @@ export interface Process {
 }
 
 export interface KernelStack {
-    eip: number;
-    esp: number;
-    ebx: number;
-    esi: number;
-    edi: number;
+    eip: string;
+    esp: string;
+    ebx: string;
+    edx: string;
+    esi: string;
+    edi: string;
+    ecx: string;
+    ebp: string;
 }
 
-interface CPU {
-    EAX: number;
-    EBX: number;
-    ECX: number;
-    EDX: number;
-    ESI: number;
-    EDI: number;
-    EBP: number;
-    ESP: number;
-    EIP: number;
-    CS: number;
-    DS: number;
-    ES: number;
-    FS: number; 
-    GS: number;
-    SS: number;
-    IDTR: number;
-
+export interface CPU {
+    ESP: string;
+    EIP: string;
+    EDI: string;
+    EBX: string;
+    ESI: string;
+    ECX: string;
+    EBP: string;
+    EDX: string;
 }

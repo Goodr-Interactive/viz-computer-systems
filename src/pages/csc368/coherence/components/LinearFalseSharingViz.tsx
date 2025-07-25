@@ -44,6 +44,16 @@ export const LinearFalseSharingViz: React.FC = () => {
   const BYTES_PER_WORD = 4;
   const TOTAL_LINES = TOTAL_WORDS / wordsPerLine;
 
+  // Filter out options that would result in only 1 cache line (for no-sharing scenarios)
+  const getValidWordsPerLineOptions = () => {
+    return WORDS_PER_LINE_OPTIONS.filter(option => {
+      const resultingLines = TOTAL_WORDS / option;
+      return resultingLines > 1; // Ensure we have at least 2 cache lines
+    });
+  };
+
+  const validWordsPerLineOptions = getValidWordsPerLineOptions();
+
   // Randomization function
   const randomizeConfiguration = () => {
     const line1Index = Math.floor(Math.random() * TOTAL_LINES);
@@ -180,6 +190,14 @@ export const LinearFalseSharingViz: React.FC = () => {
     randomizeConfiguration();
   }, [wordsPerLine, scenario]);
 
+  // Validate and reset wordsPerLine if it would result in only 1 cache line
+  useEffect(() => {
+    if (!validWordsPerLineOptions.includes(wordsPerLine)) {
+      // Reset to the largest valid option (most cache lines)
+      setWordsPerLine(validWordsPerLineOptions[0] || 4);
+    }
+  }, [validWordsPerLineOptions, wordsPerLine]);
+
   // Calculate dimensions
   const wordSize = Math.min(containerWidth / (wordsPerLine + 4), 50); // +4 for padding and labels
   const lineHeight = wordSize + 50; // Extra space between lines for P1 above and P2 below
@@ -230,7 +248,7 @@ export const LinearFalseSharingViz: React.FC = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {WORDS_PER_LINE_OPTIONS.map((option) => (
+              {validWordsPerLineOptions.map((option) => (
                 <SelectItem key={option} value={option.toString()}>
                   {option}
                 </SelectItem>

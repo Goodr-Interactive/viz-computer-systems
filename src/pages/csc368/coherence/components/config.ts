@@ -10,6 +10,7 @@ import { CacheSize, WordsPerLine, BytesPerWord } from "./types";
 export const cacheConfig = {
   // Cache Size Options (in total words)
   cacheSizeOptions: [
+    { value: CacheSize.WORDS_16, label: "16 words" },
     { value: CacheSize.WORDS_32, label: "32 words" },
     { value: CacheSize.WORDS_64, label: "64 words" },
     { value: CacheSize.WORDS_128, label: "128 words" },
@@ -35,7 +36,7 @@ export const cacheConfig = {
 
   // Default Values
   defaults: {
-    cacheSize: CacheSize.WORDS_64,
+    cacheSize: CacheSize.WORDS_16,
     wordsPerLine: WordsPerLine.WORDS_4,
     bytesPerWord: BytesPerWord.BYTES_4,
   },

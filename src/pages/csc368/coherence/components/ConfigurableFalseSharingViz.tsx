@@ -43,6 +43,16 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
   const cacheSystem = new CacheSystem({ cacheSize, wordsPerLine, bytesPerWord });
   const metrics = cacheSystem.getMetrics();
 
+  // Filter out words per line options that would result in only 1 cache line
+  const getValidWordsPerLineOptions = () => {
+    return cacheConfig.wordsPerLineOptions.filter(option => {
+      const resultingLines = cacheSize / option.value;
+      return resultingLines > 1; // Ensure we have at least 2 cache lines
+    });
+  };
+
+  const validWordsPerLineOptions = getValidWordsPerLineOptions();
+
   const [randomConfig, setRandomConfig] = useState({
     line1Index: 2,
     p1WordIndex: 0,
@@ -190,6 +200,18 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
     randomizeConfiguration();
   }, [cacheSize, wordsPerLine, bytesPerWord, scenario]);
 
+  // Validate and reset wordsPerLine if it would result in only 1 cache line
+  useEffect(() => {
+    const validOptions = validWordsPerLineOptions.map(opt => opt.value);
+    if (!validOptions.includes(wordsPerLine)) {
+      // Reset to the smallest valid option (most cache lines)
+      const smallestValid = validOptions[0];
+      if (smallestValid) {
+        setWordsPerLine(smallestValid);
+      }
+    }
+  }, [cacheSize, validWordsPerLineOptions, wordsPerLine]);
+
   // Calculate dimensions
   const wordSize = Math.min(containerWidth / (metrics.wordsPerLine + 4), 50); // +4 for padding and labels
   const lineHeight = wordSize + 50; // Extra space between lines for P1 above and P2 below
@@ -263,7 +285,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {cacheConfig.wordsPerLineOptions.map((option) => (
+              {validWordsPerLineOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value.toString()}>
                   {option.label}
                 </SelectItem>
@@ -541,8 +563,9 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="mb-6 flex justify-center">
+      {/* Legend and Configuration */}
+      <div className="mb-6 flex justify-center gap-6">
+        {/* Legend */}
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
           <h4 className="mb-3 text-center text-sm font-semibold text-gray-700">Legend</h4>
           <div className="grid grid-cols-2 gap-4 text-xs">
@@ -567,6 +590,43 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded bg-gray-300"></div>
               <span className="text-gray-600">Memory Word</span>
+            </div>
+            {scenario !== "no-sharing" && (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-red-500"></div>
+                  <span className="text-gray-600">P1 active</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-blue-500"></div>
+                  <span className="text-gray-600">P2 active</span>
+                </div>
+              </>
+            )}
+            {scenario === "no-sharing" && (
+              <div className="flex items-center gap-2 col-span-2">
+                <div className="h-3 w-3 rounded bg-gray-500"></div>
+                <span className="text-gray-600">No coherence traffic</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Configuration Information */}
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h4 className="mb-3 text-center text-sm font-semibold text-gray-700">Configuration</h4>
+          <div className="space-y-1 text-xs">
+            <div>
+              <strong>Total Words:</strong> {metrics.totalWords} ({metrics.totalBytes} bytes)
+            </div>
+            <div>
+              <strong>Organization:</strong> {metrics.totalLines} cache lines × {metrics.wordsPerLine} words/line
+            </div>
+            <div>
+              <strong>Word Size:</strong> {metrics.bytesPerWord} bytes per word
+            </div>
+            <div>
+              <strong>Line Size:</strong> {metrics.bytesPerLine} bytes per cache line
             </div>
           </div>
         </div>

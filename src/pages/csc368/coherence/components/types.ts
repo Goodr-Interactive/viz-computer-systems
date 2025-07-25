@@ -1,5 +1,6 @@
 // Cache Configuration Types
 export enum CacheSize {
+  WORDS_16 = 16,
   WORDS_32 = 32,
   WORDS_64 = 64,
   WORDS_128 = 128,

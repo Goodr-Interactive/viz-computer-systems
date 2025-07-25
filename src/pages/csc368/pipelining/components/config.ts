@@ -54,8 +54,8 @@ export const FEATURE_FLAGS = {
 export const PIPELINE_STAGES = [
   "Washer", // Stage 0: Washing process
   "Dryer", // Stage 1: Drying process
-  "Folder", // Stage 2: Folding/organizing
-  "Storer", // Stage 3: Final storage
+  "Fold", // Stage 2: Folding/organizing
+  "Store", // Stage 3: Final storage
 ];
 
 /**
@@ -73,8 +73,8 @@ export const PIPELINE_STAGES = [
 export const STAGE_LENGTHS = [
   30, // Washer: 30 minutes
   30, // Dryer: 30 minutes
-  30, // Folder: 30 minutes
-  30, // Storer: 30 minutes
+  30, // Fold: 30 minutes
+  30, // Store: 30 minutes
 ];
 
 /**
@@ -91,8 +91,8 @@ export const STAGE_LENGTHS = [
 export const STAGE_IMAGES = [
   washingMachineSvg, // Icon for "Washer" stage
   tumbleDrySvg, // Icon for "Dryer" stage
-  handDrySvg, // Icon for "Folder" stage
-  closetSvg, // Icon for "Storer" stage
+  handDrySvg, // Icon for "Fold" stage
+  closetSvg, // Icon for "Store" stage
 ];
 
 /**
@@ -110,8 +110,8 @@ export const STAGE_IMAGES = [
 export const STAGE_COLORS = [
   "#3ba8cfff", // Washer - Light Blue (classic textbook wash color)
   "#FFFFFF", // Dryer - Light Pink (classic textbook dry color)
-  "#ddf8fcff", // Folder - Light Green (classic textbook fold color)
-  "#605e5eff", // Storer - Light Purple (classic textbook put away color)
+  "#ddf8fcff", // Fold - Light Green (classic textbook fold color)
+  "#605e5eff", // Store - Light Purple (classic textbook put away color)
 ];
 
 /**
@@ -127,8 +127,8 @@ export const STAGE_COLORS = [
 export const STAGE_ABBREVIATIONS = [
   "W", // Washer
   "D", // Dryer
-  "F", // Folder
-  "S", // Storer
+  "F", // Fold
+  "S", // Store
 ];
 
 /**

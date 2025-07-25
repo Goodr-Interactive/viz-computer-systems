@@ -75,7 +75,7 @@ export const BasicFalseSharingViz: React.FC = () => {
           title: "False Sharing",
           description: "Two processors accessing different variables in the same cache line",
           explanation:
-            "P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary \"false\" coherence traffic as the cache line bounces between processors.",
+            'P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary "false" coherence traffic as the cache line bounces between processors.',
         };
       case "true-sharing":
         return {
@@ -88,7 +88,7 @@ export const BasicFalseSharingViz: React.FC = () => {
           title: "True Sharing",
           description: "Two processors accessing the same variable in the same cache line",
           explanation:
-            "P1 and P2 both access the same variable X to write. This is \"true\" sharing where coherence traffic is necessary to maintain data consistency between processors.",
+            'P1 and P2 both access the same variable X to write. This is "true" sharing where coherence traffic is necessary to maintain data consistency between processors.',
         };
       case "no-sharing":
         return {
@@ -117,7 +117,7 @@ export const BasicFalseSharingViz: React.FC = () => {
     for (let wordIndex = 0; wordIndex < WORDS_PER_LINE; wordIndex++) {
       const isP1Access = lineIndex === config.p1LineIndex && wordIndex === config.p1WordIndex;
       const isP2Access = lineIndex === config.p2LineIndex && wordIndex === config.p2WordIndex;
-      
+
       let variable = "";
       if (isP1Access) {
         variable = scenario === "true-sharing" ? "X" : "A";
@@ -231,9 +231,9 @@ export const BasicFalseSharingViz: React.FC = () => {
           {cacheLines.map((line, lineIndex) => {
             const yPos = 50 + lineIndex * lineHeight;
             const isActiveLine = line.isActive;
-            const hasP1Access = line.words.some(word => word.isP1Access);
-            const hasP2Access = line.words.some(word => word.isP2Access);
-            
+            const hasP1Access = line.words.some((word) => word.isP1Access);
+            const hasP2Access = line.words.some((word) => word.isP2Access);
+
             // Determine line color based on animation state and scenario
             let lineColor = "#e5e7eb"; // Default gray
             if (isActiveLine) {
@@ -283,7 +283,7 @@ export const BasicFalseSharingViz: React.FC = () => {
                 {line.words.map((word, wordIndex) => {
                   const xPos = 100 + wordIndex * wordSize;
                   const isAccessed = word.isP1Access || word.isP2Access;
-                  
+
                   return (
                     <g key={word.id}>
                       {/* Word cell */}
@@ -492,12 +492,14 @@ export const BasicFalseSharingViz: React.FC = () => {
       <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
         <h3 className="mb-2 text-lg font-semibold text-yellow-800">{config.title} Explained</h3>
         <p className="text-yellow-700">{config.explanation}</p>
-        <div className="mt-2 text-sm text-yellow-600 space-y-1">
+        <div className="mt-2 space-y-1 text-sm text-yellow-600">
           <div>
-            <strong>Cache Configuration:</strong> {TOTAL_WORDS} words total ({TOTAL_WORDS * BYTES_PER_WORD} bytes)
+            <strong>Cache Configuration:</strong> {TOTAL_WORDS} words total (
+            {TOTAL_WORDS * BYTES_PER_WORD} bytes)
           </div>
           <div>
-            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {WORDS_PER_LINE} words/line × {BYTES_PER_WORD} bytes/word
+            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {WORDS_PER_LINE} words/line ×{" "}
+            {BYTES_PER_WORD} bytes/word
           </div>
           <div>
             <strong>Line Size:</strong> {WORDS_PER_LINE * BYTES_PER_WORD} bytes per cache line

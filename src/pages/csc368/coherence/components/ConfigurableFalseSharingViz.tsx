@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { CacheSystem } from "./CacheSystem";
 import { cacheConfig } from "./config";
@@ -27,16 +33,16 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
   const [animationState, setAnimationState] = useState<"p1" | "p2">("p1");
   const [containerWidth, setContainerWidth] = useState(800);
   const [scenario, setScenario] = useState<SharingScenario>("false-sharing");
-  
+
   // Cache configuration state
   const [cacheSize, setCacheSize] = useState<CacheSize>(cacheConfig.defaults.cacheSize);
   const [wordsPerLine, setWordsPerLine] = useState<WordsPerLine>(cacheConfig.defaults.wordsPerLine);
   const [bytesPerWord, setBytesPerWord] = useState<BytesPerWord>(cacheConfig.defaults.bytesPerWord);
-  
+
   // Create cache system
   const cacheSystem = new CacheSystem({ cacheSize, wordsPerLine, bytesPerWord });
   const metrics = cacheSystem.getMetrics();
-  
+
   const [randomConfig, setRandomConfig] = useState({
     line1Index: 2,
     p1WordIndex: 0,
@@ -87,7 +93,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
           title: "False Sharing",
           description: "Two processors accessing different variables in the same cache line",
           explanation:
-            "P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary \"false\" coherence traffic as the cache line bounces between processors.",
+            'P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary "false" coherence traffic as the cache line bounces between processors.',
         };
       case "true-sharing":
         return {
@@ -100,7 +106,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
           title: "True Sharing",
           description: "Two processors accessing the same variable in the same cache line",
           explanation:
-            "P1 and P2 both access the same variable X to write. This is \"true\" sharing where coherence traffic is necessary to maintain data consistency between processors.",
+            'P1 and P2 both access the same variable X to write. This is "true" sharing where coherence traffic is necessary to maintain data consistency between processors.',
         };
       case "no-sharing":
         return {
@@ -129,7 +135,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
     for (let wordIndex = 0; wordIndex < metrics.wordsPerLine; wordIndex++) {
       const isP1Access = lineIndex === config.p1LineIndex && wordIndex === config.p1WordIndex;
       const isP2Access = lineIndex === config.p2LineIndex && wordIndex === config.p2WordIndex;
-      
+
       let variable = "";
       if (isP1Access) {
         variable = scenario === "true-sharing" ? "X" : "A";
@@ -308,9 +314,9 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
           {cacheLines.map((line, lineIndex) => {
             const yPos = 50 + lineIndex * lineHeight;
             const isActiveLine = line.isActive;
-            const hasP1Access = line.words.some(word => word.isP1Access);
-            const hasP2Access = line.words.some(word => word.isP2Access);
-            
+            const hasP1Access = line.words.some((word) => word.isP1Access);
+            const hasP2Access = line.words.some((word) => word.isP2Access);
+
             // Determine line color based on animation state and scenario
             let lineColor = "#e5e7eb"; // Default gray
             if (isActiveLine) {
@@ -360,7 +366,7 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
                 {line.words.map((word, wordIndex) => {
                   const xPos = 100 + wordIndex * wordSize;
                   const isAccessed = word.isP1Access || word.isP2Access;
-                  
+
                   return (
                     <g key={word.id}>
                       {/* Word cell */}
@@ -569,12 +575,14 @@ export const ConfigurableFalseSharingViz: React.FC = () => {
       <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
         <h3 className="mb-2 text-lg font-semibold text-yellow-800">{config.title} Explained</h3>
         <p className="text-yellow-700">{config.explanation}</p>
-        <div className="mt-2 text-sm text-yellow-600 space-y-1">
+        <div className="mt-2 space-y-1 text-sm text-yellow-600">
           <div>
-            <strong>Cache Configuration:</strong> {metrics.totalWords} words total ({cacheSystem.getFormattedSize()})
+            <strong>Cache Configuration:</strong> {metrics.totalWords} words total (
+            {cacheSystem.getFormattedSize()})
           </div>
           <div>
-            <strong>Organization:</strong> {metrics.totalLines} cache lines × {metrics.wordsPerLine} words/line × {metrics.bytesPerWord} bytes/word
+            <strong>Organization:</strong> {metrics.totalLines} cache lines × {metrics.wordsPerLine}{" "}
+            words/line × {metrics.bytesPerWord} bytes/word
           </div>
           <div>
             <strong>Line Size:</strong> {metrics.bytesPerLine} bytes per cache line

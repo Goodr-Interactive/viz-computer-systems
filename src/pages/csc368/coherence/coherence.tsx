@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { SimpleFalseSharingViz, BasicFalseSharingViz, LinearFalseSharingViz, ConfigurableFalseSharingViz } from "./components";
+import {
+  SimpleFalseSharingViz,
+  BasicFalseSharingViz,
+  LinearFalseSharingViz,
+  ConfigurableFalseSharingViz,
+} from "./components";
 
 export const Coherence: React.FunctionComponent = () => {
   const [viewMode, setViewMode] = useState<"basic" | "linear" | "configurable" | "grid">("basic");

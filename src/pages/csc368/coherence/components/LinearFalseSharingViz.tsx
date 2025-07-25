@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface MemoryWord {
   id: number;
@@ -77,7 +83,7 @@ export const LinearFalseSharingViz: React.FC = () => {
           title: "False Sharing",
           description: "Two processors accessing different variables in the same cache line",
           explanation:
-            "P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary \"false\" coherence traffic as the cache line bounces between processors.",
+            'P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary "false" coherence traffic as the cache line bounces between processors.',
         };
       case "true-sharing":
         return {
@@ -90,7 +96,7 @@ export const LinearFalseSharingViz: React.FC = () => {
           title: "True Sharing",
           description: "Two processors accessing the same variable in the same cache line",
           explanation:
-            "P1 and P2 both access the same variable X to write. This is \"true\" sharing where coherence traffic is necessary to maintain data consistency between processors.",
+            'P1 and P2 both access the same variable X to write. This is "true" sharing where coherence traffic is necessary to maintain data consistency between processors.',
         };
       case "no-sharing":
         return {
@@ -119,7 +125,7 @@ export const LinearFalseSharingViz: React.FC = () => {
     for (let wordIndex = 0; wordIndex < wordsPerLine; wordIndex++) {
       const isP1Access = lineIndex === config.p1LineIndex && wordIndex === config.p1WordIndex;
       const isP2Access = lineIndex === config.p2LineIndex && wordIndex === config.p2WordIndex;
-      
+
       let variable = "";
       if (isP1Access) {
         variable = scenario === "true-sharing" ? "X" : "A";
@@ -215,7 +221,10 @@ export const LinearFalseSharingViz: React.FC = () => {
       <div className="mb-6 flex justify-center gap-4">
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">Words per Cache Line:</label>
-          <Select value={wordsPerLine.toString()} onValueChange={(value) => setWordsPerLine(parseInt(value))}>
+          <Select
+            value={wordsPerLine.toString()}
+            onValueChange={(value) => setWordsPerLine(parseInt(value))}
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -248,9 +257,9 @@ export const LinearFalseSharingViz: React.FC = () => {
           {cacheLines.map((line, lineIndex) => {
             const yPos = 50 + lineIndex * lineHeight;
             const isActiveLine = line.isActive;
-            const hasP1Access = line.words.some(word => word.isP1Access);
-            const hasP2Access = line.words.some(word => word.isP2Access);
-            
+            const hasP1Access = line.words.some((word) => word.isP1Access);
+            const hasP2Access = line.words.some((word) => word.isP2Access);
+
             // Determine line color based on animation state and scenario
             let lineColor = "#e5e7eb"; // Default gray
             if (isActiveLine) {
@@ -300,7 +309,7 @@ export const LinearFalseSharingViz: React.FC = () => {
                 {line.words.map((word, wordIndex) => {
                   const xPos = 100 + wordIndex * wordSize;
                   const isAccessed = word.isP1Access || word.isP2Access;
-                  
+
                   return (
                     <g key={word.id}>
                       {/* Word cell */}
@@ -509,12 +518,14 @@ export const LinearFalseSharingViz: React.FC = () => {
       <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
         <h3 className="mb-2 text-lg font-semibold text-yellow-800">{config.title} Explained</h3>
         <p className="text-yellow-700">{config.explanation}</p>
-        <div className="mt-2 text-sm text-yellow-600 space-y-1">
+        <div className="mt-2 space-y-1 text-sm text-yellow-600">
           <div>
-            <strong>Cache Configuration:</strong> {TOTAL_WORDS} words total ({TOTAL_WORDS * BYTES_PER_WORD} bytes)
+            <strong>Cache Configuration:</strong> {TOTAL_WORDS} words total (
+            {TOTAL_WORDS * BYTES_PER_WORD} bytes)
           </div>
           <div>
-            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {wordsPerLine} words/line × {BYTES_PER_WORD} bytes/word
+            <strong>Organization:</strong> {TOTAL_LINES} cache lines × {wordsPerLine} words/line ×{" "}
+            {BYTES_PER_WORD} bytes/word
           </div>
           <div>
             <strong>Line Size:</strong> {wordsPerLine * BYTES_PER_WORD} bytes per cache line

@@ -80,7 +80,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
           title: "False Sharing",
           description: "Two processors accessing different variables in the same cache line",
           explanation:
-            "P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary \"false\" coherence traffic as the cache line bounces between processors.",
+            'P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary "false" coherence traffic as the cache line bounces between processors.',
         };
       case "true-sharing":
         const sharedCol = randomConfig.cacheLineStartCol + Math.floor(CACHE_LINE_LENGTH / 2);
@@ -94,7 +94,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
           title: "True Sharing",
           description: "Two processors accessing the same variable in the same cache line",
           explanation:
-            "P1 and P2 both access the same variable X to write. This is \"true\" sharing where coherence traffic is necessary to maintain data consistency between processors.",
+            'P1 and P2 both access the same variable X to write. This is "true" sharing where coherence traffic is necessary to maintain data consistency between processors.',
         };
       case "no-sharing":
         return {

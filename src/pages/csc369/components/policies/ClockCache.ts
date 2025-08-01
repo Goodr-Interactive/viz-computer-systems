@@ -8,7 +8,7 @@ export interface CacheResult {
   hit: boolean;
   evictedValue?: string | number;
   insertedValue?: string | number;
-  missType?: 'cold' | 'capacity'; // Only present on miss
+  missType?: "cold" | "capacity"; // Only present on miss
   clockHandMoved?: boolean;
   secondChancesGiven?: number; // How many second chances were given during eviction
 }
@@ -16,39 +16,41 @@ export interface CacheResult {
 export class ClockCache {
   private slots: CacheSlot[];
   private capacity: number;
-  private clockHand: number = 0; // Points to current position in the "clock"
-  private accessCounter: number = 0;
-  private hitCount: number = 0;
-  private missCount: number = 0;
-  private coldMissCount: number = 0;
-  private capacityMissCount: number = 0;
-  
-  // Track all values that have ever been in the cache
-  private everSeen: Set<string | number> = new Set();
+  private clockHand = 0; // Points to current position in the "clock"
+  private accessCounter = 0;
+  private hitCount = 0;
+  private missCount = 0;
+  private coldMissCount = 0;
+  private capacityMissCount = 0;
 
-  constructor(capacity: number = 10) {
+  // Track all values that have ever been in the cache
+  private everSeen = new Set<string | number>();
+
+  constructor(capacity = 10) {
     this.capacity = capacity;
-    this.slots = Array(capacity).fill(null).map(() => ({
-      value: null,
-      referenceBit: false,
-      isEmpty: true,
-    }));
+    this.slots = Array(capacity)
+      .fill(null)
+      .map(() => ({
+        value: null,
+        referenceBit: false,
+        isEmpty: true,
+      }));
   }
 
   /**
    * Check if a value is in cache and add it if not present
    * Returns whether it was a hit or miss, plus eviction info
    * Sets reference bit on hits (key behavior for Clock algorithm)
-   * 
+   *
    * @param value - The value to look for (number or character)
    * @returns CacheResult with hit/miss info and eviction details
    */
   checkCache(value: string | number): CacheResult {
     this.accessCounter++;
-    
+
     // Check for cache hit
-    const hitSlotIndex = this.slots.findIndex(slot => !slot.isEmpty && slot.value === value);
-    
+    const hitSlotIndex = this.slots.findIndex((slot) => !slot.isEmpty && slot.value === value);
+
     if (hitSlotIndex !== -1) {
       // Cache hit! Set reference bit (this gives it a "second chance")
       this.hitCount++;
@@ -57,33 +59,33 @@ export class ClockCache {
         hit: true,
       };
     }
-    
+
     // Cache miss - determine if it's cold or capacity miss
     this.missCount++;
-    
+
     const isColdMiss = !this.everSeen.has(value);
-    const missType: 'cold' | 'capacity' = isColdMiss ? 'cold' : 'capacity';
-    
+    const missType: "cold" | "capacity" = isColdMiss ? "cold" : "capacity";
+
     if (isColdMiss) {
       this.coldMissCount++;
     } else {
       this.capacityMissCount++;
     }
-    
+
     // Track that we've now seen this value
     this.everSeen.add(value);
-    
+
     // Find a slot for the new value using Clock algorithm
     const evictionResult = this.findSlotToEvict();
-    
+
     // Insert new value at the found slot
     this.slots[evictionResult.slotIndex].value = value;
     this.slots[evictionResult.slotIndex].referenceBit = true; // New items get reference bit set
     this.slots[evictionResult.slotIndex].isEmpty = false;
-    
+
     // Advance clock hand
     this.clockHand = (evictionResult.slotIndex + 1) % this.capacity;
-    
+
     return {
       hit: false,
       evictedValue: evictionResult.evictedValue,
@@ -105,10 +107,10 @@ export class ClockCache {
   } {
     let secondChancesGiven = 0;
     let startHand = this.clockHand;
-    
+
     while (true) {
       const currentSlot = this.slots[this.clockHand];
-      
+
       // If slot is empty, use it
       if (currentSlot.isEmpty) {
         return {
@@ -116,7 +118,7 @@ export class ClockCache {
           secondChancesGiven,
         };
       }
-      
+
       // If reference bit is 0, evict this item
       if (!currentSlot.referenceBit) {
         const evictedValue = currentSlot.value!;
@@ -126,14 +128,14 @@ export class ClockCache {
           secondChancesGiven,
         };
       }
-      
+
       // Reference bit is 1, give it a second chance
       currentSlot.referenceBit = false;
       secondChancesGiven++;
-      
+
       // Advance clock hand
       this.clockHand = (this.clockHand + 1) % this.capacity;
-      
+
       // Safety check to prevent infinite loop (shouldn't happen with proper implementation)
       if (this.clockHand === startHand && secondChancesGiven >= this.capacity) {
         // This means all slots have reference bit 1, just evict current slot
@@ -168,7 +170,7 @@ export class ClockCache {
       coldMissRate: this.accessCounter > 0 ? this.coldMissCount / this.accessCounter : 0,
       capacityMissRate: this.accessCounter > 0 ? this.capacityMissCount / this.accessCounter : 0,
       capacity: this.capacity,
-      occupancy: this.slots.filter(slot => !slot.isEmpty).length,
+      occupancy: this.slots.filter((slot) => !slot.isEmpty).length,
       uniqueValuesSeen: this.everSeen.size,
       currentClockHand: this.clockHand,
     };
@@ -180,21 +182,21 @@ export class ClockCache {
   getNextEvictionValue(): string | number | null {
     // Simulate the clock algorithm to find what would be evicted
     let hand = this.clockHand;
-    
+
     for (let i = 0; i < this.capacity; i++) {
       const slot = this.slots[hand];
-      
+
       if (slot.isEmpty) {
         return null; // Would use empty slot
       }
-      
+
       if (!slot.referenceBit) {
         return slot.value; // Would evict this
       }
-      
+
       hand = (hand + 1) % this.capacity;
     }
-    
+
     // All have reference bit 1, would evict current clock hand position
     return this.slots[this.clockHand].value;
   }
@@ -203,7 +205,7 @@ export class ClockCache {
    * Check if cache is full
    */
   isFull(): boolean {
-    return this.slots.every(slot => !slot.isEmpty);
+    return this.slots.every((slot) => !slot.isEmpty);
   }
 
   /**
@@ -224,7 +226,7 @@ export class ClockCache {
    * Reset cache to empty state
    */
   reset(): void {
-    this.slots.forEach(slot => {
+    this.slots.forEach((slot) => {
       slot.value = null;
       slot.referenceBit = false;
       slot.isEmpty = true;
@@ -250,7 +252,7 @@ export class ClockCache {
   }> {
     return this.slots.map((slot, index) => ({
       index,
-      value: slot.isEmpty ? '---' : String(slot.value),
+      value: slot.isEmpty ? "---" : String(slot.value),
       referenceBit: slot.referenceBit,
       isClockHand: index === this.clockHand,
       isEmpty: slot.isEmpty,
@@ -260,15 +262,15 @@ export class ClockCache {
   /**
    * Get just the values in order for simple display
    */
-  getValues(): (string | number | null)[] {
-    return this.slots.map(slot => slot.isEmpty ? null : slot.value);
+  getValues(): Array<string | number | null> {
+    return this.slots.map((slot) => (slot.isEmpty ? null : slot.value));
   }
 
   /**
    * Get reference bits for visualization
    */
   getReferenceBits(): boolean[] {
-    return this.slots.map(slot => slot.referenceBit);
+    return this.slots.map((slot) => slot.referenceBit);
   }
 
   /**
@@ -277,12 +279,14 @@ export class ClockCache {
   getClockVisualization(): string {
     const values = this.getValues();
     const refBits = this.getReferenceBits();
-    
-    return values.map((value, index) => {
-      const val = value || '---';
-      const ref = refBits[index] ? '1' : '0';
-      const hand = index === this.clockHand ? ' 👉' : '';
-      return `[${val}:${ref}]${hand}`;
-    }).join(' ');
+
+    return values
+      .map((value, index) => {
+        const val = value || "---";
+        const ref = refBits[index] ? "1" : "0";
+        const hand = index === this.clockHand ? " 👉" : "";
+        return `[${val}:${ref}]${hand}`;
+      })
+      .join(" ");
   }
-} 
+}

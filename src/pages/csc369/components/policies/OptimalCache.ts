@@ -7,56 +7,60 @@ export interface CacheResult {
   hit: boolean;
   evictedValue?: string | number;
   insertedValue?: string | number;
-  missType?: 'cold' | 'capacity'; // Only present on miss
+  missType?: "cold" | "capacity"; // Only present on miss
   nextAccessDistance?: number; // How far in the future the evicted value would be accessed
 }
 
 export class OptimalCache {
   private slots: CacheSlot[];
   private capacity: number;
-  private accessSequence: (string | number)[];
-  private currentPosition: number = 0;
-  private accessCounter: number = 0;
-  private hitCount: number = 0;
-  private missCount: number = 0;
-  private coldMissCount: number = 0;
-  private capacityMissCount: number = 0;
-  
-  // Track all values that have ever been in the cache
-  private everSeen: Set<string | number> = new Set();
+  private accessSequence: Array<string | number>;
+  private currentPosition = 0;
+  private accessCounter = 0;
+  private hitCount = 0;
+  private missCount = 0;
+  private coldMissCount = 0;
+  private capacityMissCount = 0;
 
-  constructor(capacity: number = 10, accessSequence: (string | number)[] = []) {
+  // Track all values that have ever been in the cache
+  private everSeen = new Set<string | number>();
+
+  constructor(capacity = 10, accessSequence: Array<string | number> = []) {
     this.capacity = capacity;
     this.accessSequence = [...accessSequence]; // Make a copy
-    this.slots = Array(capacity).fill(null).map(() => ({
-      value: null,
-      isEmpty: true,
-    }));
+    this.slots = Array(capacity)
+      .fill(null)
+      .map(() => ({
+        value: null,
+        isEmpty: true,
+      }));
   }
 
   /**
    * Check if a value is in cache and add it if not present
    * Uses Belady's optimal algorithm for eviction decisions
-   * 
+   *
    * @param value - The value to look for (number or character)
    * @returns CacheResult with hit/miss info and eviction details
    */
   checkCache(value: string | number): CacheResult {
     this.accessCounter++;
-    
+
     // Verify we're accessing the expected value from the sequence
     if (this.currentPosition < this.accessSequence.length) {
       const expectedValue = this.accessSequence[this.currentPosition];
       if (expectedValue !== value) {
-        throw new Error(`Expected access to ${expectedValue} but got ${value} at position ${this.currentPosition}`);
+        throw new Error(
+          `Expected access to ${expectedValue} but got ${value} at position ${this.currentPosition}`
+        );
       }
     }
-    
+
     this.currentPosition++;
-    
+
     // Check for cache hit
-    const hitSlotIndex = this.slots.findIndex(slot => !slot.isEmpty && slot.value === value);
-    
+    const hitSlotIndex = this.slots.findIndex((slot) => !slot.isEmpty && slot.value === value);
+
     if (hitSlotIndex !== -1) {
       // Cache hit!
       this.hitCount++;
@@ -64,30 +68,30 @@ export class OptimalCache {
         hit: true,
       };
     }
-    
+
     // Cache miss - determine if it's cold or capacity miss
     this.missCount++;
-    
+
     const isColdMiss = !this.everSeen.has(value);
-    const missType: 'cold' | 'capacity' = isColdMiss ? 'cold' : 'capacity';
-    
+    const missType: "cold" | "capacity" = isColdMiss ? "cold" : "capacity";
+
     if (isColdMiss) {
       this.coldMissCount++;
     } else {
       this.capacityMissCount++;
     }
-    
+
     // Track that we've now seen this value
     this.everSeen.add(value);
-    
+
     // Find a slot for the new value
     let targetSlotIndex = -1;
     let evictedValue: string | number | undefined;
     let nextAccessDistance: number | undefined;
-    
+
     // First, check if there's an empty slot
-    const emptySlotIndex = this.slots.findIndex(slot => slot.isEmpty);
-    
+    const emptySlotIndex = this.slots.findIndex((slot) => slot.isEmpty);
+
     if (emptySlotIndex !== -1) {
       // Use empty slot
       targetSlotIndex = emptySlotIndex;
@@ -98,11 +102,11 @@ export class OptimalCache {
       evictedValue = evictionResult.evictedValue;
       nextAccessDistance = evictionResult.nextAccessDistance;
     }
-    
+
     // Insert new value at the found slot
     this.slots[targetSlotIndex].value = value;
     this.slots[targetSlotIndex].isEmpty = false;
-    
+
     return {
       hit: false,
       evictedValue,
@@ -124,14 +128,14 @@ export class OptimalCache {
     let optimalSlotIndex = 0;
     let furthestDistance = -1;
     let optimalValue: string | number = this.slots[0].value!;
-    
+
     // For each occupied slot, find when that value will be accessed next
     for (let i = 0; i < this.slots.length; i++) {
       const slot = this.slots[i];
       if (slot.isEmpty) continue;
-      
+
       const nextAccessDistance = this.findNextAccess(slot.value!, this.currentPosition);
-      
+
       // If this page will never be accessed again, or will be accessed furthest in the future
       if (nextAccessDistance > furthestDistance) {
         furthestDistance = nextAccessDistance;
@@ -139,7 +143,7 @@ export class OptimalCache {
         optimalValue = slot.value!;
       }
     }
-    
+
     return {
       slotIndex: optimalSlotIndex,
       evictedValue: optimalValue,
@@ -181,7 +185,7 @@ export class OptimalCache {
       coldMissRate: this.accessCounter > 0 ? this.coldMissCount / this.accessCounter : 0,
       capacityMissRate: this.accessCounter > 0 ? this.capacityMissCount / this.accessCounter : 0,
       capacity: this.capacity,
-      occupancy: this.slots.filter(slot => !slot.isEmpty).length,
+      occupancy: this.slots.filter((slot) => !slot.isEmpty).length,
       uniqueValuesSeen: this.everSeen.size,
       currentPosition: this.currentPosition,
       sequenceLength: this.accessSequence.length,
@@ -197,7 +201,7 @@ export class OptimalCache {
     if (!this.isFull()) {
       return null; // No eviction needed
     }
-    
+
     const victim = this.findOptimalVictim();
     return victim.evictedValue;
   }
@@ -206,7 +210,7 @@ export class OptimalCache {
    * Check if cache is full
    */
   isFull(): boolean {
-    return this.slots.every(slot => !slot.isEmpty);
+    return this.slots.every((slot) => !slot.isEmpty);
   }
 
   /**
@@ -226,14 +230,14 @@ export class OptimalCache {
   /**
    * Get the complete access sequence
    */
-  getAccessSequence(): (string | number)[] {
+  getAccessSequence(): Array<string | number> {
     return [...this.accessSequence];
   }
 
   /**
    * Get upcoming accesses (next N values)
    */
-  getUpcomingAccesses(count: number = 5): (string | number)[] {
+  getUpcomingAccesses(count = 5): Array<string | number> {
     const start = this.currentPosition;
     const end = Math.min(start + count, this.accessSequence.length);
     return this.accessSequence.slice(start, end);
@@ -243,7 +247,7 @@ export class OptimalCache {
    * Reset cache to empty state and restart sequence
    */
   reset(): void {
-    this.slots.forEach(slot => {
+    this.slots.forEach((slot) => {
       slot.value = null;
       slot.isEmpty = true;
     });
@@ -259,7 +263,7 @@ export class OptimalCache {
   /**
    * Set a new access sequence (useful for testing different sequences)
    */
-  setAccessSequence(sequence: (string | number)[]): void {
+  setAccessSequence(sequence: Array<string | number>): void {
     this.accessSequence = [...sequence];
     this.reset(); // Reset position and stats
   }
@@ -275,15 +279,15 @@ export class OptimalCache {
   }> {
     return this.slots.map((slot, index) => {
       let nextAccessDistance: number | string = "Never";
-      
+
       if (!slot.isEmpty && slot.value !== null) {
         const distance = this.findNextAccess(slot.value, this.currentPosition);
         nextAccessDistance = distance === Infinity ? "Never" : distance;
       }
-      
+
       return {
         index,
-        value: slot.isEmpty ? '---' : String(slot.value),
+        value: slot.isEmpty ? "---" : String(slot.value),
         isEmpty: slot.isEmpty,
         nextAccessDistance,
       };
@@ -293,8 +297,8 @@ export class OptimalCache {
   /**
    * Get just the values in order for simple display
    */
-  getValues(): (string | number | null)[] {
-    return this.slots.map(slot => slot.isEmpty ? null : slot.value);
+  getValues(): Array<string | number | null> {
+    return this.slots.map((slot) => (slot.isEmpty ? null : slot.value));
   }
 
   /**
@@ -303,16 +307,18 @@ export class OptimalCache {
   getOptimalVisualization(): string {
     const values = this.getValues();
     const displayInfo = this.getDisplayInfo();
-    
-    const cacheStr = values.map((value, index) => {
-      const val = value || '---';
-      const distance = displayInfo[index].nextAccessDistance;
-      return `[${val}:${distance}]`;
-    }).join(' ');
-    
+
+    const cacheStr = values
+      .map((value, index) => {
+        const val = value || "---";
+        const distance = displayInfo[index].nextAccessDistance;
+        return `[${val}:${distance}]`;
+      })
+      .join(" ");
+
     const upcoming = this.getUpcomingAccesses(5);
-    const upcomingStr = upcoming.length > 0 ? `Next: ${upcoming.join(', ')}` : 'End of sequence';
-    
+    const upcomingStr = upcoming.length > 0 ? `Next: ${upcoming.join(", ")}` : "End of sequence";
+
     return `Cache: ${cacheStr}\n${upcomingStr}`;
   }
-} 
+}

@@ -1,25 +1,72 @@
-import { LRUCache } from './LRUCache';
-import { FIFOCache } from './FIFOCache';
-import { ClockCache } from './ClockCache';
-import { RandomCache } from './RandomCache';
-import { OptimalCache } from './OptimalCache';
-import { Simplified2QCache } from './Simplified2QCache';
+import { LRUCache } from "./LRUCache";
+import { FIFOCache } from "./FIFOCache";
+import { ClockCache } from "./ClockCache";
+import { RandomCache } from "./RandomCache";
+import { OptimalCache } from "./OptimalCache";
+import { POLICY_COMPARISON_CONFIG } from "./config";
 
 // Union type for all available cache policies
-type CacheInstance = LRUCache | FIFOCache | ClockCache | RandomCache | OptimalCache | Simplified2QCache;
+type CacheInstance = LRUCache | FIFOCache | ClockCache | RandomCache | OptimalCache;
 
 // Available paging policy names
-export type PagingPolicyName = 'LRU' | 'FIFO' | 'Clock' | 'Random' | 'Optimal' | '2Q';
+export type PagingPolicyName = "LRU" | "FIFO" | "Clock" | "Random" | "Optimal" | "2Q";
+
+// Common cache result interface (consistent across all cache implementations)
+interface CacheResult {
+  hit: boolean;
+  evictedValue?: string | number;
+  insertedValue?: string | number;
+  missType?: "cold" | "capacity";
+  randomSlotSelected?: number; // For Random cache
+  evictedFromQueue?: "A1" | "Am"; // For 2Q cache
+}
+
+// Cache statistics interface
+interface CacheStats {
+  totalAccesses: number;
+  hits: number;
+  misses: number;
+  coldMisses?: number;
+  capacityMisses?: number;
+  hitRate: number;
+  coldMissRate?: number;
+  capacityMissRate?: number;
+  capacity: number;
+  occupancy: number;
+  uniqueValuesSeen?: number;
+}
+
+// Cache display info interface
+interface CacheDisplayItem {
+  index: number;
+  value: string;
+  lastAccessTime?: number | null;
+  insertionOrder?: number | null;
+  isLRU?: boolean;
+  isMRU?: boolean;
+  isOldest?: boolean;
+  isNewest?: boolean;
+  isEmpty: boolean;
+  referenceBit?: boolean;
+  isClockHand?: boolean;
+}
+
+// Cache state interface
+interface CacheState {
+  displayInfo: CacheDisplayItem[];
+  values: Array<string | number | null>;
+  clockHand?: number;
+}
 
 interface ComparisonStep {
   stepIndex: number;
   accessValue: string | number;
-  cache1Result: any;
-  cache2Result: any;
-  cache1State: any;
-  cache2State: any;
-  cache1Stats: any;
-  cache2Stats: any;
+  cache1Result: CacheResult;
+  cache2Result: CacheResult;
+  cache1State: CacheState;
+  cache2State: CacheState;
+  cache1Stats: CacheStats;
+  cache2Stats: CacheStats;
 }
 
 export class CompareController {
@@ -27,62 +74,65 @@ export class CompareController {
   private cache2: CacheInstance;
   private policy1Name: PagingPolicyName;
   private policy2Name: PagingPolicyName;
-  private accessSequence: (string | number)[];
-  private currentStep: number = -1; // -1 means before first access
+  private accessSequence: Array<string | number>;
+  private currentStep = -1; // -1 means before first access
   private maxStep: number;
   private stepHistory: ComparisonStep[] = [];
 
   constructor(
-    policy1: PagingPolicyName, 
-    policy2: PagingPolicyName, 
-    cacheSize: number = 10, 
-    sequenceLength: number = 20
+    policy1: PagingPolicyName,
+    policy2: PagingPolicyName,
+    cacheSize: number = POLICY_COMPARISON_CONFIG.cacheSize,
+    sequenceLength: number = POLICY_COMPARISON_CONFIG.sequenceLength,
+    customSequence?: Array<string | number>
   ) {
     this.policy1Name = policy1;
     this.policy2Name = policy2;
-    
+
     // Create cache instances
     this.cache1 = this.createCacheInstance(policy1, cacheSize);
     this.cache2 = this.createCacheInstance(policy2, cacheSize);
-    
-    // Generate random access sequence
-    this.accessSequence = this.generateAccessSequence(sequenceLength);
+
+    // Use custom sequence if provided, otherwise generate random sequence
+    if (customSequence && customSequence.length > 0) {
+      this.accessSequence = customSequence.map(String);
+    } else {
+      this.accessSequence = this.generateAccessSequence(sequenceLength);
+    }
     this.maxStep = this.accessSequence.length - 1;
-    
+
     // Build initial step history
     this.buildStepHistory();
   }
 
   private createCacheInstance(policyName: PagingPolicyName, capacity: number): CacheInstance {
     switch (policyName) {
-      case 'LRU':
+      case "LRU":
         return new LRUCache(capacity);
-      case 'FIFO':
+      case "FIFO":
         return new FIFOCache(capacity);
-      case 'Clock':
+      case "Clock":
         return new ClockCache(capacity);
-      case 'Random':
+      case "Random":
         return new RandomCache(capacity);
-      case 'Optimal':
+      case "Optimal":
         // For optimal cache, we need to provide the entire sequence
         return new OptimalCache(capacity, this.accessSequence);
-      case '2Q':
-        return new Simplified2QCache(capacity);
       default:
         throw new Error(`Unknown cache policy: ${policyName}`);
     }
   }
 
-  private generateAccessSequence(length: number): (string | number)[] {
-    const sequence: (string | number)[] = [];
+  private generateAccessSequence(length: number): Array<string | number> {
+    const sequence: Array<string | number> = [];
     // Generate values from a limited set to ensure some hits
-    const possibleValues = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-    
+    const possibleValues = POLICY_COMPARISON_CONFIG.possibleValues;
+
     for (let i = 0; i < length; i++) {
       const randomIndex = Math.floor(Math.random() * possibleValues.length);
       sequence.push(possibleValues[randomIndex]);
     }
-    
+
     return sequence;
   }
 
@@ -93,20 +143,26 @@ export class CompareController {
     this.stepHistory = [];
 
     // Rebuild optimal cache with the current sequence if needed
-    if (this.policy1Name === 'Optimal') {
-      this.cache1 = new OptimalCache(this.cache1.getStats?.()?.capacity || 5, this.accessSequence);
+    if (this.policy1Name === "Optimal") {
+      this.cache1 = new OptimalCache(
+        this.cache1.getStats?.()?.capacity || POLICY_COMPARISON_CONFIG.cacheSize,
+        this.accessSequence
+      );
     }
-    if (this.policy2Name === 'Optimal') {
-      this.cache2 = new OptimalCache(this.cache2.getStats?.()?.capacity || 5, this.accessSequence);
+    if (this.policy2Name === "Optimal") {
+      this.cache2 = new OptimalCache(
+        this.cache2.getStats?.()?.capacity || POLICY_COMPARISON_CONFIG.cacheSize,
+        this.accessSequence
+      );
     }
 
     // Play through each access and record the state
     for (let i = 0; i < this.accessSequence.length; i++) {
       const accessValue = this.accessSequence[i];
-      
+
       const cache1Result = this.cache1.checkCache(accessValue);
       const cache2Result = this.cache2.checkCache(accessValue);
-      
+
       // Capture state after this access
       const step: ComparisonStep = {
         stepIndex: i,
@@ -118,35 +174,36 @@ export class CompareController {
         cache1Stats: this.cache1.getStats(),
         cache2Stats: this.cache2.getStats(),
       };
-      
+
       this.stepHistory.push(step);
     }
   }
 
-  private captureState(cache: CacheInstance): any {
+  private captureState(cache: CacheInstance): CacheState {
     // All cache policies should have getDisplayInfo
-    const displayInfo = ('getDisplayInfo' in cache && typeof cache.getDisplayInfo === 'function') 
-      ? cache.getDisplayInfo() 
-      : [];
-    
+    const displayInfo =
+      "getDisplayInfo" in cache && typeof cache.getDisplayInfo === "function"
+        ? cache.getDisplayInfo()
+        : [];
+
     // Extract values from display info or use getValues if available
-    let values: (string | number | null)[] = [];
-    
-    if ('getValues' in cache && typeof cache.getValues === 'function') {
+    let values: Array<string | number | null> = [];
+
+    if ("getValues" in cache && typeof cache.getValues === "function") {
       values = cache.getValues();
     } else if (displayInfo && Array.isArray(displayInfo)) {
       // Extract values from display info
-      values = displayInfo.map((item: any) => {
-        if (item && typeof item === 'object' && 'value' in item) {
-          return item.value === '---' ? null : item.value;
+      values = displayInfo.map((item: CacheDisplayItem) => {
+        if (item && typeof item === "object" && "value" in item) {
+          return item.value === "---" ? null : item.value;
         }
         return null;
       });
     }
-    
+
     return {
       displayInfo,
-      values
+      values,
     };
   }
 
@@ -188,7 +245,7 @@ export class CompareController {
     return this.maxStep;
   }
 
-  getAccessSequence(): (string | number)[] {
+  getAccessSequence(): Array<string | number> {
     return [...this.accessSequence];
   }
 
@@ -203,18 +260,18 @@ export class CompareController {
   getCurrentComparison(): {
     step: number;
     accessValue: string | number | null;
-          cache1: {
-        name: PagingPolicyName;
-        result: any;
-        state: any;
-        stats: any;
-      };
-      cache2: {
-        name: PagingPolicyName;
-        result: any;
-        state: any;
-        stats: any;
-      };
+    cache1: {
+      name: PagingPolicyName;
+      result: CacheResult | null;
+      state: CacheState;
+      stats: CacheStats;
+    };
+    cache2: {
+      name: PagingPolicyName;
+      result: CacheResult | null;
+      state: CacheState;
+      stats: CacheStats;
+    };
   } | null {
     if (this.currentStep < 0) {
       // Before first access - show initial empty state
@@ -224,29 +281,35 @@ export class CompareController {
         cache1: {
           name: this.policy1Name,
           result: null,
-          state: { values: Array(5).fill(null), displayInfo: [] },
+          state: {
+            values: Array(POLICY_COMPARISON_CONFIG.cacheSize).fill(null),
+            displayInfo: [],
+          },
           stats: {
             totalAccesses: 0,
             hits: 0,
             misses: 0,
             hitRate: 0,
-            capacity: 5,
-            occupancy: 0
-          }
+            capacity: POLICY_COMPARISON_CONFIG.cacheSize,
+            occupancy: 0,
+          },
         },
         cache2: {
           name: this.policy2Name,
           result: null,
-          state: { values: Array(5).fill(null), displayInfo: [] },
+          state: {
+            values: Array(POLICY_COMPARISON_CONFIG.cacheSize).fill(null),
+            displayInfo: [],
+          },
           stats: {
             totalAccesses: 0,
             hits: 0,
             misses: 0,
             hitRate: 0,
-            capacity: 5,
-            occupancy: 0
-          }
-        }
+            capacity: POLICY_COMPARISON_CONFIG.cacheSize,
+            occupancy: 0,
+          },
+        },
       };
     }
 
@@ -272,7 +335,7 @@ export class CompareController {
   }
 
   // Method to generate a new random sequence
-  generateNewSequence(length: number = 10): void {
+  generateNewSequence(length = 10): void {
     this.accessSequence = this.generateAccessSequence(length);
     this.maxStep = this.accessSequence.length - 1;
     this.currentStep = -1;
@@ -280,7 +343,7 @@ export class CompareController {
   }
 
   // Method to set a custom sequence
-  setCustomSequence(sequence: (string | number)[]): void {
+  setCustomSequence(sequence: Array<string | number>): void {
     this.accessSequence = [...sequence];
     this.maxStep = this.accessSequence.length - 1;
     this.currentStep = -1;
@@ -291,11 +354,17 @@ export class CompareController {
   updatePolicies(policy1: PagingPolicyName, policy2: PagingPolicyName): void {
     this.policy1Name = policy1;
     this.policy2Name = policy2;
-    
+
     // Recreate cache instances with new policies
-    this.cache1 = this.createCacheInstance(policy1, this.cache1.getStats?.()?.capacity || 5);
-    this.cache2 = this.createCacheInstance(policy2, this.cache2.getStats?.()?.capacity || 5);
-    
+    this.cache1 = this.createCacheInstance(
+      policy1,
+      this.cache1.getStats?.()?.capacity || POLICY_COMPARISON_CONFIG.cacheSize
+    );
+    this.cache2 = this.createCacheInstance(
+      policy2,
+      this.cache2.getStats?.()?.capacity || POLICY_COMPARISON_CONFIG.cacheSize
+    );
+
     // Rebuild step history with new caches but keep the same access sequence
     this.buildStepHistory();
   }
@@ -306,20 +375,34 @@ export class CompareController {
     policy2: PagingPolicyName;
     sequenceLength: number;
     finalStats: {
-      cache1: any;
-      cache2: any;
+      cache1: CacheStats;
+      cache2: CacheStats;
     };
   } {
     const finalStep = this.stepHistory[this.stepHistory.length - 1];
-    
+
     return {
       policy1: this.policy1Name,
       policy2: this.policy2Name,
       sequenceLength: this.accessSequence.length,
       finalStats: {
-        cache1: finalStep?.cache1Stats || {},
-        cache2: finalStep?.cache2Stats || {},
+        cache1: finalStep?.cache1Stats || {
+          totalAccesses: 0,
+          hits: 0,
+          misses: 0,
+          hitRate: 0,
+          capacity: 0,
+          occupancy: 0,
+        },
+        cache2: finalStep?.cache2Stats || {
+          totalAccesses: 0,
+          hits: 0,
+          misses: 0,
+          hitRate: 0,
+          capacity: 0,
+          occupancy: 0,
+        },
       },
     };
   }
-} 
+}

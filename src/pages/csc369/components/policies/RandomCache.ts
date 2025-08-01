@@ -7,43 +7,45 @@ export interface CacheResult {
   hit: boolean;
   evictedValue?: string | number;
   insertedValue?: string | number;
-  missType?: 'cold' | 'capacity'; // Only present on miss
+  missType?: "cold" | "capacity"; // Only present on miss
   randomSlotSelected?: number; // Which slot was randomly selected for eviction
 }
 
 export class RandomCache {
   private slots: CacheSlot[];
   private capacity: number;
-  private accessCounter: number = 0;
-  private hitCount: number = 0;
-  private missCount: number = 0;
-  private coldMissCount: number = 0;
-  private capacityMissCount: number = 0;
-  
-  // Track all values that have ever been in the cache
-  private everSeen: Set<string | number> = new Set();
+  private accessCounter = 0;
+  private hitCount = 0;
+  private missCount = 0;
+  private coldMissCount = 0;
+  private capacityMissCount = 0;
 
-  constructor(capacity: number = 10) {
+  // Track all values that have ever been in the cache
+  private everSeen = new Set<string | number>();
+
+  constructor(capacity = 10) {
     this.capacity = capacity;
-    this.slots = Array(capacity).fill(null).map(() => ({
-      value: null,
-      isEmpty: true,
-    }));
+    this.slots = Array(capacity)
+      .fill(null)
+      .map(() => ({
+        value: null,
+        isEmpty: true,
+      }));
   }
 
   /**
    * Check if a value is in cache and add it if not present
    * Uses random selection for eviction decisions
-   * 
+   *
    * @param value - The value to look for (number or character)
    * @returns CacheResult with hit/miss info and eviction details
    */
   checkCache(value: string | number): CacheResult {
     this.accessCounter++;
-    
+
     // Check for cache hit
-    const hitSlotIndex = this.slots.findIndex(slot => !slot.isEmpty && slot.value === value);
-    
+    const hitSlotIndex = this.slots.findIndex((slot) => !slot.isEmpty && slot.value === value);
+
     if (hitSlotIndex !== -1) {
       // Cache hit!
       this.hitCount++;
@@ -51,30 +53,30 @@ export class RandomCache {
         hit: true,
       };
     }
-    
+
     // Cache miss - determine if it's cold or capacity miss
     this.missCount++;
-    
+
     const isColdMiss = !this.everSeen.has(value);
-    const missType: 'cold' | 'capacity' = isColdMiss ? 'cold' : 'capacity';
-    
+    const missType: "cold" | "capacity" = isColdMiss ? "cold" : "capacity";
+
     if (isColdMiss) {
       this.coldMissCount++;
     } else {
       this.capacityMissCount++;
     }
-    
+
     // Track that we've now seen this value
     this.everSeen.add(value);
-    
+
     // Find a slot for the new value
     let targetSlotIndex = -1;
     let evictedValue: string | number | undefined;
     let randomSlotSelected: number | undefined;
-    
+
     // First, check if there's an empty slot
-    const emptySlotIndex = this.slots.findIndex(slot => slot.isEmpty);
-    
+    const emptySlotIndex = this.slots.findIndex((slot) => slot.isEmpty);
+
     if (emptySlotIndex !== -1) {
       // Use empty slot
       targetSlotIndex = emptySlotIndex;
@@ -85,11 +87,11 @@ export class RandomCache {
       evictedValue = evictionResult.evictedValue;
       randomSlotSelected = evictionResult.slotIndex;
     }
-    
+
     // Insert new value at the found slot
     this.slots[targetSlotIndex].value = value;
     this.slots[targetSlotIndex].isEmpty = false;
-    
+
     return {
       hit: false,
       evictedValue,
@@ -114,12 +116,12 @@ export class RandomCache {
         occupiedIndices.push(i);
       }
     }
-    
+
     // Randomly select one of the occupied slots
     const randomIndex = Math.floor(Math.random() * occupiedIndices.length);
     const selectedSlotIndex = occupiedIndices[randomIndex];
     const evictedValue = this.slots[selectedSlotIndex].value!;
-    
+
     return {
       slotIndex: selectedSlotIndex,
       evictedValue,
@@ -147,7 +149,7 @@ export class RandomCache {
       coldMissRate: this.accessCounter > 0 ? this.coldMissCount / this.accessCounter : 0,
       capacityMissRate: this.accessCounter > 0 ? this.capacityMissCount / this.accessCounter : 0,
       capacity: this.capacity,
-      occupancy: this.slots.filter(slot => !slot.isEmpty).length,
+      occupancy: this.slots.filter((slot) => !slot.isEmpty).length,
       uniqueValuesSeen: this.everSeen.size,
     };
   }
@@ -160,11 +162,11 @@ export class RandomCache {
     if (!this.isFull()) {
       return null; // No eviction needed
     }
-    
+
     // Return a random current value (just for preview purposes)
-    const occupiedSlots = this.slots.filter(slot => !slot.isEmpty);
+    const occupiedSlots = this.slots.filter((slot) => !slot.isEmpty);
     if (occupiedSlots.length === 0) return null;
-    
+
     const randomSlot = occupiedSlots[Math.floor(Math.random() * occupiedSlots.length)];
     return randomSlot.value;
   }
@@ -173,7 +175,7 @@ export class RandomCache {
    * Check if cache is full
    */
   isFull(): boolean {
-    return this.slots.every(slot => !slot.isEmpty);
+    return this.slots.every((slot) => !slot.isEmpty);
   }
 
   /**
@@ -187,7 +189,7 @@ export class RandomCache {
    * Reset cache to empty state
    */
   reset(): void {
-    this.slots.forEach(slot => {
+    this.slots.forEach((slot) => {
       slot.value = null;
       slot.isEmpty = true;
     });
@@ -210,7 +212,7 @@ export class RandomCache {
   }> {
     return this.slots.map((slot, index) => ({
       index,
-      value: slot.isEmpty ? '---' : String(slot.value),
+      value: slot.isEmpty ? "---" : String(slot.value),
       isEmpty: slot.isEmpty,
       canBeEvicted: !slot.isEmpty, // Any occupied slot can be randomly evicted
     }));
@@ -219,8 +221,8 @@ export class RandomCache {
   /**
    * Get just the values in order for simple display
    */
-  getValues(): (string | number | null)[] {
-    return this.slots.map(slot => slot.isEmpty ? null : slot.value);
+  getValues(): Array<string | number | null> {
+    return this.slots.map((slot) => (slot.isEmpty ? null : slot.value));
   }
 
   /**
@@ -229,12 +231,14 @@ export class RandomCache {
   getRandomVisualization(): string {
     const values = this.getValues();
     const displayInfo = this.getDisplayInfo();
-    
-    return values.map((value, index) => {
-      const val = value || '---';
-      const canEvict = displayInfo[index].canBeEvicted ? '🎲' : '';
-      return `[${val}]${canEvict}`;
-    }).join(' ');
+
+    return values
+      .map((value, index) => {
+        const val = value || "---";
+        const canEvict = displayInfo[index].canBeEvicted ? "🎲" : "";
+        return `[${val}]${canEvict}`;
+      })
+      .join(" ");
   }
 
   /**
@@ -249,36 +253,15 @@ export class RandomCache {
     const occupiedSlots = this.slots
       .map((slot, index) => ({ slot, index }))
       .filter(({ slot }) => !slot.isEmpty);
-    
+
     if (occupiedSlots.length === 0) return [];
-    
+
     const probability = 1 / occupiedSlots.length;
-    
+
     return occupiedSlots.map(({ slot, index }) => ({
       slotIndex: index,
       value: slot.value!,
       probability,
     }));
   }
-
-  /**
-   * Set a seed for random number generation (for reproducible testing)
-   * Note: This is a simple implementation - for production you might want a proper PRNG
-   */
-  setSeed(seed: number): void {
-    // Simple seedable random implementation
-    let currentSeed = seed;
-    Math.random = () => {
-      currentSeed = (currentSeed * 9301 + 49297) % 233280;
-      return currentSeed / 233280;
-    };
-  }
-
-  /**
-   * Reset to default Math.random()
-   */
-  resetRandomSeed(): void {
-    // Restore default random function
-    delete (Math as any).random;
-  }
-} 
+}

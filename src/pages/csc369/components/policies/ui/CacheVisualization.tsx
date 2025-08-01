@@ -1,8 +1,7 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { BinaryBlock } from "../../paging/ui/BinaryBlock";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface CacheSlot {
@@ -33,27 +32,22 @@ interface CacheVisualizationProps {
   // Random specific
   randomSlotSelected?: number;
   // 2Q specific
-  evictedFromQueue?: 'A1' | 'Am';
+  evictedFromQueue?: "A1" | "Am";
   className?: string;
 }
 
 export const CacheVisualization: React.FC<CacheVisualizationProps> = ({
   policyName,
   slots,
-  capacity,
   currentAccess,
   isHit,
-  evictedValue,
-  insertedValue,
   clockHand,
-  randomSlotSelected,
-  evictedFromQueue,
   className,
 }) => {
   const getSlotColor = (slot: CacheSlot, index: number): string => {
     // Highlight clock hand for Clock algorithm (always show, even for empty slots)
-    if (policyName === 'Clock' && clockHand === index) {
-      return "bg-yellow-100";
+    if (policyName === "Clock" && clockHand === index) {
+      return "bg-violet-100";
     }
 
     if (slot.isEmpty) {
@@ -71,8 +65,8 @@ export const CacheVisualization: React.FC<CacheVisualizationProps> = ({
 
   const getSlotHoverColor = (slot: CacheSlot, index: number): string => {
     // Highlight clock hand for Clock algorithm (always show, even for empty slots)
-    if (policyName === 'Clock' && clockHand === index) {
-      return "hover:bg-yellow-200";
+    if (policyName === "Clock" && clockHand === index) {
+      return "hover:bg-violet-200";
     }
 
     if (slot.isEmpty) {
@@ -81,7 +75,7 @@ export const CacheVisualization: React.FC<CacheVisualizationProps> = ({
 
     // Highlight current access
     if (currentAccess && slot.value === currentAccess) {
-      return isHit ? "hover:bg-yellow-200" : "hover:bg-blue-200";
+      return isHit ? "hover:bg-green-200" : "hover:bg-blue-200";
     }
 
     // Regular blocks
@@ -90,8 +84,8 @@ export const CacheVisualization: React.FC<CacheVisualizationProps> = ({
 
   const getSlotBorderColor = (slot: CacheSlot, index: number): string => {
     // Highlight clock hand for Clock algorithm (always show, even for empty slots)
-    if (policyName === 'Clock' && clockHand === index) {
-      return "border-yellow-500";
+    if (policyName === "Clock" && clockHand === index) {
+      return "border-violet-300";
     }
 
     if (slot.isEmpty) {
@@ -107,24 +101,24 @@ export const CacheVisualization: React.FC<CacheVisualizationProps> = ({
     return "border-gray-300";
   };
 
-  const getSlotLabel = (slot: CacheSlot, index: number): string | null => {
+  const getSlotLabel = (slot: CacheSlot): string | null => {
     if (slot.isEmpty) return null;
 
-    let label = '';
-    
+    let label = "";
+
     switch (policyName) {
-      case 'LRU':
+      case "LRU":
         if (slot.isLRU) label += "LRU";
         if (slot.isMRU) label += "MRU";
         break;
-      case 'FIFO':
-        if (slot.isOldest) label += "Oldest";
-        if (slot.isNewest) label += "Newest";
+      case "FIFO":
+        if (slot.isOldest) label += "First";
+        if (slot.isNewest) label += "Last";
         break;
-      case 'Clock':
+      case "Clock":
         // Remove "Clock" text label - now shown with color instead
         if (slot.referenceBit !== undefined) {
-          label += `R:${slot.referenceBit ? '1' : '0'}`;
+          label += `U:${slot.referenceBit ? "1" : "0"}`;
         }
         break;
     }
@@ -140,74 +134,93 @@ export const CacheVisualization: React.FC<CacheVisualizationProps> = ({
     let tooltip = `Slot ${index}: ${slot.value}`;
 
     switch (policyName) {
-      case 'LRU':
-        if (slot.lastAccessTime !== undefined) {
-          tooltip += `\nLast access: ${slot.lastAccessTime}`;
-        }
-        if (slot.isLRU) tooltip += '\n(Least Recently Used)';
-        if (slot.isMRU) tooltip += '\n(Most Recently Used)';
-        break;
-      case 'FIFO':
-        if (slot.insertionOrder !== undefined) {
-          tooltip += `\nInsertion order: ${slot.insertionOrder}`;
-        }
-        if (slot.isOldest) tooltip += '\n(Oldest - will be evicted next)';
-        if (slot.isNewest) tooltip += '\n(Newest)';
-        break;
-      case 'Clock':
+      case "Clock":
         if (slot.referenceBit !== undefined) {
-          tooltip += `\nReference bit: ${slot.referenceBit ? '1' : '0'}`;
+          tooltip += `\nUse bit: ${slot.referenceBit ? "1" : "0"}`;
         }
-        if (clockHand === index) tooltip += '\n(Clock hand points here)';
-        break;
-      case 'Random':
-        if (randomSlotSelected === index) {
-          tooltip += '\n(Randomly selected for eviction)';
-        }
-        break;
-      case 'Optimal':
-        tooltip += '\n(Optimal replacement)';
-        break;
-      case '2Q':
-        tooltip += '\n(2Q cache)';
         break;
     }
 
     return tooltip;
   };
 
+  const isCacheEmpty = slots.every((slot) => slot.isEmpty);
+
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* Cache Slots */}
-      <TooltipProvider>
-        <div className="flex flex-wrap gap-3 min-h-15 mt-2">
-          {slots.map((slot, index) => (
-            <Tooltip key={index} delayDuration={350}>
-              <TooltipTrigger asChild>
-                <motion.div
-                  className="relative"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <BinaryBlock
-                    blocks={1}
-                    color={getSlotColor(slot, index)}
-                    borderColor={getSlotBorderColor(slot, index)}
-                    hoverColor={getSlotHoverColor(slot, index)}
-                    digits={slot.isEmpty ? [''] : [String(slot.value)]}
-                    label={getSlotLabel(slot, index)}
-                    showBitNumbers={false}
-                  />
-                </motion.div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="whitespace-pre-line">{getSlotTooltip(slot, index)}</p>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      </TooltipProvider>
+    <div className={cn("w-full space-y-4", className)}>
+      <AnimatePresence mode="wait" initial={false}>
+        {isCacheEmpty ? (
+          <motion.div
+            key="cache-empty-message"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="origin-top"
+          >
+            <div className="mt-2 flex min-h-15 items-center justify-center">
+              <p className="text-muted-foreground -mt-1">
+                Step through the page accesses to see the cache state
+              </p>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="cache-slots-container"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            <TooltipProvider>
+              <div className="mt-2 flex min-h-15 flex-wrap gap-3 overflow-hidden">
+                <AnimatePresence initial={false}>
+                  {slots.map((slot, index) =>
+                    slot.value ? (
+                      <motion.div
+                        key={slot.value ? String(slot.value) : `empty-${index}`}
+                        layout
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.5,
+                          transition: { duration: 0.15 },
+                        }}
+                        transition={{
+                          type: "tween",
+                          ease: "easeInOut",
+                          duration: 0.2,
+                        }}
+                        className="relative"
+                      >
+                        <Tooltip delayDuration={350}>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <BinaryBlock
+                                blocks={1}
+                                color={getSlotColor(slot, index)}
+                                borderColor={getSlotBorderColor(slot, index)}
+                                hoverColor={getSlotHoverColor(slot, index)}
+                                digits={slot.isEmpty ? ["-"] : [String(slot.value)]}
+                                label={getSlotLabel(slot)}
+                                showBitNumbers={false}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="whitespace-pre-line">{getSlotTooltip(slot, index)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </motion.div>
+                    ) : null
+                  )}
+                </AnimatePresence>
+              </div>
+            </TooltipProvider>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-}; 
+};

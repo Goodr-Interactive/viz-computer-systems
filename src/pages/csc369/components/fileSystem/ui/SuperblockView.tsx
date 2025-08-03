@@ -1,7 +1,7 @@
 import React from "react";
 import type { FileSystem } from "../FileSystem";
-import { InfoTooltip } from "../InfoTooltip";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { InfoTooltip } from "./InfoTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 
 interface SuperblockViewProps {
   fileSystem: FileSystem;

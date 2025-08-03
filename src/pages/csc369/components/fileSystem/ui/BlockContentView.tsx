@@ -15,6 +15,7 @@ interface BlockContentViewProps {
   onCloseInodeInfo: () => void;
   onBlockClick: (blockIndex: number) => void;
   onDirectoryRowClick: (inodeNumber: number) => void;
+  correctBlock: number | null;
 }
 
 export const BlockContentView: React.FC<BlockContentViewProps> = (props) => {
@@ -60,5 +61,7 @@ export const BlockContentView: React.FC<BlockContentViewProps> = (props) => {
   }
 
   // Regular block content display (for file data blocks)
-  return <DataBlockView blockIndex={selectedBlock} content={content} />;
+  return (
+    <DataBlockView blockIndex={selectedBlock} content={content} correctBlock={props.correctBlock} />
+  );
 };

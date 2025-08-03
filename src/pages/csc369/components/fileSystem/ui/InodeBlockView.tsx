@@ -2,7 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { FileSystem } from "../FileSystem";
 import { MultiColorBinaryBlock } from "../../paging/ui/BinaryBlock";
-import { TitleWithTooltip } from "../TitleWithTooltip";
+import { TitleWithTooltip } from "./TitleWithTooltip";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
@@ -72,7 +72,7 @@ export const InodeBlockView: React.FC<InodeBlockViewProps> = ({
   }
 
   return (
-    <div className="flex w-full justify-center">
+    <div className="flex min-h-[210px] w-full justify-center">
       <motion.div
         layout
         className="flex items-start gap-8 overflow-hidden"

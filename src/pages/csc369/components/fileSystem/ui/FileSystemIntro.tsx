@@ -1,20 +1,23 @@
-import React, { useState } from "react";
-import type { FileSystem } from "./FileSystem";
-import { SectionHeading } from "../paging/ui/SectionHeading";
-import { FILE_SYSTEM_CONFIG } from "./config";
+import React from "react";
+import type { FileSystem } from "../FileSystem";
+import { SectionHeading } from "../../paging/ui/SectionHeading";
+import { FILE_SYSTEM_CONFIG } from "../config";
 import { Button } from "@/components/ui/button";
 
 interface FileSystemIntroProps {
   fileSystem: FileSystem;
+  randomPath: string;
+  onRandomPathChange: (newPath: string) => void;
 }
 
-export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({ fileSystem }) => {
+export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({
+  fileSystem,
+  randomPath,
+  onRandomPathChange,
+}) => {
   const superBlock = fileSystem.getSuperBlock();
   const totalBlocks = fileSystem.getTotalBlocks();
   const blockSize = Math.pow(2, superBlock.s_log_block_size);
-  const [randomPath, setRandomPath] = useState(
-    FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)].path
-  );
 
   return (
     <section className="w-full max-w-7xl">
@@ -36,8 +39,9 @@ export const FileSystemIntro: React.FC<FileSystemIntroProps> = ({ fileSystem }) 
         onClick={() => {
           const randomFile =
             FILE_SYSTEM_CONFIG.files[Math.floor(Math.random() * FILE_SYSTEM_CONFIG.files.length)];
-          setRandomPath(randomFile.path);
+          onRandomPathChange(randomFile.path);
         }}
+        variant="outline"
       >
         Get New File
       </Button>

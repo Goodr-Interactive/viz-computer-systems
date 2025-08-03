@@ -3,18 +3,20 @@ import type { FileSystem } from "../FileSystem";
 import { MultiColorBinaryBlock } from "../../paging/ui/BinaryBlock";
 import { TitleWithTooltip } from "./TitleWithTooltip";
 
-interface BitmapViewProps {
+interface EnhancedBitmapViewProps {
   fileSystem: FileSystem;
   bitmapType: "inode" | "data";
   onBlockClick?: (blockIndex: number) => void;
   onInodeClick?: (inodeNumber: number, isUsed: boolean) => void;
+  highlightedItems?: Set<number>;
 }
 
-export const BitmapView: React.FC<BitmapViewProps> = ({
+export const EnhancedBitmapView: React.FC<EnhancedBitmapViewProps> = ({
   fileSystem,
   bitmapType,
   onBlockClick,
   onInodeClick,
+  highlightedItems,
 }) => {
   const bitmap = bitmapType === "inode" ? fileSystem.getInodeBitmap() : fileSystem.getDataBitmap();
   const itemsPerRow = 16;
@@ -61,18 +63,28 @@ export const BitmapView: React.FC<BitmapViewProps> = ({
       if (itemIndex >= bitmap.length) break;
 
       const isUsed = bitmap[itemIndex];
+      const isHighlighted = highlightedItems?.has(itemIndex) || false;
 
-      const colors = isUsed
-        ? {
-            color: "bg-green-100",
-            borderColor: "border-green-300",
-            hoverColor: "group-hover:bg-green-200",
-          }
-        : {
-            color: "bg-gray-100",
-            borderColor: "border-gray-300",
-            hoverColor: "group-hover:bg-gray-200",
-          };
+      let colors;
+      if (isHighlighted && isUsed) {
+        colors = {
+          color: "bg-orange-100",
+          borderColor: "border-orange-400",
+          hoverColor: "group-hover:bg-orange-200",
+        };
+      } else if (isUsed) {
+        colors = {
+          color: "bg-green-100",
+          borderColor: "border-green-300",
+          hoverColor: "group-hover:bg-green-200",
+        };
+      } else {
+        colors = {
+          color: "bg-gray-100",
+          borderColor: "border-gray-300",
+          hoverColor: "group-hover:bg-gray-200",
+        };
+      }
 
       rowItems.push(
         <div
@@ -111,11 +123,17 @@ export const BitmapView: React.FC<BitmapViewProps> = ({
           className="pt-2 text-start font-medium"
         />
         <div className="flex flex-col gap-2">{rows}</div>
-        <div className="text-muted-foreground flex justify-center gap-6 text-xs">
+        <div className="text-muted-foreground flex justify-center gap-4 text-xs">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 border border-green-300 bg-green-100"></div>
             <span className="text-muted-foreground text-sm">Used</span>
           </div>
+          {highlightedItems && highlightedItems.size > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 border border-orange-400 bg-orange-100"></div>
+              <span className="text-muted-foreground text-sm">New</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 border border-gray-300 bg-gray-100"></div>
             <span className="text-muted-foreground text-sm">Free</span>

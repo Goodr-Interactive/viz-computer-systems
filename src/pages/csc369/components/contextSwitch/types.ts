@@ -34,23 +34,46 @@ export interface Process {
 }
 
 export interface KernelStack {
-    eip: string;
-    esp: string;
-    ebx: string;
-    edx: string;
-    esi: string;
-    edi: string;
-    ecx: string;
-    ebp: string;
+    SS: string;
+    CS: string;
+    EFLAGS: string;   
+    EIP: string;
+    ESP: string;
+    EBX: string;
+    EDX: string;
+    ESI: string;
+    EDI: string;
+    ECX: string;
+    EBP: string;
 }
 
 export interface CPU {
-    ESP: string;
+    // Instruction Pointer
     EIP: string;
+
+    // Status Flags
+    EFLAGS: string;
+
+    // General Purpose
+    ESP: string;
     EDI: string;
     EBX: string;
     ESI: string;
     ECX: string;
     EBP: string;
     EDX: string;
+
+    // Segment Registers
+    CS: string;
+    SS: string;
+}
+
+
+export enum Step {
+    USER_TO_KERNEL = "USER_TO_KERNEL",
+    TRAP_ENTRY = "TRAP_ENTRY",
+    TRAP_HANDLER = "TRAP_HANDLER",
+    RETURN_IN_KERNEL = "RETURN_IN_KERNEL",
+    TRAP_RET = "TRAP_RET",
+    I_RET = "I_RET",
 }

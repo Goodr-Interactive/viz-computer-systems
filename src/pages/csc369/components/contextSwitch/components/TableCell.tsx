@@ -3,7 +3,7 @@ import tailwindcolors from "tailwindcss/colors";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
-  error?: string;
+  error?: boolean;
   copied?: boolean;
   modified?: boolean;
   field: string;
@@ -24,7 +24,7 @@ export const TableCell: React.FunctionComponent<Props> = ({
   const [borderColor, backgroundColor, color] = (() => {
     const color = copied ? "green" : error ? "red" : modified ? "yellow" : "gray";
 
-    return [tailwindcolors[color][300], tailwindcolors[color][100], tailwindcolors[color][500]];
+    return [tailwindcolors[color][300], tailwindcolors[color][100], tailwindcolors[color][800]];
   })();
 
   return (
@@ -36,13 +36,13 @@ export const TableCell: React.FunctionComponent<Props> = ({
           style={{ cursor: onClick ? "pointer" : undefined }}
         >
           <div
-            className="border-border w-full p-[4px]"
+            className="border-border w-full p-[4px] flex justify-start"
             style={{ borderWidth: "1px", borderColor, backgroundColor, color, fontSize: "10px" }}
           >
             {field}
           </div>
           <div
-            className="border-border w-full p-[4px]"
+            className="border-border w-full p-[4px] flex justify-start"
             style={{ borderWidth: "1px", borderColor, backgroundColor, color, fontSize: "10px" }}
           >
             {value}

@@ -1,42 +1,76 @@
 import React from "react";
-import type { ContextSwitchController } from "../hooks";
 import { TableCell } from "./TableCell";
-import { EllpsesCell } from "./EllipsesCell";
-import type { Context } from "../types";
-import { getContextDescription, getProcessDescription } from "../utils";
+import { EllipsesCell } from "./EllipsesCell";
+import { ProcessState, type Process } from "../types";
+import { getProcessDescription } from "../utils";
+import { PopoverCell } from "./PopoverCell";
+import { Button } from "../../../../../components/ui/button";
 
 interface Props {
-  controller: ContextSwitchController;
+  name: string;
+  process: Process;
+  checkpoint: Process;
+  errors?: Record<string, boolean>;
+  setState: (state: ProcessState) => void;
 }
 
-export const ProcessTable: React.FunctionComponent<Props> = ({ controller }) => {
-  const context = Object.entries(controller.processA.context) as Array<
-    [keyof Context, Context[keyof Context]]
-  >;
-
+export const ProcessTable: React.FunctionComponent<Props> = ({ name, process, checkpoint, errors, setState }) => {
   return (
     <div className="flex flex-col">
-      <span className="text-gray-500 text-sm">Process Table</span>
-      <div className="flex flex-col w-[180px]">
-        <EllpsesCell />
-        <TableCell field={"pid"} value={`PID:${controller.processA.pid}`} tooltip={getProcessDescription("pid")}/>
-        <TableCell field={"parent"} value={`PID:${controller.processA.parent}`} tooltip={getProcessDescription("parent")}/>
-        <TableCell field={"mem"} value={controller.processA.mem} tooltip={getProcessDescription("mem")}/>
-        <TableCell field={"*kstack"} value={controller.processA.kstack} tooltip={getProcessDescription("kstack")}/>
-        <TableCell field={"state"} value={controller.processA.state} tooltip={getProcessDescription("state")}/>
-        {/* <TableCell field={"chan"} value={controller.processA.chan} />
-        <TableCell field={"killed"} value={controller.processA.killed} />
-        <TableCell field={"ofile"} value={controller.processA.ofile.join(", ")} />
-        <TableCell field={"cwd"} value={controller.processA.cwd} />
-        <TableCell field={"tf"} value={controller.processA.tf} /> */}
-        <EllpsesCell />
-        {context.map(([field, value]) => (
-          <TableCell 
-            field={field} 
-            value={value}
-            tooltip={getContextDescription(field)}
+      <span className="text-sm text-gray-800">{name}</span>
+      <div className="flex w-[180px] flex-col">
+        <TableCell
+          field={"pid"}
+          value={`PID:${process.pid}`}
+          tooltip={getProcessDescription("pid")}
         />
-        ))}
+        <TableCell
+          field={"parent"}
+          value={`PID:${process.parent}`}
+          tooltip={getProcessDescription("parent")}
+        />
+        <TableCell field={"mem"} value={process.mem} tooltip={getProcessDescription("mem")} />
+        <TableCell
+          field={"*kstack"}
+          value={process.kstack}
+          tooltip={getProcessDescription("kstack")}
+        />
+
+        <PopoverCell modified={checkpoint.state !== process.state} field={"state"} value={process.state} tooltip={getProcessDescription("state")} error={errors?.["state"]}>
+          <div className="flex flex-col gap-[8px]">
+            {Object.values(ProcessState).map((state) => (
+              <Button className="h-[28px] text-sm" key={state} variant={state === process.state ? "default" : "secondary"} onClick={() => setState(state)}>
+                {state}
+              </Button>
+            ))}
+          </div>
+        </PopoverCell>
+
+        <TableCell
+          field={"*context"}
+          value={process.kstack}
+          tooltip={getProcessDescription("context")}
+        />
+        <TableCell field={"chan"} value={process.chan} tooltip={getProcessDescription("chan")} />
+        <TableCell
+          field={"killed"}
+          value={process.killed}
+          tooltip={getProcessDescription("killed")}
+        />
+        <TableCell
+          field={"ofile"}
+          value={`{ ${process.ofile.join(", ")} }`}
+          tooltip={getProcessDescription("ofile")}
+        />
+        <TableCell field={"cwd"} value={process.cwd} tooltip={getProcessDescription("cwd")} />
+        <TableCell field={"tf"} value={process.tf} tooltip={getProcessDescription("tf")} />
+        <div className="flex h-[84px] w-full items-center justify-center border-[1px] border-gray-300 bg-gray-100 p-[4px] text-xs text-gray-500">
+          User Stack
+        </div>
+        <div className="flex h-[84px] w-full items-center justify-center border-[1px] border-gray-300 bg-gray-100 p-[4px] text-xs text-gray-500">
+          User Address Space
+        </div>
+        <EllipsesCell />
       </div>
     </div>
   );

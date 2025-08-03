@@ -14,7 +14,13 @@ interface Props {
   setState: (state: ProcessState) => void;
 }
 
-export const ProcessTable: React.FunctionComponent<Props> = ({ name, process, checkpoint, errors, setState }) => {
+export const ProcessTable: React.FunctionComponent<Props> = ({
+  name,
+  process,
+  checkpoint,
+  errors,
+  setState,
+}) => {
   return (
     <div className="flex flex-col">
       <span className="text-sm text-gray-800">{name}</span>
@@ -36,10 +42,21 @@ export const ProcessTable: React.FunctionComponent<Props> = ({ name, process, ch
           tooltip={getProcessDescription("kstack")}
         />
 
-        <PopoverCell modified={checkpoint.state !== process.state} field={"state"} value={process.state} tooltip={getProcessDescription("state")} error={errors?.["state"]}>
+        <PopoverCell
+          modified={checkpoint.state !== process.state}
+          field={"state"}
+          value={process.state}
+          tooltip={getProcessDescription("state")}
+          error={errors?.["state"]}
+        >
           <div className="flex flex-col gap-[8px]">
             {Object.values(ProcessState).map((state) => (
-              <Button className="h-[28px] text-sm" key={state} variant={state === process.state ? "default" : "secondary"} onClick={() => setState(state)}>
+              <Button
+                className="h-[28px] text-sm"
+                key={state}
+                variant={state === process.state ? "default" : "secondary"}
+                onClick={() => setState(state)}
+              >
                 {state}
               </Button>
             ))}

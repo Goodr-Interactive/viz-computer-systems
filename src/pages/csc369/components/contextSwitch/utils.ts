@@ -111,5 +111,3 @@ export const getCPUDescription = (field: keyof CPU): string => {
       return "Unknown CPU register";
   }
 };
-
-

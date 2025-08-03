@@ -17,7 +17,9 @@ export const Controller: React.FunctionComponent<Props> = ({ controller }) => {
         </Button>
       )}
       {controller.complete ? (
-        <Button variant={"outline"} onClick={controller.restart}>Restart</Button>
+        <Button variant={"outline"} onClick={controller.restart}>
+          Restart
+        </Button>
       ) : (
         <div className="flex gap-[12px]">
           <Button onClick={controller.nextStep}>Submit</Button>

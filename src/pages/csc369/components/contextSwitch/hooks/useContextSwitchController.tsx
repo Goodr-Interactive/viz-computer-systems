@@ -10,8 +10,7 @@ import {
 import { toast } from "sonner";
 import { CircleCheck } from "lucide-react";
 import { X } from "@mynaui/icons-react";
-import { Fireworks } from 'fireworks-js'
-
+import { Fireworks } from "fireworks-js";
 
 export interface ContextSwitchController {
   kstackA: KernelStack;
@@ -171,20 +170,28 @@ export const useContextSwitchController = (): ContextSwitchController => {
 
   const setProcessAState = (state: ProcessState) => {
     setProcessA((p) => ({ ...p, state }));
-    setErrors(e => ({...e, "processA": { "state": false }}));
+    setErrors((e) => ({ ...e, processA: { state: false } }));
   };
 
   const setProcessBState = (state: ProcessState) => {
     setProcessB((p) => ({ ...p, state }));
-    setErrors(e => ({...e, "processB": { "state": false }}));
+    setErrors((e) => ({ ...e, processB: { state: false } }));
   };
 
-  const setStackAField = (field: keyof KernelStack, value: KernelStack[keyof KernelStack], notCopy?: boolean) => {
+  const setStackAField = (
+    field: keyof KernelStack,
+    value: KernelStack[keyof KernelStack],
+    notCopy?: boolean
+  ) => {
     setKStackA((s) => ({ ...s, [field]: value }));
     !notCopy && completeCopy("kStackA", field);
   };
 
-  const setStackBField = (field: keyof KernelStack, value: KernelStack[keyof KernelStack], notCopy?: boolean) => {
+  const setStackBField = (
+    field: keyof KernelStack,
+    value: KernelStack[keyof KernelStack],
+    notCopy?: boolean
+  ) => {
     setKStackB((s) => ({ ...s, [field]: value }));
     !notCopy && completeCopy("kStackB", field);
   };
@@ -194,20 +201,28 @@ export const useContextSwitchController = (): ContextSwitchController => {
     !notCopy && completeCopy("cpu", field);
   };
 
-  const setProcessAContextField = (field: keyof Context, value: Context[keyof Context], notCopy?: boolean) => {
+  const setProcessAContextField = (
+    field: keyof Context,
+    value: Context[keyof Context],
+    notCopy?: boolean
+  ) => {
     setProcessA((a) => ({ ...a, context: { ...a.context, [field]: value } }));
     !notCopy && completeCopy("contextA", field);
   };
 
-  const setProcessBContextField = (field: keyof Context, value: Context[keyof Context], notCopy?: boolean) => {
+  const setProcessBContextField = (
+    field: keyof Context,
+    value: Context[keyof Context],
+    notCopy?: boolean
+  ) => {
     setProcessB((a) => ({ ...a, context: { ...a.context, [field]: value } }));
     !notCopy && completeCopy("contextB", field);
   };
 
   const fireworks = () => {
-    const container = document.getElementById("fireworks")
+    const container = document.getElementById("fireworks");
     if (container) {
-      const fireworks = new Fireworks(container, { 
+      const fireworks = new Fireworks(container, {
         // hue: [];
         // rocketsPoint: MinMax;
         // opacity: number;
@@ -222,7 +237,7 @@ export const useContextSwitchController = (): ContextSwitchController => {
         // delay: MinMax;
         brightness: {
           min: 50,
-          max: 100
+          max: 100,
         },
         // decay: MinMax;
         // flickering: number;
@@ -231,13 +246,12 @@ export const useContextSwitchController = (): ContextSwitchController => {
         // traceSpeed: number;
         // lineWidth: LineWidth;
         lineStyle: "square",
-        autoresize: true
-       })
-      fireworks.start()
+        autoresize: true,
+      });
+      fireworks.start();
       setFireworksObj(fireworks);
     }
-    
-  }
+  };
 
   const completeCopy = (dest: Section, field: string) => {
     if (copy?.pop) {
@@ -502,7 +516,7 @@ export const useContextSwitchController = (): ContextSwitchController => {
       ECX: CPU.ECX !== checkpoint.CPU.ECX,
     };
 
-    console.log(CPU, checkpoint.processB.context)
+    console.log(CPU, checkpoint.processB.context);
 
     const errors = {
       contextA: contextAError,
@@ -671,7 +685,7 @@ export const useContextSwitchController = (): ContextSwitchController => {
   };
 
   const nextStep = () => {
-    let valid: boolean = false;
+    let valid = false;
     switch (step) {
       case Step.USER_TO_KERNEL:
         valid = validateUserToKernel();
@@ -739,11 +753,11 @@ export const useContextSwitchController = (): ContextSwitchController => {
   };
 
   const restart = () => {
-    const kstackA = emptyKStack()
-    const kstackB = initialKStack()
-    const processA = initialProcess(12, true)
-    const processB = initialProcess(14, false)
-    const CPU = initialCPU()
+    const kstackA = emptyKStack();
+    const kstackB = initialKStack();
+    const processA = initialProcess(12, true);
+    const processB = initialProcess(14, false);
+    const CPU = initialCPU();
     setKStackA(kstackA);
     setKStackB(kstackB);
     setProcessA(processA);
@@ -751,7 +765,7 @@ export const useContextSwitchController = (): ContextSwitchController => {
     setCPU(CPU);
     setStep(Step.USER_TO_KERNEL);
     setHint(undefined);
-  
+
     setCheckpoint({
       kstackA,
       kstackB,
@@ -759,14 +773,14 @@ export const useContextSwitchController = (): ContextSwitchController => {
       processB,
       CPU,
     });
-  
+
     setErrors({});
-  
+
     setCopy(undefined);
     setComplete(false);
     fireworksObj?.stop(true);
     setFireworksObj(undefined);
-  }
+  };
 
   const showHint = () => {
     switch (step) {
@@ -820,6 +834,6 @@ export const useContextSwitchController = (): ContextSwitchController => {
     setProcessAState,
     setProcessBState,
     complete,
-    restart
+    restart,
   };
 };

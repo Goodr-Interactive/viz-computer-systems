@@ -36,13 +36,13 @@ export const TableCell: React.FunctionComponent<Props> = ({
           style={{ cursor: onClick ? "pointer" : undefined }}
         >
           <div
-            className="border-border w-full p-[4px] flex justify-start"
+            className="border-border flex w-full justify-start p-[4px]"
             style={{ borderWidth: "1px", borderColor, backgroundColor, color, fontSize: "10px" }}
           >
             {field}
           </div>
           <div
-            className="border-border w-full p-[4px] flex justify-start"
+            className="border-border flex w-full justify-start p-[4px]"
             style={{ borderWidth: "1px", borderColor, backgroundColor, color, fontSize: "10px" }}
           >
             {value}

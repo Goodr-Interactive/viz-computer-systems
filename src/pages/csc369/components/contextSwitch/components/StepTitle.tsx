@@ -16,7 +16,7 @@ export const StepTitle: React.FunctionComponent<Props> = ({ controller }) => {
       case Step.TRAP_HANDLER:
         return "Step 3: Kernel Trap Handler (OS)";
       case Step.RETURN_IN_KERNEL:
-        return "Step 4: Process B Resumes in Kernel Mode (OS)"
+        return "Step 4: Process B Resumes in Kernel Mode (OS)";
       case Step.TRAP_RET:
         return "Step 5: Process B trapret (OS)";
       case Step.I_RET:
@@ -33,9 +33,9 @@ export const StepTitle: React.FunctionComponent<Props> = ({ controller }) => {
       case Step.TRAP_HANDLER:
         return "The trap handler calls yield() which updates the process's state, and then saves the callee-saved registers to the process's context";
       case Step.RETURN_IN_KERNEL:
-        return "The scheduler selects Process B to run next, and updates it's state. The process begins execution in Kernel Mode, to complete it's trap() call."
+        return "The scheduler selects Process B to run next, and updates it's state. The process begins execution in Kernel Mode, to complete it's trap() call.";
       case Step.TRAP_RET:
-        return "the trapret function is an assembly routine that restores all user-mode registers from the trapframe on the kernel stack and executes iret to return control from kernel mode back to user mode."
+        return "the trapret function is an assembly routine that restores all user-mode registers from the trapframe on the kernel stack and executes iret to return control from kernel mode back to user mode.";
       case Step.I_RET:
         return "iret is a CPU instruction that atomically restores some registers to the CPU, resuming execution at the point where the interrupt or trap occurred.";
     }

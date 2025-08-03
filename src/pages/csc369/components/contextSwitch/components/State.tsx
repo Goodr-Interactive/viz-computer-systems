@@ -12,8 +12,8 @@ interface Props {
 
 export const State: React.FunctionComponent<Props> = ({ controller }) => {
   return (
-    <div className="flex h-full w-full justify-around items-center p-[12px] flex-wrap gap-[12px]">
-      <ProcessTable 
+    <div className="flex h-full w-full flex-wrap items-center justify-around gap-[12px] p-[12px]">
+      <ProcessTable
         name="Process A"
         process={controller.processA}
         checkpoint={controller.checkpoint.processA}
@@ -21,17 +21,24 @@ export const State: React.FunctionComponent<Props> = ({ controller }) => {
         setState={controller.setProcessAState}
       />
       <div className="flex flex-col gap-[12px]">
-      <KernelStackDisplay
+        <KernelStackDisplay
           name="Process A Kernel Stack"
           section="kStackA"
           kstack={controller.kstackA}
-          copyField={(field, value) => controller.copyField("kStackA", field, value, [Step.TRAP_RET, Step.I_RET].includes(controller.step))}
+          copyField={(field, value) =>
+            controller.copyField(
+              "kStackA",
+              field,
+              value,
+              [Step.TRAP_RET, Step.I_RET].includes(controller.step)
+            )
+          }
           pasteField={controller.setStackAField}
           copy={controller.copy}
           checkpoint={controller.checkpoint.kstackA}
           errors={controller.errors["kStackA"]}
         />
-        <ContextTable 
+        <ContextTable
           name="Process A Context"
           section="contextA"
           checkpoint={controller.checkpoint.processA.context}
@@ -41,7 +48,7 @@ export const State: React.FunctionComponent<Props> = ({ controller }) => {
           errors={controller.errors["contextA"]}
         />
       </div>
-      <ProcessTable 
+      <ProcessTable
         name="Process B"
         process={controller.processB}
         checkpoint={controller.checkpoint.processB}
@@ -54,13 +61,20 @@ export const State: React.FunctionComponent<Props> = ({ controller }) => {
           name="Process B Kernel Stack"
           section="kStackB"
           kstack={controller.kstackB}
-          copyField={(field, value) => controller.copyField("kStackB", field, value, [Step.TRAP_RET, Step.I_RET].includes(controller.step))}
+          copyField={(field, value) =>
+            controller.copyField(
+              "kStackB",
+              field,
+              value,
+              [Step.TRAP_RET, Step.I_RET].includes(controller.step)
+            )
+          }
           pasteField={controller.setStackBField}
           copy={controller.copy}
           checkpoint={controller.checkpoint.kstackB}
           errors={controller.errors["kStackB"]}
         />
-        <ContextTable 
+        <ContextTable
           name="Process B Context"
           section="contextB"
           checkpoint={controller.checkpoint.processB.context}
@@ -68,7 +82,6 @@ export const State: React.FunctionComponent<Props> = ({ controller }) => {
           controller={controller}
           updateField={controller.setProcessBContextField}
           errors={controller.errors["contextB"]}
-          
         />
       </div>
       <CPU controller={controller} />

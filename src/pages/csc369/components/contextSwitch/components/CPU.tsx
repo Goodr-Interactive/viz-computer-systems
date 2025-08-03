@@ -1,7 +1,7 @@
 import React from "react";
 import type { ContextSwitchController } from "../hooks";
 import { TableCell } from "./TableCell";
-import { type CPU as CPUContext } from "../types";
+import type { CPU as CPUContext } from "../types";
 import { getCPUDescription } from "../utils";
 
 interface Props {
@@ -23,7 +23,10 @@ export const CPU: React.FunctionComponent<Props> = ({ controller }) => {
       <h1 className="text-xl font-medium tracking-tight text-gray-800">CPU</h1>
       <div className="flex h-[350px] w-full flex-wrap items-center justify-center gap-[24px]">
         <div className="flex flex-col">
-          <span className="text-sm text-gray-800">Instruction Pointer, Stack pointer,<br /> and Status Flags</span>
+          <span className="text-sm text-gray-800">
+            Instruction Pointer, Stack pointer,
+            <br /> and Status Flags
+          </span>
           <div className="flex w-[180px] flex-col">
             {pointerAndFlags.map(([field, value]) => (
               <TableCell

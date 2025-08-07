@@ -209,6 +209,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
       latency: number;
     }>
   >([]);
+  const [expandedInstructions, setExpandedInstructions] = useState<Set<number>>(new Set());
 
   // Cache simulation functions
   const getAddressParts = (address: number) => {
@@ -455,145 +456,214 @@ export const CacheHierarchyVisualization: React.FC = () => {
     });
     setCurrentAccessLevel(null);
     setHighlightedStages(new Set());
+    setExpandedInstructions(new Set());
+  };
+
+  const toggleInstructionExpansion = (instructionId: number) => {
+    setExpandedInstructions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(instructionId)) {
+        newSet.delete(instructionId);
+      } else {
+        newSet.add(instructionId);
+      }
+      return newSet;
+    });
   };
 
   const renderMemoryInstructions = () => (
     <div className="space-y-4">
       {/* <h4 className="text-lg font-semibold">Memory Trace ({memoryInstructions.length})</h4> */}
       <div className="max-h-64 space-y-2 overflow-y-auto">
-        {memoryInstructions.map((instruction, index) => (
-          <div
-            key={instruction.id}
-            className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
-              index === currentInstructionIndex
-                ? "border-blue-500 bg-blue-50 hover:bg-blue-100"
-                : index < currentInstructionIndex
-                  ? "border-green-500 bg-green-50 hover:bg-green-100"
-                  : "border-gray-300 bg-gray-50 hover:bg-gray-100"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="font-mono text-sm font-medium">
-                  {instruction.id.toString().padStart(2, "0")}
-                </span>
-                <span
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    instruction.type === "load"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-orange-100 text-orange-800"
-                  }`}
-                >
-                  {instruction.type.toUpperCase()}
-                </span>
-                <span className="font-mono text-sm">{instruction.description}</span>
+        {memoryInstructions.map((instruction, index) => {
+          const isExpanded = expandedInstructions.has(instruction.id);
+          const isExecuted = index < currentInstructionIndex;
+          const isCurrent = index === currentInstructionIndex;
+          
+          return (
+            <div
+              key={instruction.id}
+              className={`rounded-lg border-2 transition-all ${
+                isCurrent
+                  ? "border-blue-500 bg-blue-50"
+                  : isExecuted
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-300 bg-gray-50"
+              }`}
+            >
+              {/* Compressed View - Always Visible */}
+              <div
+                className={`cursor-pointer p-3 transition-colors ${
+                  isCurrent
+                    ? "hover:bg-blue-100"
+                    : isExecuted
+                      ? "hover:bg-green-100"
+                      : "hover:bg-gray-100"
+                }`}
+                onClick={() => toggleInstructionExpansion(instruction.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="font-mono text-sm font-medium">
+                      {instruction.id.toString().padStart(2, "0")}
+                    </span>
+                    <span
+                      className={`rounded px-2 py-1 text-xs font-medium ${
+                        instruction.type === "load"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-orange-100 text-orange-800"
+                      }`}
+                    >
+                      {instruction.type.toUpperCase()}
+                    </span>
+                    <span className="font-mono text-sm">{instruction.description}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {isExecuted && accessHistory[index] && (
+                      <>
+                        <span
+                          className={`rounded px-2 py-1 text-xs font-medium ${
+                            accessHistory[index].hit
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {accessHistory[index].hit ? "HIT" : "MISS"}
+                        </span>
+                        <span className="text-xs text-gray-600">
+                          {accessHistory[index].latency} cycles
+                        </span>
+                      </>
+                    )}
+                    {/* Expansion indicator */}
+                    <span className="text-xs text-gray-400 ml-2">
+                      {isExpanded ? "▼" : "▶"}
+                    </span>
+                  </div>
+                </div>
               </div>
-              {index < currentInstructionIndex && (
-                <div className="flex items-center space-x-2">
-                  {accessHistory[index] && (
-                    <>
-                      <span
-                        className={`rounded px-2 py-1 text-xs font-medium ${
-                          accessHistory[index].hit
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {accessHistory[index].hit ? "HIT" : "MISS"}
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        {accessHistory[index].latency} cycles
-                      </span>
-                    </>
-                  )}
+
+              {/* Expanded Address Breakdown - Only when clicked */}
+              {isExpanded && (
+                <div className="border-t border-gray-200 bg-gray-50 p-3">
+                  <div className="mb-2 text-xs font-medium text-gray-700">Address Breakdown</div>
+                  <div className="flex items-center space-x-0">
+                    {(() => {
+                      const { tag, setIndex, wordOffset, byteInWord } = getAddressParts(
+                        instruction.address
+                      );
+
+                      // Convert values to binary strings with proper padding
+                      const tagBinary = tag.toString(2).padStart(12, "0");
+                      const setIndexBinary = setIndex.toString(2).padStart(1, "0");
+                      const wordOffsetBinary = wordOffset.toString(2).padStart(1, "0");
+                      const byteInWordBinary = byteInWord.toString(2).padStart(2, "0");
+
+                      return (
+                        <div className="flex items-end">
+                          <BinaryBlock
+                            blocks={12}
+                            color="bg-blue-100"
+                            borderColor="border-blue-300"
+                            hoverColor="group-hover:bg-blue-200"
+                            showLeftBorder={true}
+                            label={
+                              <div className="text-center">
+                                <div>Tag</div>
+                                <div>0x{tag.toString(16).toUpperCase()}</div>
+                              </div>
+                            }
+                            className="text-xs"
+                            binaryValue={tagBinary}
+                          />
+                          <BinaryBlock
+                            blocks={1}
+                            color="bg-yellow-100"
+                            borderColor="border-yellow-300"
+                            hoverColor="group-hover:bg-yellow-200"
+                            showLeftBorder={false}
+                            label={
+                              <div className="text-center">
+                                <div>Set</div>
+                                <div>{setIndex}</div>
+                              </div>
+                            }
+                            className="text-xs"
+                            binaryValue={setIndexBinary}
+                          />
+                          <BinaryBlock
+                            blocks={1}
+                            color="bg-purple-100"
+                            borderColor="border-purple-300"
+                            hoverColor="group-hover:bg-purple-200"
+                            showLeftBorder={false}
+                            label={
+                              <div className="text-center">
+                                <div>Word</div>
+                                <div>{wordOffset}</div>
+                              </div>
+                            }
+                            className="text-xs"
+                            binaryValue={wordOffsetBinary}
+                          />
+                          <BinaryBlock
+                            blocks={2}
+                            color="bg-green-100"
+                            borderColor="border-green-300"
+                            hoverColor="group-hover:bg-green-200"
+                            showLeftBorder={false}
+                            label={
+                              <div className="text-center">
+                                <div>Byte</div>
+                                <div>{byteInWord}</div>
+                              </div>
+                            }
+                            className="text-xs"
+                            binaryValue={byteInWordBinary}
+                          />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  
+                  {/* Additional details */}
+                  <div className="mt-3 grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="font-medium text-gray-600">Full Address:</span>
+                      <div className="font-mono">0x{instruction.address.toString(16).toUpperCase().padStart(8, "0")}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Instruction Type:</span>
+                      <div className="capitalize">{instruction.type}</div>
+                    </div>
+                    {instruction.data !== undefined && (
+                      <div>
+                        <span className="font-medium text-gray-600">Data:</span>
+                        <div className="font-mono">0x{instruction.data.toString(16).toUpperCase()}</div>
+                      </div>
+                    )}
+                    {isExecuted && accessHistory[index] && (
+                      <div>
+                        <span className="font-medium text-gray-600">Cache Result:</span>
+                        <div className={`font-medium ${
+                          accessHistory[index].hit ? "text-green-700" : "text-red-700"
+                        }`}>
+                          {accessHistory[index].hit ? "Hit" : "Miss"} ({accessHistory[index].level.toUpperCase()})
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Address breakdown using BinaryBlock */}
-            <div className="mt-2">
-              <div className="mb-1 text-xs text-gray-600">Address Breakdown:</div>
-              <div className="flex items-center space-x-0">
-                {(() => {
-                  const { tag, setIndex, wordOffset, byteInWord } = getAddressParts(
-                    instruction.address
-                  );
-
-                  // Convert values to binary strings with proper padding
-                  const tagBinary = tag.toString(2).padStart(12, "0");
-                  const setIndexBinary = setIndex.toString(2).padStart(1, "0");
-                  const wordOffsetBinary = wordOffset.toString(2).padStart(1, "0");
-                  const byteInWordBinary = byteInWord.toString(2).padStart(2, "0");
-
-                  return (
-                    <div className="flex items-end">
-                      <BinaryBlock
-                        blocks={12}
-                        color="bg-blue-100"
-                        borderColor="border-blue-300"
-                        hoverColor="group-hover:bg-blue-200"
-                        showLeftBorder={true}
-                        label={
-                          <div className="text-center">
-                            <div>Tag</div>
-                            <div>0x{tag.toString(16).toUpperCase()}</div>
-                          </div>
-                        }
-                        className="text-xs"
-                        binaryValue={tagBinary}
-                      />
-                      <BinaryBlock
-                        blocks={1}
-                        color="bg-yellow-100"
-                        borderColor="border-yellow-300"
-                        hoverColor="group-hover:bg-yellow-200"
-                        showLeftBorder={false}
-                        label={
-                          <div className="text-center">
-                            <div>Set</div>
-                            <div>{setIndex}</div>
-                          </div>
-                        }
-                        className="text-xs"
-                        binaryValue={setIndexBinary}
-                      />
-                      <BinaryBlock
-                        blocks={1}
-                        color="bg-purple-100"
-                        borderColor="border-purple-300"
-                        hoverColor="group-hover:bg-purple-200"
-                        showLeftBorder={false}
-                        label={
-                          <div className="text-center">
-                            <div>Word</div>
-                            <div>{wordOffset}</div>
-                          </div>
-                        }
-                        className="text-xs"
-                        binaryValue={wordOffsetBinary}
-                      />
-                      <BinaryBlock
-                        blocks={2}
-                        color="bg-green-100"
-                        borderColor="border-green-300"
-                        hoverColor="group-hover:bg-green-200"
-                        showLeftBorder={false}
-                        label={
-                          <div className="text-center">
-                            <div>Byte</div>
-                            <div>{byteInWord}</div>
-                          </div>
-                        }
-                        className="text-xs"
-                        binaryValue={byteInWordBinary}
-                      />
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
+          );
+        })}
+        
+        {memoryInstructions.length === 0 && (
+          <div className="text-center text-gray-500 py-8">
+            Select an access pattern and start simulation to see memory trace
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

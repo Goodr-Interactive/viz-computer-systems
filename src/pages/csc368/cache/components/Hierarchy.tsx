@@ -459,7 +459,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
 
   const renderMemoryInstructions = () => (
     <div className="space-y-4">
-      <h4 className="text-lg font-semibold">Memory Instructions ({memoryInstructions.length})</h4>
+      {/* <h4 className="text-lg font-semibold">Memory Trace ({memoryInstructions.length})</h4> */}
       <div className="max-h-64 space-y-2 overflow-y-auto">
         {memoryInstructions.map((instruction, index) => (
           <div
@@ -601,7 +601,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const renderCacheVisualization = () => (
     <TooltipProvider>
       <div className="space-y-4">
-        <h4 className="text-lg font-semibold">L1 Cache State (2-way, 2 sets)</h4>
+        {/* <h4 className="text-lg font-semibold">L1 Cache State (2-way, 2 sets)</h4> */}
         <div className="grid grid-cols-1 gap-2">
           {cacheState.map((set, setIndex) => (
             <div key={setIndex} className="rounded-lg border p-3">
@@ -1077,7 +1077,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Memory Instructions</CardTitle>
+              <CardTitle>Memory Trace</CardTitle>
             </CardHeader>
             <CardContent>{renderMemoryInstructions()}</CardContent>
           </Card>

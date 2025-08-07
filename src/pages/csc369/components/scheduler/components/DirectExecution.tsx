@@ -61,19 +61,24 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
 
   const inKernelMode =
     controller.state === SchedulerState.PAUSED ? undefined : running.length === 0;
-    const isDesktop = useMediaQuery();
-    
+  const isDesktop = useMediaQuery();
+
   return (
     <div className="flex h-full w-full flex-col gap-[12px] p-[12px]">
-      <div className="flex w-full justify-between flex-wrap">
+      <div className="flex w-full flex-wrap justify-between">
         <h1 className="text-xl font-medium tracking-tight">Direct Execution</h1>
-        <div className="flex flex-col gap-[12px] justify-end">
+        <div className="flex flex-col justify-end gap-[12px]">
           <div className="flex w-[494px] justify-end gap-[12px]">
             <Badge>Elapsed: {formatMetric(metrics.elapsed)}s</Badge>
             <Badge variant={"secondary"}>CPU Active: {formatMetric(metrics.cpuActive)}s</Badge>
             <Badge variant={"outline"}>Throughput: {formatMetric(metrics.throughput)}s</Badge>
           </div>
-          <div className={cn("flex w-[494px] justify-end gap-[12px]", !isDesktop && "w-[364px] flex-wrap")}>
+          <div
+            className={cn(
+              "flex w-[494px] justify-end gap-[12px]",
+              !isDesktop && "w-[364px] flex-wrap"
+            )}
+          >
             <Badge className="bg-[var(--chart-2)]">
               Average Wait: {formatMetric(metrics.wait)}s
             </Badge>

@@ -30,7 +30,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
   const [contextSwitchDurationDisabled, setContextSwitchDurationDisabled] =
     useState<boolean>(false);
 
-  const [events, setEvents] = useState<Array<SchedulerEvent>>([]);
+  const [events, setEvents] = useState<SchedulerEvent[]>([]);
 
   const addEvent = (event: SchedulerEvent) => {
     setEvents((e) => [...e, event]);

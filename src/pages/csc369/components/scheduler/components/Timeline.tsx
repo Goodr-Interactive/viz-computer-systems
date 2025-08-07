@@ -1,6 +1,12 @@
 import React from "react";
 import { EventType, type SchedulerController, type SchedulerEvent } from "../types";
 import _ from "lodash";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../../../../components/ui/tooltip";
 
 interface Props {
   controller: SchedulerController;
@@ -24,11 +30,11 @@ export const Timeline: React.FunctionComponent<Props> = ({ controller }) => {
     return `${(((end - start) / controller.clock) * 100).toFixed(2)}%`;
   };
 
-  const getTop = (index: number) => {
-    return `${((index / controller.processes.length) * 100).toFixed(2)}%`;
-  };
+  // const getTop = (index: number) => {
+  //   return `${((index / controller.processes.length) * 100).toFixed(2)}%`;
+  // };
 
-  const height = `${(100 / controller.processes.length).toFixed(2)}%`;
+  // const height = `${(100 / controller.processes.length).toFixed(2)}%`;
 
   if (
     groupedEvents.some((group) =>
@@ -55,39 +61,74 @@ export const Timeline: React.FunctionComponent<Props> = ({ controller }) => {
     ..._.chunk(schedulingEvents.slice(1), 2),
   ];
 
-  return (
-    <div className="relative h-[300px] w-full overflow-hidden">
-      {groupedEvents.flatMap((events, index) =>
-        events.map((e) => (
-          <div
-            key={`${e[0].pid}${e[0].timestamp}`}
-            className={`absolute flex w-full items-center justify-center rounded-xs bg-gray-200 text-xs text-gray-800`}
-            style={{
-              top: getTop(index),
-              width: getWidth(e[0].timestamp, e[1].timestamp),
-              left: getPosition(e[0].timestamp),
-              height,
-            }}
-          >
-            PID:{e[0].pid}
-          </div>
-        ))
-      )}
+  const formatTimestamp = (ts: number): string => {
+    return `${(ts / 1000).toFixed(1)}s`;
+  };
 
-      {contextSwitches.map(
-        (cs) =>
-          cs[0] &&
-          cs[1] && (
+  return (
+    <TooltipProvider>
+      <div className="relative mt-[50px] h-[225px] w-full overflow-hidden">
+        {groupedEvents.flatMap((events) =>
+          events.map((e) => (
             <div
-              key={`cs:${cs[0].timestamp}`}
-              className={`absolute flex h-full w-full items-center justify-center rounded-xs bg-purple-200 text-xs text-purple-800`}
+              className="absolute flex h-full"
               style={{
-                width: getWidth(cs[0].timestamp, cs[1].timestamp),
-                left: getPosition(cs[0].timestamp),
+                top: 0,
+                width: getWidth(e[0].timestamp, e[1].timestamp),
+                left: getPosition(e[0].timestamp),
               }}
-            />
-          )
-      )}
-    </div>
+            >
+              <Tooltip key={`${e[0].pid}${e[0].timestamp}`}>
+                <TooltipTrigger className="w-full">
+                  <div
+                    className={`flex h-full w-full items-center justify-center rounded-xs bg-gray-200 text-xs text-gray-800`}
+                  >
+                    PID:{e[0].pid}
+                  </div>
+                </TooltipTrigger>
+
+                <TooltipContent>
+                  <p>
+                    PID:{e[0].pid} – Duration: {formatTimestamp(e[1].timestamp - e[0].timestamp)},
+                    Start: {formatTimestamp(e[0].timestamp)}, End: {formatTimestamp(e[1].timestamp)}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          ))
+        )}
+
+        {contextSwitches.map(
+          (cs) =>
+            cs[0] &&
+            cs[1] && (
+              <div
+                className="absolute flex h-full"
+                style={{
+                  width: getWidth(cs[0].timestamp, cs[1].timestamp),
+                  left: getPosition(cs[0].timestamp),
+                }}
+              >
+                <Tooltip key={`cs:${cs[0].timestamp}`}>
+                  <TooltipTrigger className="w-full">
+                    <div
+                      className={`flex h-full w-full items-center justify-center rounded-xs bg-purple-200 text-xs text-purple-800`}
+                    >
+                      CS
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Context Switch – Duration:{" "}
+                      {formatTimestamp(cs[1].timestamp - cs[0].timestamp)}, Start:{" "}
+                      {formatTimestamp(cs[0].timestamp)}, End: {formatTimestamp(cs[1].timestamp)}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )
+        )}
+      </div>
+    </TooltipProvider>
   );
 };

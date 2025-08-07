@@ -21,7 +21,7 @@ import {
   Threads,
   ZEMAPHORES,
 } from "./pages/csc369/components/threads";
-import { Caches } from "./pages/csc368/cache";
+import { CacheHierarchy } from "./pages/csc368/cache";
 import { Coherence } from "./pages/csc368/coherence";
 import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
 import { PipeliningThroughputPage } from "./pages/csc368/pipelining/pipelining-throughput";
@@ -121,15 +121,15 @@ export const ROUTES: AppRoute[] = [
   },
   {
     path: "/csc368/associativity",
-    title: "Associativity",
+    title: "Cache Associativity",
     description: "",
     element: <Associativity />,
   },
   {
     path: "/csc368/caches",
-    title: "Caches",
+    title: "Cache Hierarchy",
     description: "",
-    element: <Caches />,
+    element: <CacheHierarchy />,
   },
   {
     path: "/csc369/paging/translation",

@@ -210,6 +210,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
     }>
   >([]);
   const [expandedInstructions, setExpandedInstructions] = useState<Set<number>>(new Set());
+  const memoryTraceRef = useRef<HTMLDivElement>(null);
 
   // Cache simulation functions
   const getAddressParts = (address: number) => {
@@ -388,6 +389,31 @@ export const CacheHierarchyVisualization: React.FC = () => {
     setAmat(null);
   }, [selectedPattern, latencyConfig]);
 
+  // Auto-scroll to current instruction in memory trace
+  useEffect(() => {
+    if (memoryTraceRef.current && isSimulating && currentInstructionIndex > 0) {
+      const currentInstructionElement = memoryTraceRef.current.querySelector(
+        `[data-instruction-id="${currentInstructionIndex}"]`
+      );
+      if (currentInstructionElement) {
+        const container = memoryTraceRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = currentInstructionElement.getBoundingClientRect();
+        
+        // Calculate the position to scroll to center the element in the container
+        const containerCenter = containerRect.height / 2;
+        const elementCenter = elementRect.height / 2;
+        const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - containerCenter + elementCenter;
+        
+        // Smooth scroll within the container
+        container.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [currentInstructionIndex, isSimulating]);
+
   const startSimulation = () => {
     if (simulationInterval) {
       clearInterval(simulationInterval);
@@ -474,7 +500,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   const renderMemoryInstructions = () => (
     <div className="space-y-4">
       {/* <h4 className="text-lg font-semibold">Memory Trace ({memoryInstructions.length})</h4> */}
-      <div className="max-h-64 space-y-2 overflow-y-auto">
+      <div className="max-h-64 space-y-2 overflow-y-auto" ref={memoryTraceRef}>
         {memoryInstructions.map((instruction, index) => {
           const isExpanded = expandedInstructions.has(instruction.id);
           const isExecuted = index < currentInstructionIndex;
@@ -483,6 +509,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
           return (
             <div
               key={instruction.id}
+              data-instruction-id={instruction.id}
               className={`rounded-lg border-2 transition-all ${
                 isCurrent
                   ? "border-blue-500 bg-blue-50"

@@ -6,7 +6,6 @@ import { TooltipProvider } from "../../../../components/ui/tooltip";
 import { StepTitle } from "./components/StepTitle";
 import { Toaster } from "@/components/ui/sonner";
 
-
 export const ContextSwitch: React.FunctionComponent = () => {
   const controller = useContextSwitchController();
 

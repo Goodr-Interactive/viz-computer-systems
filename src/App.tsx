@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { Home, CSC369 } from "./pages";
 import { Scheduler } from "./pages/csc369/components";
 
@@ -153,13 +154,20 @@ export const ROUTES: AppRoute[] = [
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route key={"/"} element={<Home routes={ROUTES} />} path="/" />
-        {ROUTES.map(({ element, path }) => (
-          <Route key={path} element={element} path={path} />
-        ))}
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <BrowserRouter>
+        <Routes>
+          <Route key={"/"} element={<Home routes={ROUTES} />} path="/" />
+          {ROUTES.map(({ element, path }) => (
+            <Route key={path} element={element} path={path} />
+          ))}
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

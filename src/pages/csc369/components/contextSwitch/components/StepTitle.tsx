@@ -10,7 +10,7 @@ export const StepTitle: React.FunctionComponent<Props> = ({ controller }) => {
   const getStepTitle = (step: Step) => {
     switch (step) {
       case Step.USER_TO_KERNEL:
-        return "Step 1: Kernel Mode → User Mode (CPU)";
+        return "Step 1: User Mode → Kernel Mode (CPU)";
       case Step.TRAP_ENTRY:
         return "Step 2: Register Saving (OS)";
       case Step.TRAP_HANDLER:
@@ -20,7 +20,7 @@ export const StepTitle: React.FunctionComponent<Props> = ({ controller }) => {
       case Step.TRAP_RET:
         return "Step 5: Process B trapret (OS)";
       case Step.I_RET:
-        return "Step 6: Proces B iret (CPU)";
+        return "Step 6: Kernel Mode → User Mode (CPU)";
     }
   };
 

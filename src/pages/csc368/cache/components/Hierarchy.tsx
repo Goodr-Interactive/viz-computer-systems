@@ -399,16 +399,20 @@ export const CacheHierarchyVisualization: React.FC = () => {
         const container = memoryTraceRef.current;
         const containerRect = container.getBoundingClientRect();
         const elementRect = currentInstructionElement.getBoundingClientRect();
-        
+
         // Calculate the position to scroll to center the element in the container
         const containerCenter = containerRect.height / 2;
         const elementCenter = elementRect.height / 2;
-        const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - containerCenter + elementCenter;
-        
+        const scrollTop =
+          container.scrollTop +
+          (elementRect.top - containerRect.top) -
+          containerCenter +
+          elementCenter;
+
         // Smooth scroll within the container
         container.scrollTo({
           top: scrollTop,
-          behavior: 'smooth'
+          behavior: "smooth",
         });
       }
     }
@@ -486,7 +490,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
   };
 
   const toggleInstructionExpansion = (instructionId: number) => {
-    setExpandedInstructions(prev => {
+    setExpandedInstructions((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(instructionId)) {
         newSet.delete(instructionId);
@@ -505,7 +509,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
           const isExpanded = expandedInstructions.has(instruction.id);
           const isExecuted = index < currentInstructionIndex;
           const isCurrent = index === currentInstructionIndex;
-          
+
           return (
             <div
               key={instruction.id}
@@ -563,9 +567,7 @@ export const CacheHierarchyVisualization: React.FC = () => {
                       </>
                     )}
                     {/* Expansion indicator */}
-                    <span className="text-xs text-gray-400 ml-2">
-                      {isExpanded ? "▼" : "▶"}
-                    </span>
+                    <span className="ml-2 text-xs text-gray-400">{isExpanded ? "▼" : "▶"}</span>
                   </div>
                 </div>
               </div>
@@ -652,12 +654,14 @@ export const CacheHierarchyVisualization: React.FC = () => {
                       );
                     })()}
                   </div>
-                  
+
                   {/* Additional details */}
                   <div className="mt-3 grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="font-medium text-gray-600">Full Address:</span>
-                      <div className="font-mono">0x{instruction.address.toString(16).toUpperCase().padStart(8, "0")}</div>
+                      <div className="font-mono">
+                        0x{instruction.address.toString(16).toUpperCase().padStart(8, "0")}
+                      </div>
                     </div>
                     <div>
                       <span className="font-medium text-gray-600">Instruction Type:</span>
@@ -666,16 +670,21 @@ export const CacheHierarchyVisualization: React.FC = () => {
                     {instruction.data !== undefined && (
                       <div>
                         <span className="font-medium text-gray-600">Data:</span>
-                        <div className="font-mono">0x{instruction.data.toString(16).toUpperCase()}</div>
+                        <div className="font-mono">
+                          0x{instruction.data.toString(16).toUpperCase()}
+                        </div>
                       </div>
                     )}
                     {isExecuted && accessHistory[index] && (
                       <div>
                         <span className="font-medium text-gray-600">Cache Result:</span>
-                        <div className={`font-medium ${
-                          accessHistory[index].hit ? "text-green-700" : "text-red-700"
-                        }`}>
-                          {accessHistory[index].hit ? "Hit" : "Miss"} ({accessHistory[index].level.toUpperCase()})
+                        <div
+                          className={`font-medium ${
+                            accessHistory[index].hit ? "text-green-700" : "text-red-700"
+                          }`}
+                        >
+                          {accessHistory[index].hit ? "Hit" : "Miss"} (
+                          {accessHistory[index].level.toUpperCase()})
                         </div>
                       </div>
                     )}
@@ -685,9 +694,9 @@ export const CacheHierarchyVisualization: React.FC = () => {
             </div>
           );
         })}
-        
+
         {memoryInstructions.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
+          <div className="py-8 text-center text-gray-500">
             Select an access pattern and start simulation to see memory trace
           </div>
         )}

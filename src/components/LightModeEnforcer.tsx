@@ -5,9 +5,7 @@ interface LightModeEnforcerProps {
   children: React.ReactNode;
 }
 
-export const LightModeEnforcer: React.FC<LightModeEnforcerProps> = ({
-  children,
-}) => {
+export const LightModeEnforcer: React.FC<LightModeEnforcerProps> = ({ children }) => {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -29,9 +27,5 @@ export const LightModeEnforcer: React.FC<LightModeEnforcerProps> = ({
   }
 
   // Always render with light mode styling enforced
-  return (
-    <div className="light">
-      {children}
-    </div>
-  );
+  return <div className="light">{children}</div>;
 };

@@ -266,7 +266,7 @@ function CacheArray({ config }: CacheArrayProps) {
                         <div
                           key={`word-${wordIdx}`}
                           className={`flex flex-1 items-center justify-center text-xs font-medium text-gray-700 ${
-                            wordIdx > 0 ? 'border-l border-sky-300' : ''
+                            wordIdx > 0 ? "border-l border-sky-300" : ""
                           }`}
                         >
                           W{wordIdx}
@@ -295,8 +295,8 @@ function CacheArray({ config }: CacheArrayProps) {
             <div className="mt-3 flex justify-center">
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
                 <div className="text-xs text-gray-700">
-                  <span className="font-medium">Legend:</span> Each block contains {config.blockSizeWords} words 
-                  (W0, W1{config.blockSizeWords > 2 ? ', ...' : ''})
+                  <span className="font-medium">Legend:</span> Each block contains{" "}
+                  {config.blockSizeWords} words (W0, W1{config.blockSizeWords > 2 ? ", ..." : ""})
                 </div>
               </div>
             </div>
@@ -539,7 +539,8 @@ export default function Associativity() {
                 <div>
                   <span className="font-medium text-blue-700">Block Size:</span>
                   <div className="text-blue-900">
-                    {getBlockSizeBytes(config)} bytes ({config.blockSizeWords} word{config.blockSizeWords > 1 ? 's' : ''})
+                    {getBlockSizeBytes(config)} bytes ({config.blockSizeWords} word
+                    {config.blockSizeWords > 1 ? "s" : ""})
                   </div>
                 </div>
                 <div>

@@ -25,7 +25,6 @@ export const FileSystemVisualizer: React.FC<FileSystemVisualizerProps> = ({ file
   // Log the block number where the randomPath file is stored
   useEffect(() => {
     const inodeNumber = fileSystem.findInodeByPath(randomPath);
-    console.log(inodeNumber);
     if (inodeNumber !== -1) {
       const inode = fileSystem
         .getInodeBlockData(Math.floor(inodeNumber / 16) + 3)

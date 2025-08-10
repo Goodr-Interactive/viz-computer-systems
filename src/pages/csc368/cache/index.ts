@@ -1,2 +1,2 @@
-export { Caches } from "./caches";
+export { CacheHierarchy } from "./caches";
 export { AssociativityPage as Associativity } from "./associativity";

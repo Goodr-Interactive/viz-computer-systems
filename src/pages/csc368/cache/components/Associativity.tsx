@@ -254,9 +254,26 @@ function CacheArray({ config }: CacheArrayProps) {
               {[...Array(Math.min(config.ways, 8))].map((_, w) => (
                 <div
                   key={`s${s}w${w}`}
-                  className="flex h-9 items-center justify-center rounded border-2 border-sky-500 bg-sky-100 text-xs font-medium text-gray-700 transition-colors hover:bg-sky-200"
+                  className="flex h-9 items-center justify-center rounded border-2 border-sky-500 bg-sky-100 transition-colors hover:bg-sky-200"
                 >
-                  Block
+                  {config.blockSizeWords === 1 ? (
+                    // Single word block - show as one unit
+                    <div className="text-xs font-medium text-gray-700">Word</div>
+                  ) : (
+                    // Multi-word block - show individual words
+                    <div className="flex h-full w-full">
+                      {[...Array(config.blockSizeWords)].map((_, wordIdx) => (
+                        <div
+                          key={`word-${wordIdx}`}
+                          className={`flex flex-1 items-center justify-center text-xs font-medium text-gray-700 ${
+                            wordIdx > 0 ? "border-l border-sky-300" : ""
+                          }`}
+                        >
+                          W{wordIdx}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {config.ways > 8 && (
@@ -270,6 +287,18 @@ function CacheArray({ config }: CacheArrayProps) {
           {showTruncated && (
             <div className="mt-2 text-center text-sm text-gray-500">
               ... and {numSets - maxDisplaySets} more sets
+            </div>
+          )}
+
+          {/* Legend for multi-word blocks */}
+          {config.blockSizeWords > 1 && (
+            <div className="mt-3 flex justify-center">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <div className="text-xs text-gray-700">
+                  <span className="font-medium">Legend:</span> Each block contains{" "}
+                  {config.blockSizeWords} words (W0, W1{config.blockSizeWords > 2 ? ", ..." : ""})
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -509,7 +538,10 @@ export default function Associativity() {
                 </div>
                 <div>
                   <span className="font-medium text-blue-700">Block Size:</span>
-                  <div className="text-blue-900">{getBlockSizeBytes(config)} bytes</div>
+                  <div className="text-blue-900">
+                    {getBlockSizeBytes(config)} bytes ({config.blockSizeWords} word
+                    {config.blockSizeWords > 1 ? "s" : ""})
+                  </div>
                 </div>
                 <div>
                   <span className="font-medium text-blue-700">Total Sets:</span>
@@ -528,7 +560,14 @@ export default function Associativity() {
         {/* Top Right: Hardware Analysis */}
         <Card className="h-fit">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Hardware Analysis</CardTitle>
+            <CardTitle className="text-base">
+              Hardware Analysis
+              {config.blockSizeWords > 1 && (
+                <span className="ml-2 text-xs font-normal text-gray-600">
+                  ({config.blockSizeWords}-word blocks)
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <HardwareComplexity config={config} />

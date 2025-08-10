@@ -39,6 +39,8 @@ export interface ConditionVariable {
 
 export interface ConditionVariableContext {
   id: string;
+  releases: string;
+  conditionStr: string;
   signals: number[];
   waits: number[];
 }
@@ -138,6 +140,7 @@ export interface ThreadsController {
   conditionVariableState: Record<string, ConditionVariableState>;
   blockingEvent?: ThreadEvent;
   unblockEvent: () => void;
+  canRun: (thread: Thread) => boolean;
   isWaiting: (thread: Thread) => boolean;
   state: Record<string, State>;
 }

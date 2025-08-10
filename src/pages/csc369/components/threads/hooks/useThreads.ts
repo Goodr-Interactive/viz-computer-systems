@@ -105,6 +105,16 @@ export const useThreads = (
     );
   };
 
+  const canRun = (thread: Thread): boolean => {
+    return (
+      Object.values(lockState).every(
+        (ts) => !ts.waiting.includes(thread.id) || ts.heldBy === undefined
+      ) &&
+      Object.values(semaphoreState).every((sem) => !sem.waiting.includes(thread.id)) &&
+      Object.values(conditionVariableState).every((cv) => !cv.waiting.includes(thread.id))
+    );
+  };
+
   const addEvent = (event: ThreadEvent) => {
     if (event.onComplete) {
       setBlockingEvent(event);
@@ -196,7 +206,7 @@ export const useThreads = (
     if (signal) {
       const id = signal.id;
       const wake = conditionVariableState[id]?.waiting.at(0);
-
+      const lock = Object.entries(lockState).find(([_, ls]) => ls.heldBy === thread.id);
       addEvent({
         threadId: thread.id,
         timeStep: step,
@@ -210,6 +220,23 @@ export const useThreads = (
               waiting: s[id]?.waiting.filter((waiting) => waiting !== wake),
             },
           }));
+
+          if (lock && wake) {
+            const [lockId, lockState] = lock;
+            setLockState((ls) => ({
+              ...ls,
+              [lockId]: {
+                ...lockState,
+                waiting: [...lockState.waiting, wake],
+              },
+            }));
+            addEvent({
+              threadId: wake,
+              timeStep: step,
+              action: ThreadAction.LOCK_WAIT,
+              resourceId: lockId,
+            });
+          }
           setRunning(thread);
         },
       });
@@ -250,15 +277,39 @@ export const useThreads = (
             },
           });
         } else {
-          addEvent({
-            threadId: thread.id,
-            timeStep: step,
-            action: ThreadAction.CV_SKIP,
-            resourceId: id,
-            onComplete: () => {
-              setRunning(thread);
-            },
-          });
+          const lock = Object.entries(lockState).find(
+            ([_, ls]) => ls.heldBy === undefined && ls.waiting.includes(thread.id)
+          );
+          if (lock) {
+            const [lockId, state] = lock;
+            addEvent({
+              threadId: thread.id,
+              timeStep: step,
+              action: ThreadAction.LOCK_ACQUIRE,
+              resourceId: lockId,
+              onComplete: () => {
+                setLockState((ls) => ({
+                  ...ls,
+                  [lockId]: {
+                    ...state,
+                    heldBy: thread.id,
+                    waiting: lockState[lockId]?.waiting.filter((id) => id !== thread.id) ?? [],
+                  },
+                }));
+                setRunning(thread);
+              },
+            });
+          } else {
+            addEvent({
+              threadId: thread.id,
+              timeStep: step,
+              action: ThreadAction.CV_SKIP,
+              resourceId: id,
+              onComplete: () => {
+                setRunning(thread);
+              },
+            });
+          }
         }
       }
     }
@@ -319,6 +370,19 @@ export const useThreads = (
                   : lockState[release.id].heldBy,
             },
           }));
+          // setLockState((ls) => ({
+          //   ...ls,
+          //   [release.id]: {
+          //     waiting:
+          //       lockState[release.id].heldBy === thread.id
+          //         ? (lockState[release.id]?.waiting.slice(1) ?? [])
+          //         : [],
+          //     heldBy:
+          //       lockState[release.id].heldBy === thread.id
+          //         ? lockState[release.id]?.waiting[0]
+          //         : lockState[release.id].heldBy,
+          //   },
+          // }));
           setRunning(thread);
         },
       });
@@ -405,7 +469,7 @@ export const useThreads = (
       Object.fromEntries(
         conditionVariables.map((cv) => [
           cv.id,
-          { waiting: [], condition: cv.condition, stateId: cv.stateId },
+          { waiting: [], condition: cv.condition, stateId: cv.stateId, conditionStr: cv },
         ])
       )
     );
@@ -441,6 +505,7 @@ export const useThreads = (
     conditionVariableState,
     blockingEvent,
     unblockEvent,
+    canRun,
     isWaiting,
     state,
   };

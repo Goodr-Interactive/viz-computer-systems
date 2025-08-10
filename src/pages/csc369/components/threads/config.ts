@@ -159,7 +159,7 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 100,
           action: {
             name: "increments",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state + 1,
           },
         },
@@ -169,7 +169,7 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 250,
           action: {
             name: "increments",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state + 1,
           },
         },
@@ -179,7 +179,7 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 400,
           action: {
             name: "increments",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state + 1,
           },
         },
@@ -212,7 +212,7 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 90,
           action: {
             name: "decrements",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state - 1,
           },
         },
@@ -222,7 +222,7 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 260,
           action: {
             name: "decrements",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state - 1,
           },
         },
@@ -232,7 +232,7 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 390,
           action: {
             name: "decrements",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state - 1,
           },
         },
@@ -272,7 +272,7 @@ export const PRODUCER_CONSUMER: ThreadsProps = {
   ],
   state: [
     {
-      id: "buffer items",
+      id: "num_items",
       initial: 0,
     },
   ],
@@ -446,7 +446,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 100,
           action: {
             name: "increments",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state + 1,
           },
         },
@@ -456,7 +456,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 250,
           action: {
             name: "increments",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state + 1,
           },
         },
@@ -466,7 +466,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 400,
           action: {
             name: "increments",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state + 1,
           },
         },
@@ -474,12 +474,16 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
       conditionVariables: [
         {
           id: "fill",
+          releases: "mutex",
+          conditionStr: "",
           signals: [100, 250, 400],
           waits: [],
         },
         {
           id: "empty",
           signals: [],
+          releases: "mutex",
+          conditionStr: "num_items == MAX",
           waits: [50, 200, 350],
         },
       ],
@@ -511,7 +515,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           endAt: 90,
           action: {
             name: "decrements",
-            stateId: "buffer items",
+            stateId: "num_items",
             action: (state: number) => state - 1,
           },
         },
@@ -520,7 +524,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           startAt: 210,
           endAt: 260,
           action: {
-            stateId: "buffer items",
+            stateId: "num_items",
             name: "decrements",
             action: (state: number) => state - 1,
           },
@@ -530,7 +534,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           startAt: 340,
           endAt: 390,
           action: {
-            stateId: "buffer items",
+            stateId: "num_items",
             name: "decrements",
             action: (state: number) => state - 1,
           },
@@ -541,11 +545,15 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
           id: "fill",
           signals: [],
           waits: [40, 210, 340],
+          releases: "mutex",
+          conditionStr: "num_items == 0",
         },
         {
           id: "empty",
           signals: [90, 260, 390],
           waits: [],
+          releases: "mutex",
+          conditionStr: "",
         },
       ],
       locks: [
@@ -570,12 +578,12 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
   conditionVariables: [
     {
       id: "fill",
-      stateId: "buffer items",
+      stateId: "num_items",
       condition: (state: number) => state === 0,
     },
     {
       id: "empty",
-      stateId: "buffer items",
+      stateId: "num_items",
       condition: (state: number) => state === 5,
     },
   ],
@@ -586,7 +594,7 @@ export const CV_PRODUCER_CONSUMER: ThreadsProps = {
   ],
   state: [
     {
-      id: "buffer items",
+      id: "num_items",
       initial: 0,
     },
   ],
@@ -627,6 +635,8 @@ export const ZEMAPHORES: ThreadsProps = {
           id: "cond",
           signals: [101],
           waits: [200],
+          conditionStr: "value <= 0",
+          releases: "lock",
         },
       ],
       locks: [

@@ -16,7 +16,7 @@ export const EventsList: React.FunctionComponent<Props> = ({ controller }) => {
           {controller.events.length ? (
             controller.events.map((event) => (
               <EventDisplay
-                key={`${event.action}:${event.timeStep}`}
+                key={`${event.threadId}:${event.action}:${event.timeStep}`}
                 event={event}
                 controller={controller}
               />

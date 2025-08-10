@@ -77,22 +77,22 @@ export const RunThreads: React.FunctionComponent<Props> = ({ controller }) => {
             <Button
               key={thread.id}
               variant={
-                controller.isWaiting(thread) || hasExited(thread)
+                !controller.canRun(thread) || hasExited(thread)
                   ? "secondary"
                   : thread.id === controller.running?.id
                     ? "outline"
                     : "default"
               }
-              disabled={controller.isWaiting(thread) || hasExited(thread)}
+              disabled={!controller.canRun(thread) || hasExited(thread)}
               onClick={() =>
-                !controller.isWaiting(thread) &&
+                controller.canRun(thread) &&
                 controller.runThread(thread.id === controller.running?.id ? undefined : thread)
               }
             >
               {hasExited(thread)
-                ? "Exited"
-                : controller.isWaiting(thread)
-                  ? "Waiting..."
+                ? `${thread.id} Exited`
+                : !controller.canRun(thread)
+                  ? `${thread.id} is waiting...`
                   : thread.id === controller.running?.id
                     ? `Suspend ${thread.id}`
                     : `Run ${thread.id}`}

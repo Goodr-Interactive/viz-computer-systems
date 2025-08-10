@@ -18,13 +18,13 @@ export const SimpleFalseSharingViz: React.FC = () => {
   const [scenario, setScenario] = useState<SharingScenario>("false-sharing");
   const [randomConfig, setRandomConfig] = useState({
     cacheLineRow: 3,
-    cacheLineStartCol: 6,
+    cacheLineStartCol: 4, // Ensure cache line fits: 4 + 4 = 8, which is < 16
     p1Row: 3,
-    p1Col: 6,
+    p1Col: 4,
     p2Row: 3,
-    p2Col: 9,
+    p2Col: 7, // 4 + 4 - 1 = 7, last cell in cache line
     secondCacheLineRow: 5,
-    secondCacheLineStartCol: 12,
+    secondCacheLineStartCol: 8, // Ensure second cache line fits: 8 + 4 = 12, which is < 16
   });
 
   // Grid dimensions
@@ -36,10 +36,12 @@ export const SimpleFalseSharingViz: React.FC = () => {
   const randomizeConfiguration = () => {
     const getRandomRow = () => Math.floor(Math.random() * ROWS);
     const getRandomCacheLineCol = () => {
-      // Ensure cache lines are aligned to CACHE_LINE_LENGTH boundaries
+      // Ensure cache lines are aligned to CACHE_LINE_LENGTH boundaries and fit within grid
       const maxCacheLines = Math.floor(COLS / CACHE_LINE_LENGTH);
       const cacheLineIndex = Math.floor(Math.random() * maxCacheLines);
-      return cacheLineIndex * CACHE_LINE_LENGTH;
+      const startCol = cacheLineIndex * CACHE_LINE_LENGTH;
+      // Double check that the cache line fits within bounds
+      return startCol + CACHE_LINE_LENGTH <= COLS ? startCol : 0;
     };
 
     const cacheLineRow = getRandomRow();
@@ -78,7 +80,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
           title: "False Sharing",
           description: "Two processors accessing different variables in the same cache line",
           explanation:
-            "P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary coherence traffic as the cache line bounces between processors.",
+            'P1 writes to variable A and P2 writes to variable B. Even though they access different variables, both variables are in the same cache line. This causes unnecessary "false" coherence traffic as the cache line bounces between processors.',
         };
       case "true-sharing":
         const sharedCol = randomConfig.cacheLineStartCol + Math.floor(CACHE_LINE_LENGTH / 2);
@@ -92,7 +94,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
           title: "True Sharing",
           description: "Two processors accessing the same variable in the same cache line",
           explanation:
-            "P1 and P2 both access the same variable X. This is legitimate sharing where coherence traffic is necessary to maintain data consistency between processors.",
+            'P1 and P2 both access the same variable X to write. This is "true" sharing where coherence traffic is necessary to maintain data consistency between processors.',
         };
       case "no-sharing":
         return {
@@ -177,7 +179,8 @@ export const SimpleFalseSharingViz: React.FC = () => {
     <div id="false-sharing-container" className="mx-auto w-full max-w-4xl p-4">
       <div className="mb-6 text-center">
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{config.title}</h2>
-        <p className="text-gray-600">{config.description}</p>
+        <p className="mb-3 text-gray-600">{config.description}</p>
+        <p className="mx-auto max-w-4xl text-sm text-gray-700">{config.explanation}</p>
       </div>
 
       {/* Scenario Selection */}
@@ -212,7 +215,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
           variant="secondary"
           className="text-sm font-semibold"
         >
-          Randomize Layout
+          Generate New Layout
         </Button>
       </div>
 
@@ -297,7 +300,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
             fill="none"
             stroke={
               scenario === "no-sharing"
-                ? "#3b82f6"
+                ? "#6b7280"
                 : animationState === "p1"
                   ? "#ef4444"
                   : "#3b82f6"
@@ -316,7 +319,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
               width={CACHE_LINE_LENGTH * cellSize}
               height={cellSize}
               fill="none"
-              stroke="#3b82f6"
+              stroke="#6b7280"
               strokeWidth="3"
               strokeDasharray="5,5"
               rx="4"
@@ -372,7 +375,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
                 scenario === "no-sharing"
                   ? "#6b7280"
                   : animationState === "p2"
-                    ? "#ef4444"
+                    ? "#3b82f6"
                     : "#6b7280"
               }
               fontWeight="bold"
@@ -389,7 +392,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
                 scenario === "no-sharing"
                   ? "#6b7280"
                   : animationState === "p2"
-                    ? "#ef4444"
+                    ? "#3b82f6"
                     : "#6b7280"
               }
               strokeWidth="2"
@@ -434,7 +437,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
                   scenario === "no-sharing"
                     ? "#6b7280"
                     : animationState === "p2"
-                      ? "#ef4444"
+                      ? "#3b82f6"
                       : "#6b7280"
                 }
                 className={scenario === "no-sharing" ? "" : "transition-all duration-500"}
@@ -474,8 +477,9 @@ export const SimpleFalseSharingViz: React.FC = () => {
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="mb-6 flex justify-center">
+      {/* Legend and Configuration */}
+      <div className="mb-6 flex justify-center gap-6">
+        {/* Legend */}
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
           <h4 className="mb-3 text-center text-sm font-semibold text-gray-700">Legend</h4>
           <div className="grid grid-cols-2 gap-4 text-xs">
@@ -488,7 +492,7 @@ export const SimpleFalseSharingViz: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <div
-                className="h-1 w-4 border-blue-500 bg-transparent"
+                className="h-1 w-4 border-gray-500 bg-transparent"
                 style={{ borderStyle: "dashed", borderWidth: "2px" }}
               ></div>
               <span className="text-gray-600">Active Cache Lines</span>
@@ -501,34 +505,42 @@ export const SimpleFalseSharingViz: React.FC = () => {
               <div className="h-3 w-3 rounded-full bg-gray-300"></div>
               <span className="text-gray-600">Memory Cell</span>
             </div>
+            {scenario !== "no-sharing" && (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-red-500"></div>
+                  <span className="text-gray-600">P1 active</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded bg-blue-500"></div>
+                  <span className="text-gray-600">P2 active</span>
+                </div>
+              </>
+            )}
+            {scenario === "no-sharing" && (
+              <div className="col-span-2 flex items-center gap-2">
+                <div className="h-3 w-3 rounded bg-gray-500"></div>
+                <span className="text-gray-600">No coherence traffic</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Explanation */}
-      <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-        <h3 className="mb-2 text-lg font-semibold text-yellow-800">{config.title} Explained</h3>
-        <p className="text-yellow-700">{config.explanation}</p>
-        {scenario !== "no-sharing" && (
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-red-500"></div>
-              <span className="text-sm text-yellow-700">P1 active</span>
+        {/* Configuration Information */}
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h4 className="mb-3 text-center text-sm font-semibold text-gray-700">Configuration</h4>
+          <div className="space-y-1 text-xs">
+            <div>
+              <strong>Grid Size:</strong> {ROWS} rows × {COLS} columns
             </div>
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-blue-500"></div>
-              <span className="text-sm text-yellow-700">P2 active</span>
+            <div>
+              <strong>Cache Line:</strong> {CACHE_LINE_LENGTH} memory cells
             </div>
-          </div>
-        )}
-        {scenario === "no-sharing" && (
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="h-4 w-4 rounded bg-gray-500"></div>
-              <span className="text-sm text-yellow-700">No coherence traffic</span>
+            <div>
+              <strong>Total Cells:</strong> {ROWS * COLS} memory locations
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

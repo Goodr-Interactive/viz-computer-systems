@@ -7,6 +7,7 @@ import {
   ProcessStatus,
   EventType,
   PREEMPTIVE_ALGORITHMS,
+  type SchedulerEvent,
 } from "../types";
 import { minBy, sampleSize, shuffle } from "lodash";
 import { useQuizMode } from "./useQuizMode";
@@ -15,8 +16,8 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
   const [state, setState] = useState<SchedulerState>(SchedulerState.PAUSED);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [contextSwitchFrequency, _setContextSwitchFrequency] = useState<number>(5);
-  const [contextSwitchDuration, _setContextSwitchDuration] = useState<number>(2);
-  const [algorithm, setAlgorithm] = useState<Algorithm>(allowedAlgorithms?.at(0) ?? Algorithm.FCFS);
+  const [contextSwitchDuration, _setContextSwitchDuration] = useState<number>(1);
+  const [algorithm, setAlgorithm] = useState<Algorithm>(allowedAlgorithms?.at(0) ?? Algorithm.FIFO);
   const [quizMode, setQuizMode] = useState<boolean>(false);
   const [clock, setClock] = useState<number>(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
@@ -26,6 +27,14 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
   ]);
   const [lastRun, setLastRun] = useState<Process>();
   const [nextRun, setNextRun] = useState<Process>();
+  const [contextSwitchDurationDisabled, setContextSwitchDurationDisabled] =
+    useState<boolean>(false);
+
+  const [events, setEvents] = useState<SchedulerEvent[]>([]);
+
+  const addEvent = (event: SchedulerEvent) => {
+    setEvents((e) => [...e, event]);
+  };
 
   const setContextSwitchDuration = (csd: number) => {
     _setContextSwitchDuration(csd);
@@ -56,6 +65,9 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     setProcesses([]);
     setClock(0);
     setContextSwitchTimes([0, contextSwitchDuration * 1000]);
+    setLastRun(undefined);
+    setNextRun(undefined);
+    setEvents([]);
   };
 
   const skipForward = () => {};
@@ -66,13 +78,13 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
 
   const processUpdate = () => {
     setClock((c) => {
-      const now = c + 100 * playbackSpeed;
+      const now = c; // + 100;
       const [start, end] = contextSwitchTimes;
 
-      c === 0 && initiateContextSwitch(now);
+      // c === 0 && initiateContextSwitch(now);
 
       if (end <= now) {
-        completeContextSwitch(now);
+        completeContextSwitch(end);
       }
 
       if (now >= start && running) {
@@ -84,17 +96,17 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
           ...process,
           vruntime:
             process.pid === running?.pid && process.vruntime < process.duration * 1000
-              ? process.vruntime + 100 * playbackSpeed
+              ? process.vruntime + 100
               : process.vruntime,
         }))
       );
-      return now;
+      return now + 100;
     });
   };
 
   useEffect(() => {
     if (state === SchedulerState.RUNNING) {
-      const interval = setInterval(processUpdate, 100);
+      const interval = setInterval(processUpdate, 100 / playbackSpeed);
       return () => {
         clearInterval(interval);
       };
@@ -108,7 +120,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     switch (algorithm) {
       case Algorithm.SJF:
         return minBy(waitingProcesses, (p) => p.duration);
-      case Algorithm.FCFS:
+      case Algorithm.FIFO:
         return minBy(waitingProcesses, (p) => p.enquedAt);
       case Algorithm.RR:
         const greaterPids = waitingProcesses.filter(({ pid }) => pid > (lastRun?.pid ?? 0));
@@ -125,6 +137,11 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
       p.map((process) => {
         if (process.pid === pid && process.status === ProcessStatus.RUNNING) {
           const isComplete = willComplete(process);
+          addEvent({
+            pid,
+            timestamp: now,
+            type: isComplete ? EventType.EXITED : EventType.SUSPENDED,
+          });
           return {
             ...process,
             vruntime: isComplete ? process.duration * 1000 : process.vruntime,
@@ -133,7 +150,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
             events: [
               ...process.events,
               {
-                type: EventType.SUSPENDED,
+                type: isComplete ? EventType.EXITED : EventType.SUSPENDED,
                 timestamp: now,
               },
             ],
@@ -163,6 +180,11 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
         return process;
       })
     );
+    addEvent({
+      pid,
+      timestamp: now,
+      type: EventType.EXECUTED,
+    });
   };
 
   const willComplete = (process: Process) => {
@@ -178,7 +200,7 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
       ) ?? (lastRun && !willComplete(lastRun) ? lastRun : undefined);
     if (next) {
       execute(next.pid, now);
-      const processEndTime = now + next.duration * 1000 - next.vruntime + 100;
+      const processEndTime = now + next.duration * 1000 - next.vruntime;
       if (
         PREEMPTIVE_ALGORITHMS.includes(algorithm) &&
         processes.filter(({ status }) => status === ProcessStatus.WAITING).length
@@ -196,6 +218,11 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     if (running) {
       setLastRun(running);
       suspend(running.pid, now);
+      addEvent({
+        pid: running.pid,
+        timestamp: now,
+        type: EventType.TIMER_INTERRUPT,
+      });
     }
     const next =
       nextProcess(
@@ -246,5 +273,8 @@ export const useScheduler = (allowedAlgorithms?: Algorithm[]): SchedulerControll
     contextSwitchTimes,
     lastRun,
     nextRun,
+    events,
+    contextSwitchDurationDisabled,
+    setContextSwitchDurationDisabled,
   };
 };

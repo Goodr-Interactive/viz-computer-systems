@@ -13,6 +13,10 @@ import {
 import { QuizDisplay } from "./QuizDisplay";
 import { PerformanceChart } from "./PerformanceChart";
 import { ContextSwitchCard } from "./ContextSwitchCard";
+import { Timeline } from "./Timeline";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMediaQuery } from "../../../../../hooks";
+import { cn } from "../../../../../lib/utils";
 
 interface Props {
   controller: SchedulerController;
@@ -57,18 +61,24 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
 
   const inKernelMode =
     controller.state === SchedulerState.PAUSED ? undefined : running.length === 0;
+  const isDesktop = useMediaQuery();
 
   return (
     <div className="flex h-full w-full flex-col gap-[12px] p-[12px]">
-      <div className="flex w-full justify-between">
+      <div className="flex w-full flex-wrap justify-between">
         <h1 className="text-xl font-medium tracking-tight">Direct Execution</h1>
-        <div className="flex flex-col gap-[12px]">
+        <div className="flex flex-col justify-end gap-[12px]">
           <div className="flex w-[494px] justify-end gap-[12px]">
             <Badge>Elapsed: {formatMetric(metrics.elapsed)}s</Badge>
             <Badge variant={"secondary"}>CPU Active: {formatMetric(metrics.cpuActive)}s</Badge>
             <Badge variant={"outline"}>Throughput: {formatMetric(metrics.throughput)}s</Badge>
           </div>
-          <div className="flex w-[494px] justify-end gap-[12px]">
+          <div
+            className={cn(
+              "flex w-[494px] justify-end gap-[12px]",
+              !isDesktop && "w-[364px] flex-wrap"
+            )}
+          >
             <Badge className="bg-[var(--chart-2)]">
               Average Wait: {formatMetric(metrics.wait)}s
             </Badge>
@@ -83,7 +93,18 @@ export const DirectExecution: React.FunctionComponent<Props> = ({ controller }) 
       </div>
       <div className="flex h-full w-full items-center justify-center">
         {controller.processes.length && controller.processes.every((p) => p.completedAt) ? (
-          <PerformanceChart processes={controller.processes} clock={controller.clock} />
+          <Tabs defaultValue="metrics" className="h-full w-full">
+            <TabsList>
+              <TabsTrigger value="metrics">Metrics</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            </TabsList>
+            <TabsContent value="metrics">
+              <PerformanceChart processes={controller.processes} clock={controller.clock} />
+            </TabsContent>
+            <TabsContent value="timeline">
+              <Timeline controller={controller} />
+            </TabsContent>
+          </Tabs>
         ) : controller.quiz.question ? (
           <QuizDisplay question={controller.quiz.question} controller={controller} />
         ) : (

@@ -40,7 +40,7 @@ export const ProcessQueue: React.FunctionComponent<Props> = ({ controller }) => 
           <ScrollArea className="h-full px-[12px]">
             <div className="flex h-full w-full flex-col gap-[12px]">
               {active
-                .filter(({ pid }) => pid !== controller.lastRun?.pid)
+                .filter((p) => p.pid !== controller.lastRun?.pid || !controller.quizMode)
                 .map((p) => (
                   <ProcessCard
                     key={p.pid}

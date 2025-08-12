@@ -51,11 +51,14 @@ export const ProcessCard: React.FunctionComponent<Props> = ({ process, clock, al
     <Card className="w-full">
       <CardHeader>
         <div className="flex w-full items-center justify-between">
-          <CardTitle>PID:{process.pid}</CardTitle>
+          <div className="flex items-center gap-[8px]">
+            <CardTitle>PID:{process.pid}</CardTitle>
+            <CardDescription>– Arrived at: {(process.enquedAt / 1000).toFixed(1)}s</CardDescription>
+          </div>
+
           <Badge variant={variant}>{label}</Badge>
         </div>
 
-        <CardDescription>Created at: {(process.enquedAt / 1000).toFixed(1)}s</CardDescription>
         <div className="mt-[8px] flex w-full justify-between">
           <Label>{algorithm === Algorithm.CFS ? "vruntime" : "time"}</Label>
           <Label>

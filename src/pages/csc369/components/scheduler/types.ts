@@ -1,6 +1,14 @@
 export enum EventType {
   SUSPENDED = "SUSPENDED",
   EXECUTED = "EXECUTED",
+  TIMER_INTERRUPT = "TIMER_INTERRUPT",
+  EXITED = "EXITED",
+}
+
+export interface SchedulerEvent {
+  pid: number;
+  type: EventType;
+  timestamp: number;
 }
 
 export interface ProcessEvent {
@@ -26,7 +34,7 @@ export interface Process {
 }
 
 export enum Algorithm {
-  FCFS = "FCFS",
+  FIFO = "FIFO",
   SJF = "SJF",
   SCTF = "STCF",
   CFS = "CFS",
@@ -78,4 +86,7 @@ export interface SchedulerController {
   contextSwitchTimes: [number, number];
   lastRun?: Process;
   nextRun?: Process;
+  events: SchedulerEvent[];
+  contextSwitchDurationDisabled: boolean;
+  setContextSwitchDurationDisabled: (csd: boolean) => void;
 }

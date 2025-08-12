@@ -25,6 +25,7 @@ import {
 import { CacheHierarchy } from "./pages/csc368/cache";
 import { Coherence } from "./pages/csc368/coherence";
 import { AssociativityPage as Associativity } from "./pages/csc368/cache/associativity";
+import { ContextSwitch } from "./pages/csc369/components/contextSwitch";
 import { PipeliningThroughputPage } from "./pages/csc368/pipelining/pipelining-throughput";
 import { PipeliningComparisonPage } from "./pages/csc368/pipelining/pipelining-comparison";
 
@@ -72,12 +73,12 @@ export const ROUTES: AppRoute[] = [
     description: "",
     element: <Threads {...ZEMAPHORES} />,
   },
-  // {
-  //   path: "/csc369/threads-multi-reader-writer",
-  //   title: "Threads – Multiple Reader & Single Writer",
-  //   description: "",
-  //   element: <Threads {...MULTI_READER_WRITER} />,
-  // },
+  {
+    path: "/csc369/context-switch",
+    title: "Context Switch",
+    description: "",
+    element: <ContextSwitch />,
+  },
   {
     path: "/csc369/threads-cv-producer-consumer",
     title: "Threads – Producer & Consumer with Condition Variables",

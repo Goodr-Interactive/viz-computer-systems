@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^9.8.0",
+    "@fireworks-js/react": "^2.10.8",
     "@fontsource/inter": "^5.2.5",
     "@mynaui/icons-react": "^0.3.3",
     "@radix-ui/react-alert-dialog": "^1.1.13",

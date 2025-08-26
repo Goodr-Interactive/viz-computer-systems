@@ -282,8 +282,12 @@ export const CacheHierarchyVisualization: React.FC = () => {
         lastAccessed: Date.now(),
       };
 
-          // Add L2 latency to total when going to RAM
-          return { hit: false, latency: latencyConfig.l1 + latencyConfig.l2 + latencyConfig.ram, newCacheState };
+      // Add L2 latency to total when going to RAM
+      return {
+        hit: false,
+        latency: latencyConfig.l1 + latencyConfig.l2 + latencyConfig.ram,
+        newCacheState,
+      };
     }
   };
 
@@ -352,8 +356,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
         setAmat(calculatedAmat);
       }
 
-  // Highlight the accessed level
-  setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "l2", "ram"]));
+      // Highlight the accessed level
+      setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "l2", "ram"]));
 
       setTimeout(() => {
         setHighlightedStages(new Set());

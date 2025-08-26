@@ -351,8 +351,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
         setAmat(calculatedAmat);
       }
 
-      // Highlight the accessed level
-      setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "ram"]));
+  // Highlight the accessed level
+  setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "l2", "ram"]));
 
       setTimeout(() => {
         setHighlightedStages(new Set());

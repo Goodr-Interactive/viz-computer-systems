@@ -282,7 +282,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
         lastAccessed: Date.now(),
       };
 
-      return { hit: false, latency: latencyConfig.l1 + latencyConfig.ram, newCacheState };
+          // Add L2 latency to total when going to RAM
+          return { hit: false, latency: latencyConfig.l1 + latencyConfig.l2 + latencyConfig.ram, newCacheState };
     }
   };
 

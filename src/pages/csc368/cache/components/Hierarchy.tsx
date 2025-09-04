@@ -340,7 +340,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
         if (newTotalAccesses > 0) {
           const l1HitRate = newHits / newTotalAccesses;
           const l1MissRate = 1 - l1HitRate;
-          const calculatedAmat = latencyConfig.l1 + l1MissRate * (latencyConfig.l2 + latencyConfig.ram);
+          const calculatedAmat =
+            latencyConfig.l1 + l1MissRate * (latencyConfig.l2 + latencyConfig.ram);
           setAmat(calculatedAmat);
         }
         return updated;

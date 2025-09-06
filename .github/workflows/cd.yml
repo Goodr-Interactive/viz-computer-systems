@@ -26,7 +26,7 @@ jobs:
       - name: Build project
         run: bun run build
     
-      - name: Fix React Router for GitHub Pages
+      - name: Support SPA routing
         run: cp dist/index.html dist/404.html
     
       - name: Deploy to GitHub Pages

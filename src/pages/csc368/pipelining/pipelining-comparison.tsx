@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { PipelineComparison } from "./components";
+import { BASE } from "@/constants";
 
 export const PipeliningComparisonPage: React.FunctionComponent = () => {
   return (
@@ -21,13 +22,13 @@ export const PipeliningComparisonPage: React.FunctionComponent = () => {
 
         <div className="mt-6 flex justify-center gap-4">
           <Button asChild variant="outline">
-            <a href="/csc368/pipelining-throughput">Throughput Analysis</a>
+            <a href={`${BASE}/csc368/pipelining-throughput`}>Throughput Analysis</a>
           </Button>
           <Button asChild variant="outline">
-            <a href="/csc368/pipelining">Single Visualization</a>
+            <a href={`${BASE}/csc368/pipelining`}>Single Visualization</a>
           </Button>
           <Button asChild variant="outline">
-            <a href="/csc368">Back to CSC368</a>
+            <a href={`${BASE}/csc368`}>Back to CSC368</a>
           </Button>
         </div>
       </div>

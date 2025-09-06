@@ -24,6 +24,8 @@ jobs:
         run: bun install
     
       - name: Build project
+        env:
+          VITE_BASE: "/viz-computer-systems"
         run: bun run build
     
       - name: Support SPA routing

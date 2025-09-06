@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { LightModeEnforcer } from "@/components/LightModeEnforcer";
 import Associativity from "./components/Associativity";
+import { BASE } from "@/constants";
 
 export const AssociativityPage: React.FunctionComponent = () => {
   return (
@@ -13,7 +14,7 @@ export const AssociativityPage: React.FunctionComponent = () => {
 
         <div className="mt-4 flex gap-[16px]">
           <Button asChild variant="outline">
-            <a href="/csc368">Back to CSC368</a>
+            <a href={`${BASE}/csc368`}>Back to CSC368</a>
           </Button>
         </div>
       </div>

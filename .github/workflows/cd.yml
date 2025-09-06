@@ -1,0 +1,38 @@
+name: Build and deploy to GitHub Pages
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build-deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+    
+      - name: Install dependencies
+        run: bun install
+    
+      - name: Build project
+        env:
+          VITE_BASE: "/viz-computer-systems"
+        run: bun run build
+    
+      - name: Support SPA routing
+        run: cp dist/index.html dist/404.html
+    
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist

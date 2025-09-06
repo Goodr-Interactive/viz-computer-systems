@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { LightModeEnforcer } from "@/components/LightModeEnforcer";
 import { PipelineThroughputComparison } from "./components";
+import { BASE } from "@/constants";
 
 export const PipeliningThroughputPage: React.FunctionComponent = () => {
   return (
@@ -23,13 +24,13 @@ export const PipeliningThroughputPage: React.FunctionComponent = () => {
 
           <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:justify-center sm:gap-4">
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <a href="/csc368/pipelining-comparison">Basic Comparison</a>
+              <a href={`${BASE}/csc368/pipelining-comparison`}>Basic Comparison</a>
             </Button>
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <a href="/csc368/pipelining">Single Visualization</a>
+              <a href={`${BASE}/csc368/pipelining`}>Single Visualization</a>
             </Button>
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <a href="/csc368">Back to CSC368</a>
+              <a href={`${BASE}/csc368`}>Back to CSC368</a>
             </Button>
           </div>
         </div>

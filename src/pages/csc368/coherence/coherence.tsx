@@ -6,6 +6,7 @@ import {
   LinearFalseSharingViz,
   ConfigurableFalseSharingViz,
 } from "./components";
+import { BASE } from "@/constants";
 
 export const Coherence: React.FunctionComponent = () => {
   const [viewMode, setViewMode] = useState<"basic" | "linear" | "configurable" | "grid">("basic");
@@ -49,7 +50,7 @@ export const Coherence: React.FunctionComponent = () => {
 
       <div className="mt-4 flex gap-[16px]">
         <Button asChild variant="outline">
-          <a href="/csc368">Back to CSC368</a>
+          <a href={`${BASE}/csc368`}>Back to CSC368</a>
         </Button>
       </div>
     </div>

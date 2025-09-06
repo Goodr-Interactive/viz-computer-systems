@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "../../App";
+import { BASE } from "@/constants";
 
 export const CSC368: React.FunctionComponent = () => {
   const routes = ROUTES.filter(({ path }) => path.includes("csc368") && path.split("/").length > 2);
@@ -14,12 +15,12 @@ export const CSC368: React.FunctionComponent = () => {
       <div className="flex max-w-[500px] flex-wrap justify-center gap-[16px]">
         {routes.map((route) => (
           <Button asChild variant="outline">
-            <a href={route.path}>{route.title}</a>
+            <a href={`${BASE}${route.path}`}>{route.title}</a>
           </Button>
         ))}
       </div>
       <Button asChild>
-        <a href={"/"}>Back to Home</a>
+        <a href={`${BASE}/`}>Back to Home</a>
       </Button>
     </div>
   );

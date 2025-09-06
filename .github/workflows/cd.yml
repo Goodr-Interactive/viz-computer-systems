@@ -26,6 +26,9 @@ jobs:
       - name: Build project
         run: bun run build
     
+      - name: Fix React Router for GitHub Pages
+        run: cp dist/index.html dist/404.html
+    
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:

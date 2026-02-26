@@ -566,7 +566,7 @@ export class TranslationSystem {
       indices.unshift({
         bits: bitsString,
         value: indexValue,
-        label: i === this.pageTableLevels - 1 ? "PT Index" : "PD Index",
+        label: i === this.pageTableLevels - 1 ? "PD Index" : "PT Index",
         startBit: this.offsetBits + i * this.pageTableBits,
       });
     }

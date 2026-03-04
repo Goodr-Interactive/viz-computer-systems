@@ -19,7 +19,7 @@ export const ResourceDisplay: React.FunctionComponent<Props> = ({ controller }) 
   const state = Object.values(controller.state);
 
   return (
-    <div className="flex h-full w-full flex-col gap-[36px] p-[12px]">
+    <div className="flex h-full w-full flex-col gap-[36px] overflow-y-auto p-[12px]">
       <h1 className="text-xl font-medium tracking-tight">Resources</h1>
       {controller.locks.length ? (
         <div className="flex flex-col rounded-md bg-neutral-50 p-2">

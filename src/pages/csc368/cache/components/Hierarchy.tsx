@@ -282,7 +282,12 @@ export const CacheHierarchyVisualization: React.FC = () => {
         lastAccessed: Date.now(),
       };
 
-      return { hit: false, latency: latencyConfig.l1 + latencyConfig.ram, newCacheState };
+      // Add L2 latency to total when going to RAM
+      return {
+        hit: false,
+        latency: latencyConfig.l1 + latencyConfig.l2 + latencyConfig.ram,
+        newCacheState,
+      };
     }
   };
 
@@ -312,23 +317,35 @@ export const CacheHierarchyVisualization: React.FC = () => {
       ]);
 
       // Update hit/miss statistics for L1 and L2
-      setHitMissData((prev) => ({
-        ...prev,
-        l1: {
-          hits: prev.l1.hits + (result.hit ? 1 : 0),
-          misses: prev.l1.misses + (result.hit ? 0 : 1),
-        },
-        l2: {
-          // L2 is accessed only on L1 miss, and since we're simulating L1-only,
+      setHitMissData((prev) => {
+        const newHits = prev.l1.hits + (result.hit ? 1 : 0);
+        const updated = {
+          ...prev,
+          l1: {
+            hits: newHits,
+            misses: prev.l1.misses + (result.hit ? 0 : 1),
+          },
+          // Since L2 is accessed only on L1 miss, and since we're simulating L1-only,
           // all L1 misses result in L2 misses (go to RAM)
-          hits: prev.l2.hits, // No L2 hits in this simple simulation
-          misses: prev.l2.misses + (result.hit ? 0 : 1), // L1 miss = L2 miss
-        },
-        ram: {
-          hits: prev.ram.hits + (result.hit ? 0 : 1), // RAM access on L1 miss
-          misses: prev.ram.misses,
-        },
-      }));
+          l2: {
+            hits: prev.l2.hits,
+            misses: prev.l2.misses + (result.hit ? 0 : 1),
+          },
+          ram: {
+            hits: prev.ram.hits + (result.hit ? 0 : 1),
+            misses: prev.ram.misses,
+          },
+        };
+        const newTotalAccesses = currentInstructionIndexRef.current;
+        if (newTotalAccesses > 0) {
+          const l1HitRate = newHits / newTotalAccesses;
+          const l1MissRate = 1 - l1HitRate;
+          const calculatedAmat =
+            latencyConfig.l1 + l1MissRate * (latencyConfig.l2 + latencyConfig.ram);
+          setAmat(calculatedAmat);
+        }
+        return updated;
+      });
 
       // Update cache statistics
       setCacheStats((prev) => ({
@@ -340,19 +357,8 @@ export const CacheHierarchyVisualization: React.FC = () => {
         subsequentAccessLatency: result.latency,
       }));
 
-      // Calculate and update AMAT based on actual simulation results
-      const newTotalAccesses = currentInstructionIndexRef.current + 1;
-      const newCacheHits = hitMissData.l1.hits + (result.hit ? 1 : 0);
-
-      if (newTotalAccesses > 0) {
-        const l1HitRate = newCacheHits / newTotalAccesses;
-        const l1MissRate = 1 - l1HitRate;
-        const calculatedAmat = latencyConfig.l1 + l1MissRate * latencyConfig.ram;
-        setAmat(calculatedAmat);
-      }
-
       // Highlight the accessed level
-      setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "ram"]));
+      setHighlightedStages(new Set(result.hit ? ["cpu", "l1"] : ["cpu", "l1", "l2", "ram"]));
 
       setTimeout(() => {
         setHighlightedStages(new Set());
